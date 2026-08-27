@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Daily Trading Journal</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: #0B0F14; color: #E6EDF3;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    padding-bottom: 50px;
+  }
+  header { padding: 14px 16px 10px; border-bottom: 1px solid #232B36; position: sticky; top:0; background:#0B0F14; z-index: 30; }
+  .eyebrow { font-size: 11px; letter-spacing: 1.5px; color: #3FD5E0; font-weight: 700; margin-bottom: 3px; }
+  .title { font-size: 18px; font-weight: 700; }
+  .daybar { display:flex; align-items:center; justify-content:space-between; padding: 8px 16px; font-size: 11px; border-bottom: 1px solid #232B36; }
+  .daybar .dv { color:#E6EDF3; font-weight:700; }
+  .daybar .dl { color:#7C8896; }
+  .pill { font-size:10px; font-weight:800; border-radius:6px; padding:3px 7px; }
+  .daybar button { background:transparent; border:1px solid #3FD5E0; color:#3FD5E0; border-radius:7px; padding:4px 9px; font-size:10px; font-weight:700; font-family:inherit; }
+  .autosave-note { font-size: 10px; color: #7C8896; padding: 5px 16px; text-align: right; border-bottom:1px solid #232B36; }
+
+  .nav { display:flex; gap:6px; overflow-x:auto; padding:10px 16px; border-bottom:1px solid #232B36; position:sticky; top:96px; background:#0B0F14; z-index:20; -webkit-overflow-scrolling:touch; }
+  .nav button { flex:0 0 auto; padding:8px 14px; border-radius:999px; border:1px solid #232B36; background:#12181F; color:#7C8896; font-weight:700; font-size:11px; white-space:nowrap; font-family:inherit; }
+  .nav button.active { border-color:#3FD5E0; color:#3FD5E0; background:#16323A; }
+
+  .wrap { padding: 14px; }
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .card { background:#12181F; border:1px solid #232B36; border-radius:14px; margin-bottom:14px; overflow:hidden; }
+  .card-title { font-size: 11px; color:#7C8896; letter-spacing:1px; font-weight:700; padding:14px 14px 10px; }
+  .hint-box { font-size:11px; color:#7C8896; line-height:1.6; padding:0 4px 14px; }
+
+  .field-row { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #232B36; }
+  .field-row:last-child { border-bottom:none; }
+  .field-row span.lbl { font-size:13px; color:#7C8896; }
+  .field-row input, .field-row input[type=date] {
+    background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3;
+    font-size:15px; font-weight:700; text-align:right; width:110px; height:38px; padding:0 10px;
+    outline:none; font-family:inherit;
+  }
+  textarea {
+    width:100%; background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3;
+    font-size:13px; padding:10px; outline:none; font-family:inherit; resize:vertical; min-height:60px;
+  }
+  .textarea-wrap { padding:10px 14px 14px; }
+  .textarea-wrap .lbl { font-size:12px; color:#7C8896; margin-bottom:6px; display:block; }
+
+  .hlc-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; padding:10px 14px; }
+  .hlc-row div { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .hlc-row label { font-size:10px; color:#7C8896; text-align:center; }
+  .hlc-row input {
+    background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3;
+    font-size:14px; font-weight:700; text-align:center; height:38px; padding:0 4px; outline:none; font-family:inherit;
+    width:100%; min-width:0; box-sizing:border-box;
+  }
+
+  .result-box { margin:0 14px 14px; padding:12px; border-radius:10px; background:#0E141A; border:1px solid #232B36; font-size:13px; line-height:1.8; }
+  .result-box .big { font-size:16px; font-weight:800; color:#3FD5E0; }
+  .result-box .row { display:flex; justify-content:space-between; }
+  .result-box .muted { color:#7C8896; }
+
+  .final-strat { padding:14px; }
+  .final-strat .fname { font-size:17px; font-weight:800; color:#3FD5E0; margin-bottom:10px; }
+  .final-strat .frow { display:flex; padding:8px 0; border-top:1px dashed #232B36; }
+  .final-strat .frow .flabel { width:70px; flex-shrink:0; font-size:11px; color:#7C8896; font-weight:700; padding-top:1px; }
+  .final-strat .frow .fval { font-size:13px; color:#E6EDF3; line-height:1.6; }
+  .final-strat .fnote { font-size:11px; color:#7C8896; margin-top:10px; padding-top:10px; border-top:1px dashed #232B36; line-height:1.6; }
+  .final-strat-empty { padding:14px; color:#7C8896; font-size:13px; }
+
+  .toggle-group { display:flex; gap:6px; padding:0 14px 12px; }
+  .toggle-group button { flex:1; padding:9px; border-radius:8px; border:1px solid #232B36; background:#0E141A; color:#7C8896; font-weight:700; font-size:12px; font-family:inherit; }
+  .toggle-group button.active { border-color:#3FD5E0; color:#3FD5E0; background:#16323A; }
+  .toggle-q { font-size:12px; color:#E6EDF3; padding:10px 14px 6px; font-weight:700; }
+
+  .strategy-list { padding: 4px 14px 14px; }
+  .strategy-list div { font-size:13px; line-height:1.7; padding:6px 0; border-bottom:1px dashed #232B36; }
+  .strategy-list div:last-child { border-bottom:none; }
+
+  .tabs { display:grid; grid-template-columns: repeat(4,1fr); gap:6px; margin-bottom:14px; }
+  .tab { padding:10px 4px; border-radius:10px; border:1px solid #232B36; background:#12181F; color:#E6EDF3; font-weight:700; font-size:13px; display:flex; flex-direction:column; align-items:center; gap:4px; font-family:inherit; }
+  .tab.active { border-color:#3FD5E0; background:#16323A; color:#3FD5E0; }
+  .fill-track { width:100%; height:4px; border-radius:999px; background:#232B36; margin-top:4px; overflow:hidden; }
+  .fill-bar { height:100%; border-radius:999px; }
+  .fill-count { font-size:8px; color:#7C8896; margin-top:2px; }
+
+  .stock-row { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; border-bottom:1px solid #232B36; }
+  .stock-row:last-child { border-bottom:none; }
+  .stock-row.leg { background:#161D26; }
+  .stock-name { display:flex; align-items:center; gap:8px; }
+  .stock-name span.nm { font-size:14px; }
+  .stock-row.leg .nm { font-weight:700; }
+  .badge { font-size:9px; color:#3FD5E0; border:1px solid #3FD5E0; border-radius:4px; padding:1px 4px; font-weight:700; }
+  .stock-row input { background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3; font-size:16px; font-weight:700; text-align:right; width:76px; height:40px; padding:0 10px; outline:none; font-family:inherit; }
+  .sign-btn { width:40px; height:40px; border-radius:8px; border:1px solid #232B36; background:#0E141A; color:#7C8896; font-size:16px; font-weight:800; font-family:inherit; margin-right:6px; }
+  .sign-btn.neg { color:#F2545B; border-color:#F2545B55; }
+  .sign-btn.pos { color:#3DDC84; border-color:#3DDC8455; }
+  .input-group { display:flex; align-items:center; }
+
+  .result-inner { padding:16px; }
+  .label-sm { font-size:11px; color:#7C8896; letter-spacing:1px; margin-bottom:10px; font-weight:700; }
+  .empty-msg { color:#7C8896; font-size:14px; padding:8px 0; }
+  .stat-grid { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; margin-bottom:10px; }
+  .stat-box { background:#0E141A; border-radius:10px; padding:10px 4px; text-align:center; }
+  .stat-box .val { font-size:18px; font-weight:800; }
+  .stat-box .lbl { font-size:9px; color:#7C8896; margin-top:2px; }
+  .entered-line { font-size:12px; color:#7C8896; margin-bottom:10px; text-align:right; }
+  .kv-row { display:flex; justify-content:space-between; font-size:13px; color:#7C8896; margin-bottom:6px; }
+  .kv-row b { color:#E6EDF3; font-weight:700; }
+  .two-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:14px; }
+  .pill-box { border-radius:10px; padding:10px 12px; background:#0E141A; border:1px solid #232B36; }
+  .pill-box .lbl { font-size:10px; color:#7C8896; margin-bottom:4px; }
+  .pill-box .val { font-size:15px; font-weight:800; }
+  .compare-grid { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; padding:0 14px 14px; }
+  .compare-cell { background:#0E141A; border-radius:8px; padding:8px 4px; text-align:center; }
+  .compare-cell .lbl { font-size:10px; color:#7C8896; margin-bottom:4px; }
+  .compare-cell .sig { font-size:10px; font-weight:800; }
+
+  .of-entry { border-bottom:1px solid #232B36; padding:12px 14px; }
+  .of-entry:last-child { border-bottom:none; }
+  .of-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .of-head .idx { font-size:11px; color:#7C8896; font-weight:700; }
+  .of-del { background:transparent; border:none; color:#F2545B; font-size:15px; font-family:inherit; }
+  .of-color-toggle { display:flex; gap:6px; margin-bottom:8px; }
+  .of-color-toggle button { flex:1; padding:8px; border-radius:8px; border:1px solid #232B36; background:#0E141A; color:#7C8896; font-weight:700; font-size:12px; font-family:inherit; }
+  .of-color-toggle button.red.active { border-color:#F2545B; color:#F2545B; background:#2A1416; }
+  .of-color-toggle button.green.active { border-color:#3DDC84; color:#3DDC84; background:#123322; }
+  .of-grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:8px; }
+  .of-grid3 div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .of-grid3 label { font-size:9px; color:#7C8896; text-align:center; }
+  .of-grid3 input { background:#0E141A; border:1px solid #232B36; border-radius:7px; color:#E6EDF3; font-size:13px; font-weight:700; text-align:center; height:34px; outline:none; font-family:inherit; width:100%; min-width:0; box-sizing:border-box; }
+  .of-delta-grid { display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px; }
+  .of-delta-grid div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .of-delta-grid label { font-size:9px; color:#7C8896; text-align:center; }
+  .of-delta-grid input { background:#0E141A; border:1px solid #232B36; border-radius:7px; color:#E6EDF3; font-size:13px; font-weight:700; text-align:center; height:34px; outline:none; font-family:inherit; width:100%; min-width:0; box-sizing:border-box; }
+  .of-auto { font-size:11px; padding:8px; border-radius:8px; background:#0E141A; margin-bottom:8px; text-align:center; font-weight:800; }
+  .of-tag-select { width:100%; background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3; font-size:13px; font-weight:700; padding:8px; outline:none; font-family:inherit; margin-bottom:8px; }
+  .of-note { width:100%; }
+  .add-btn { width:100%; padding:12px; border-radius:12px; border:1px dashed #3FD5E0; background:transparent; color:#3FD5E0; font-weight:700; font-size:13px; font-family:inherit; margin-top:10px; }
+  .of-tally { display:grid; grid-template-columns: repeat(3,1fr); gap:6px; padding:0 14px 14px; }
+  .of-tally-box { background:#0E141A; border-radius:8px; padding:8px 4px; text-align:center; }
+  .of-tally-box .n { font-size:16px; font-weight:800; color:#3FD5E0; }
+  .of-tally-box .t { font-size:9px; color:#7C8896; }
+
+  .action-row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:14px; }
+  .save-btn { padding:13px; border-radius:12px; border:1px solid #3DDC8455; background:#12181F; color:#3DDC84; font-weight:700; font-size:13px; font-family:inherit; }
+  .save-btn.saved { background:#123322; border-color:#3DDC84; }
+  .erase-btn { padding:13px; border-radius:12px; border:1px solid #232B36; background:#12181F; color:#7C8896; font-weight:700; font-size:13px; font-family:inherit; }
+  .erase-btn.confirm { border-color:#F2545B; background:#2A1416; color:#F2545B; }
+
+  .history-empty { color:#7C8896; font-size:12px; padding:0 14px 14px; }
+  .history-item { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; border-bottom:1px solid #232B36; font-size:13px; }
+  .history-item:last-child { border-bottom:none; }
+  .history-item.today-item { background:#161D26; }
+  .history-item .hdate { font-weight:700; }
+  .history-item .hdate span { display:block; font-size:10px; color:#7C8896; font-weight:400; margin-top:1px; }
+  .history-item .hchip { font-size:11px; font-weight:800; border-radius:6px; padding:4px 8px; }
+  .history-item .hdel { background:transparent; border:none; color:#F2545B; font-size:16px; padding:4px 8px; font-family:inherit; }
+
+  .settings-toggle { width:100%; padding:12px; border-radius:12px; border:1px solid #232B36; background:#12181F; color:#7C8896; font-weight:700; font-size:13px; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:14px; }
+  .weight-note { font-size:11px; color:#7C8896; padding:0 14px 12px; line-height:1.6; }
+  .weight-row { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-bottom:1px solid #232B36; }
+  .weight-row:last-child { border-bottom:none; }
+  .weight-row .wname { font-size:13px; }
+  .weight-row input { background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3; font-size:15px; font-weight:700; text-align:right; width:68px; height:36px; padding:0 8px; outline:none; font-family:inherit; }
+  .weight-sum { display:flex; justify-content:space-between; padding:12px 14px; font-size:12px; color:#7C8896; border-top:1px solid #232B36; }
+  .weight-sum b { color:#3FD5E0; }
+  .weight-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding:12px 14px 14px; }
+  .weight-save { padding:11px; border-radius:10px; border:1px solid #3DDC8455; background:#12181F; color:#3DDC84; font-weight:700; font-size:12px; font-family:inherit; }
+  .weight-reset { padding:11px; border-radius:10px; border:1px solid #232B36; background:#12181F; color:#7C8896; font-weight:700; font-size:12px; font-family:inherit; }
+
+  .backup-box textarea { min-height:100px; font-size:11px; }
+  .backup-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding:0 14px 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v9</div>
+  <div class="title">Daily Trading Journal</div>
+</header>
+
+<div class="daybar">
+  <div><span class="dl">Day: </span><span class="dv" id="dayLabel"></span> <span class="pill" id="completePill"></span></div>
+  <button id="goTodayBtn" style="display:none">Go to Today</button>
+</div>
+<div class="autosave-note" id="autosaveNote">&nbsp;</div>
+
+<div class="nav">
+  <button data-section="levels">LEVELS</button>
+  <button data-section="opening">OPENING</button>
+  <button data-section="participation">PARTICIPATION</button>
+  <button data-section="orderflow">ORDER FLOW</button>
+  <button data-section="summary">SUMMARY</button>
+  <button data-section="more">MORE</button>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= LEVELS ================= -->
+  <div id="section-levels" class="section">
+    <div class="card">
+      <div class="card-title">REFERENCE LEVELS (raat ko bhar do)</div>
+      <div class="field-row"><span class="lbl">PDH</span><input id="lv_pdh" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">PDL</span><input id="lv_pdl" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">PDC</span><input id="lv_pdc" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">VAH</span><input id="lv_vah" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">VAL</span><input id="lv_val" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">POC</span><input id="lv_poc" inputmode="decimal"></div>
+      <div class="textarea-wrap">
+        <span class="lbl">Naked POC / other levels / notes</span>
+        <textarea id="lv_naked" placeholder="e.g. purana POC 24080, ya koi aur naked level"></textarea>
+      </div>
+    </div>
+    <div class="hint-box">
+      Ye 6 levels raat ko hi bhar do. Kal subah sirf OPENING tab me jaake Open aur A period ka H/L/C daalna hai —
+      opening type, Drive/OTD/ORR, IB, half-IB, sab yahi se auto calculate ho jayega.
+    </div>
+  </div>
+
+  <!-- ================= OPENING ================= -->
+  <div id="section-opening" class="section">
+    <div class="card">
+      <div class="card-title">OPEN</div>
+      <div class="field-row"><span class="lbl">Open price</span><input id="op_open" inputmode="decimal"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">CONTEXT — VIX / MOMENTUM</div>
+      <div class="field-row"><span class="lbl">India VIX</span><input id="op_vix" inputmode="decimal"></div>
+      <div class="toggle-q">Momentum (A period range + VIX se khud suggest hota hai)</div>
+      <div id="momentumSuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
+      <div class="toggle-group" id="tg_momentum">
+        <button data-val="fast">Fast</button>
+        <button data-val="dull">Dull</button>
+      </div>
+      <div style="padding:0 14px 12px"><button id="resetMomentumBtn" style="background:transparent;border:1px solid #232B36;color:#7C8896;border-radius:8px;padding:6px 10px;font-size:11px;font-family:inherit">Reset to auto</button></div>
+      <div class="hint-box" style="padding:0 14px 12px">Fast momentum → test/ORR tolerance khud-ba-khud 30+ pts tak widen ho jayegi. Auto-suggestion: A-range ≥50pts = Fast, A-range ≤25pts + VIX&lt;13 = Dull. Manually bhi override kar sakte ho.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">A PERIOD (9:15 – 9:45)</div>
+      <div class="hlc-row">
+        <div><label>HIGH</label><input id="op_Ah" inputmode="decimal"></div>
+        <div><label>LOW</label><input id="op_Al" inputmode="decimal"></div>
+        <div><label>CLOSE</label><input id="op_Ac" inputmode="decimal"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">OPENING TYPE (auto)</div>
+      <div class="result-box" id="openingResultBox">Levels + Open + A bharo</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">B PERIOD (9:45 – 10:15) — IB ke liye zaroori</div>
+      <div class="hlc-row">
+        <div><label>HIGH</label><input id="op_Bh" inputmode="decimal"></div>
+        <div><label>LOW</label><input id="op_Bl" inputmode="decimal"></div>
+        <div><label>CLOSE</label><input id="op_Bc" inputmode="decimal"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">IB & HALF-IB (auto)</div>
+      <div class="result-box" id="ibResultBox">A + B dono bharo</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">DAY TYPE LADDER (11:00 pe, khud dekh ke batao)</div>
+
+      <div class="toggle-q">1. C ke baad IB DONO SIDE touch hui?</div>
+      <div class="toggle-group" id="tg_ibBoth">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+
+      <div id="q_closeInside" style="display:none">
+        <div class="toggle-q">Close IB ke andar hai ya bahar?</div>
+        <div class="toggle-group" id="tg_closeInside">
+          <button data-val="in">Andar (Center)</button>
+          <button data-val="out">Bahar (Extreme)</button>
+        </div>
+      </div>
+
+      <div id="q_halfAccess" style="display:none">
+        <div class="toggle-q">2. Half-IB access mila (CLOSE se)?</div>
+        <div class="toggle-group" id="tg_halfAccess">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+      </div>
+
+      <div id="q_halfSide" style="display:none">
+        <div class="toggle-q">Kis taraf access mila?</div>
+        <div class="toggle-group" id="tg_halfSide">
+          <button data-val="up">Upar</button>
+          <button data-val="down">Neeche</button>
+        </div>
+      </div>
+
+      <div id="q_vwap" style="display:none">
+        <div class="toggle-q">3. VWAP freeze + har period HH/LL bana raha hai?</div>
+        <div class="toggle-group" id="tg_vwapTrend">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">PROFILE SHAPE (11:30 baad ya EOD dekh ke batao)</div>
+      <div class="toggle-q">Session ka shape kaisa bana?</div>
+      <div class="toggle-group" id="tg_profileShape">
+        <button data-val="P">P-shape</button>
+        <button data-val="B">b-shape</button>
+      </div>
+      <div class="toggle-group" id="tg_profileShape2">
+        <button data-val="D">D-shape</button>
+        <button data-val="DoubleD">Double-D</button>
+      </div>
+      <div id="q_pShapeType" style="display:none">
+        <div class="toggle-q">P-shape — fresh buying ya short covering lag raha hai?</div>
+        <div class="toggle-group" id="tg_pShapeType">
+          <button data-val="fresh">Fresh buying</button>
+          <button data-val="shortcover">Short covering</button>
+        </div>
+      </div>
+      <div id="q_doubleDLevels" style="display:none">
+        <div class="hint-box" style="padding:0 14px 8px">Dono balance zones note kar lo — agle session ke liye reference banenge.</div>
+        <div class="field-row"><span class="lbl">Balance-1 High</span><input id="op_bal1h" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Balance-1 Low</span><input id="op_bal1l" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Balance-2 High</span><input id="op_bal2h" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Balance-2 Low</span><input id="op_bal2l" inputmode="decimal"></div>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">
+        P = buying tail (buyer control) · b = long liquidation (seller weak) · D = koi control nahi (balance) · Double-D = trend with 2 pauses (lower conviction, par 2 naya reference level milte hain).
+      </div>
+    </div>
+
+    <div class="card" id="oaorCard" style="display:none">
+      <div class="card-title">OAOR SPECIFIC (agar gap wala din hai)</div>
+      <div class="toggle-q">Gap G/H period (~12:30) tak fill hua?</div>
+      <div class="toggle-group" id="tg_oaorGapFilled">
+        <button data-val="yes">Haan, fill hua</button>
+        <button data-val="no">Nahi fill hua</button>
+      </div>
+      <div class="toggle-q">A period ne koi rejection tail chhodi?</div>
+      <div class="toggle-group" id="tg_aPeriodTail">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_tailSide" style="display:none">
+        <div class="toggle-group" id="tg_aPeriodTailSide">
+          <button data-val="selling">Selling tail (upar)</button>
+          <button data-val="buying">Buying tail (neeche)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="trendSubCard" style="display:none">
+      <div class="card-title">TREND DAY SUB-TYPE</div>
+      <div class="toggle-q">Session me VWAP kitni baar test hua?</div>
+      <div class="toggle-group" id="tg_vwapTestCount">
+        <button data-val="zero">Zero (pure OTF move)</button>
+        <button data-val="one">Ek baar</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Zero test = OTF move, sabse strong. Ek test = normal trend day, VWAP retest ~12:30-1:30 ke aas-paas expect karo (inventory adjustment window).</div>
+    </div>
+
+    <div class="card" id="nvSlCard" style="display:none">
+      <div class="card-title">NORMAL VARIATION — SL CHOICE</div>
+      <div class="toggle-q">IB length ke hisaab se SL kaunsa lena hai?</div>
+      <div class="toggle-group" id="tg_slChoice">
+        <button data-val="vwap">VWAP (full risk)</button>
+        <button data-val="ibExtreme">IB extreme (tighter)</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">IB chota ho (60-100) to VWAP zyada door nahi hota, VWAP hi lo. IB bada ho (150+) to VWAP bahut door ho sakta hai — IB extreme tighter alternative hai.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">DAY TYPE (auto)</div>
+      <div class="result-box" id="dayTypeResultBox">Ladder complete karo upar</div>
+    </div>
+
+    <div class="card" id="flagsCard" style="display:none">
+      <div class="card-title">EXTRA FLAGS</div>
+      <div id="failedAuctionFlag" style="display:none">
+        <div class="toggle-q">Failed Auction hua (ek side break, doosri side close bahar)?</div>
+        <div class="toggle-group" id="tg_failedAuction">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+      </div>
+      <div id="threeIBFlag" style="display:none">
+        <div class="toggle-q">Aaj 3IB tak gaya?</div>
+        <div class="toggle-group" id="tg_threeIB">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+        <div id="q_threeIBFast" style="display:none">
+          <div class="toggle-q">Breakout jaldi (C/D/E) + high pe close, ya late/dur?</div>
+          <div class="toggle-group" id="tg_threeIBFast">
+            <button data-val="fast">Jaldi + High pe close</button>
+            <button data-val="late">Late ya door</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">STRATEGY SIGNALS (khud dekh ke batao)</div>
+
+      <div class="toggle-q">C period rejected hua (bluff, wapas andar band hui)?</div>
+      <div class="toggle-group" id="tg_cPeriodRejected">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+
+      <div class="toggle-q">A+B period ka volume LOW tha (600K-1M se kam, dull)?</div>
+      <div class="toggle-group" id="tg_abVolumeLow">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+
+      <div class="toggle-q">Koi period (C se aage) PREVIOUS session ke value area ke 20%+ andar close hua?</div>
+      <div class="toggle-group" id="tg_value20pct">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_value20pctSide" style="display:none">
+        <div class="toggle-q">Kis taraf se andar aaya?</div>
+        <div class="toggle-group" id="tg_value20pctSide">
+          <button data-val="down">Upar se neeche aaya (VAH se)</button>
+          <button data-val="up">Neeche se upar aaya (VAL se)</button>
+        </div>
+      </div>
+
+      <div class="toggle-q">Kal violent 3IB + HIGH pe close hua tha (Normal Variation day)?</div>
+      <div class="toggle-group" id="tg_prevDay3IBHighClose">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+
+      <div class="toggle-q">Kal ke K/L/M period me Spike bana tha?</div>
+      <div class="toggle-group" id="tg_prevSpikeHad">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_spikeLevels" style="display:none">
+        <div class="field-row"><span class="lbl">Spike High</span><input id="op_prevSpikeHigh" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Spike Low</span><input id="op_prevSpikeLow" inputmode="decimal"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">PLAYBOOK MATCH (aapke answers se lookup)</div>
+      <div class="hint-box" style="padding:0 14px 10px">Ye tool "bluff hai ya real", "kaunsa shape bana" khud nahi dekh sakta — wo sab AAPKI aankh ka kaam hai. Ye sirf aapke diye toggles ke hisaab se coach ka likha rule dikhata hai.</div>
+      <div id="finalStrategyBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">SUPPORTING NOTES</div>
+      <div class="strategy-list" id="strategyBoxOpening"></div>
+    </div>
+  </div>
+
+  <!-- ================= PARTICIPATION ================= -->
+  <div id="section-participation" class="section">
+    <div class="card price-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px">
+      <span style="font-size:13px;color:#7C8896">Nifty price</span>
+      <input id="niftyPrice" inputmode="decimal" style="background:transparent;border:none;color:#E6EDF3;font-size:16px;font-weight:700;text-align:right;width:110px;outline:none;font-family:inherit">
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="card" id="stockList"></div>
+
+    <div class="card">
+      <div class="result-inner">
+        <div class="label-sm" id="resultLabel">RESULT</div>
+        <div id="resultBody"></div>
+      </div>
+    </div>
+
+    <div class="card" id="driftCard" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px">
+        <span style="font-size:13px;color:#7C8896">Drift 9:08 → 9:30</span>
+        <span id="driftVal" style="font-weight:800;font-size:13px"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label-sm" style="padding:14px 14px 0">ALL CHECKPOINTS</div>
+      <div class="compare-grid" id="compareGrid"></div>
+    </div>
+
+    <div class="hint-box">
+      0.25% se kam = flat &nbsp;·&nbsp; 0.50%+ = strong move<br>
+      7+ of 12 stocks same side = BROAD signal<br>
+      3+ of 4 Leg-1 stocks same side = BULL / BEAR, warna MIXED
+    </div>
+  </div>
+
+  <!-- ================= ORDER FLOW ================= -->
+  <div id="section-orderflow" class="section">
+    <div class="card">
+      <div class="card-title">TODAY'S PATTERNS</div>
+      <div id="ofList"></div>
+      <div style="padding:0 14px 14px"><button class="add-btn" id="addOfBtn">+ Add Pattern</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">TALLY</div>
+      <div class="of-tally" id="ofTally"></div>
+    </div>
+
+    <div class="hint-box">
+      Position % = (POC − Low) ÷ (High − Low) × 100. 0-25% Bottom, 25-75% Center, 75-100% Top.<br>
+      RED+Bottom = RB (nakli) · RED+Center = IS (asli) · GREEN+Top = RS (nakli) · GREEN+Center = IB (asli)<br>
+      Filter: candle 50+ pts, delta 50K+ (LLT 75-100K+) warna "not useful".<br>
+      Combination chahiye — RB+IB, IB+IB, RS+IS, IS+IS, RS+RB. Single pattern kaafi nahi.
+    </div>
+  </div>
+
+  <!-- ================= SUMMARY ================= -->
+  <div id="section-summary" class="section">
+    <div id="summaryBox"></div>
+  </div>
+
+  <!-- ================= MORE ================= -->
+  <div id="section-more" class="section">
+
+    <div class="field-row" style="background:#12181F;border:1px solid #232B36;border-radius:14px;margin-bottom:10px">
+      <span class="lbl">Open a date</span>
+      <input id="jumpDate" type="date">
+    </div>
+    <button class="weight-save" id="jumpDateBtn" style="width:100%;margin-bottom:14px">Open / Create this date</button>
+
+    <div class="action-row">
+      <button class="save-btn" id="saveBtn">Save now</button>
+      <button class="erase-btn" id="resetBtn">Erase this day</button>
+    </div>
+
+    <div class="card">
+      <div class="label-sm" style="padding:14px 14px 0">SAVED DAYS</div>
+      <div id="historyList"></div>
+    </div>
+
+    <button class="settings-toggle" id="backupToggle">💾 Backup / Restore ▾</button>
+    <div class="card backup-box" id="backupCard" style="display:none">
+      <div class="hint-box" style="padding:14px">
+        iOS Safari me file:// se khuli file ka storage kabhi-kabhi reset ho sakta hai (khaaskar naya download hone pe).
+        <b style="color:#E8A93E">Roz ke end me "Copy Backup" dabao aur text kahin safe rakh lo (Notes app me paste kar do).</b>
+        Agar data gayab ho jaye, "Restore" me wahi text paste karke wapas la sakte ho.
+      </div>
+      <div style="padding:0 14px 10px"><textarea id="backupText" placeholder="Backup text yahan aayega / paste karo"></textarea></div>
+      <div class="backup-actions">
+        <button class="weight-save" id="copyBackupBtn">Copy Backup</button>
+        <button class="weight-reset" id="restoreBackupBtn">Restore from text</button>
+      </div>
+    </div>
+
+    <button class="settings-toggle" id="rulesToggle">⚙ Edit Thresholds ▾</button>
+    <div class="card" id="rulesCard" style="display:none">
+      <div class="weight-note">Coach ke rules fixed nahi hain — VIX/momentum ke hisaab se badalte hain. Yahan se adjust kar sakte ho.</div>
+      <div class="field-row"><span class="lbl">Flat threshold (pts)</span><input id="rule_flat" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Drive side max (pts)</span><input id="rule_drive" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Test tolerance (pts)</span><input id="rule_test" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">ORR min cross (pts)</span><input id="rule_orr" inputmode="decimal"></div>
+      <div class="weight-actions">
+        <button class="weight-save" id="saveRulesBtn">Save Thresholds</button>
+        <button class="weight-reset" id="resetRulesBtn">Reset to Default</button>
+      </div>
+    </div>
+
+    <button class="settings-toggle" id="weightsToggle">⚙ Edit Stock Weights ▾</button>
+    <div class="card" id="weightsCard" style="display:none">
+      <div class="weight-note">
+        NSE weightage semi-annually rebalance hoti hai (31 Jan / 31 July ke baad). Roz thoda drift ignore karo.
+      </div>
+      <div id="weightsList"></div>
+      <div class="weight-sum">Total tracked weight <b id="weightSum">–</b></div>
+      <div class="weight-actions">
+        <button class="weight-save" id="saveWeightsBtn">Save Weights</button>
+        <button class="weight-reset" id="resetWeightsBtn">Reset to Default</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const DEFAULT_WEIGHTS = {
+  RELIANCE: 9.00, BHARTIARTL: 6.18, HDFCBANK: 5.88, ICICIBANK: 5.26,
+  SBIN: 4.86, INFY: 4.00, TCS: 3.50, LT: 3.30,
+  AXISBANK: 3.00, KOTAKBANK: 2.70, ITC: 2.70, "M&M": 2.50,
+};
+const STOCKS = [
+  { name: "RELIANCE", weight: DEFAULT_WEIGHTS.RELIANCE, leg: true },
+  { name: "BHARTIARTL", weight: DEFAULT_WEIGHTS.BHARTIARTL, leg: true },
+  { name: "HDFCBANK", weight: DEFAULT_WEIGHTS.HDFCBANK, leg: true },
+  { name: "ICICIBANK", weight: DEFAULT_WEIGHTS.ICICIBANK, leg: true },
+  { name: "SBIN", weight: DEFAULT_WEIGHTS.SBIN, leg: false },
+  { name: "INFY", weight: DEFAULT_WEIGHTS.INFY, leg: false },
+  { name: "TCS", weight: DEFAULT_WEIGHTS.TCS, leg: false },
+  { name: "LT", weight: DEFAULT_WEIGHTS.LT, leg: false },
+  { name: "AXISBANK", weight: DEFAULT_WEIGHTS.AXISBANK, leg: false },
+  { name: "KOTAKBANK", weight: DEFAULT_WEIGHTS.KOTAKBANK, leg: false },
+  { name: "ITC", weight: DEFAULT_WEIGHTS.ITC, leg: false },
+  { name: "M&M", weight: DEFAULT_WEIGHTS["M&M"], leg: false },
+];
+const CHECKPOINTS = [
+  { key: "c908", label: "9:08" }, { key: "c920", label: "9:20" },
+  { key: "c930", label: "9:30" }, { key: "now", label: "NOW" },
+];
+const COL = { green:"#3DDC84", red:"#F2545B", amber:"#E8A93E", sub:"#7C8896", cyan:"#3FD5E0" };
+const STORAGE_PREFIX = "tj_";
+const WEIGHTS_KEY = "tj_weights";
+const RULES_KEY = "tj_rules";
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DEFAULT_RULES = { flatThresh:40, driveThresh:20, testThresh:10, orrMinCross:30 };
+
+let RULES = Object.assign({}, DEFAULT_RULES);
+function loadRules() {
+  try {
+    const raw = localStorage.getItem(RULES_KEY);
+    if (raw) RULES = Object.assign({}, DEFAULT_RULES, JSON.parse(raw));
+  } catch (e) {}
+}
+loadRules();
+
+function loadWeights() {
+  try {
+    const raw = localStorage.getItem(WEIGHTS_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      STOCKS.forEach(s => { if (typeof saved[s.name] === "number") s.weight = saved[s.name]; });
+    }
+  } catch (e) {}
+}
+loadWeights();
+
+/* ============================================================
+   DAY DATA MODEL
+============================================================ */
+function blankParticipation() {
+  const v = {};
+  STOCKS.forEach(s => { v[s.name] = { c908:"", c920:"", c930:"", now:"" }; });
+  return v;
+}
+function blankDay() {
+  return {
+    niftyPrice: "24000",
+    levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", naked:"" },
+    opening: {
+      open:"", vix:"", momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
+      ibTouchedBothSides: null, closeInsideIB: null,
+      halfIbAccess: null, halfIbSide: null, vwapFrozenHHLL: null,
+      failedAuction: null, threeIB: null, threeIBFast: null,
+      cPeriodRejected: null, abVolumeLow: null,
+      value20pct: null, value20pctSide: null,
+      prevDay3IBHighClose: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "",
+      profileShape: null, pShapeType: null,
+      bal1h:"", bal1l:"", bal2h:"", bal2l:"",
+      oaorGapFilled: null, aPeriodTail: null, aPeriodTailSide: null,
+      vwapTestCount: null, slChoice: null,
+    },
+    participation: blankParticipation(),
+    orderflow: [],
+  };
+}
+let DAY = blankDay();
+let dateKey = "";
+let activeCP = "c908";
+
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function formatDateKey(key) {
+  const [y,m,d] = key.split("-").map(Number);
+  return d + " " + MONTHS[m-1] + " " + y;
+}
+
+/* ============================================================
+   NAV
+============================================================ */
+const SECTIONS = ["levels","opening","participation","orderflow","summary","more"];
+function showSection(id) {
+  SECTIONS.forEach(s => {
+    document.getElementById('section-'+s).classList.toggle('active', s===id);
+  });
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
+  if (id === 'summary') renderSummary();
+}
+document.querySelectorAll('.nav button').forEach(b => {
+  b.onclick = () => showSection(b.dataset.section);
+});
+
+/* ============================================================
+   AUTOSAVE
+============================================================ */
+let autoSaveTimer = null;
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { saveDay(true); }, 500);
+}
+
+function saveDay(silent) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + dateKey, JSON.stringify(DAY));
+  } catch (e) {
+    if (!silent) alert('Save failed — storage blocked ho sakta hai.');
+    return;
+  }
+  const now = new Date();
+  document.getElementById('autosaveNote').textContent =
+    'Auto-saved ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+  if (!silent) {
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = 'Saved ✓'; btn.classList.add('saved');
+    setTimeout(() => { btn.textContent = 'Save now'; btn.classList.remove('saved'); }, 1800);
+  }
+  renderHistory();
+}
+
+function loadDay(key) {
+  dateKey = key;
+  let saved = null;
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    if (raw) saved = JSON.parse(raw);
+  } catch (e) { saved = null; }
+  DAY = saved ? Object.assign(blankDay(), saved, {
+    levels: Object.assign(blankDay().levels, saved.levels || {}),
+    opening: Object.assign(blankDay().opening, saved.opening || {}),
+    participation: saved.participation || blankParticipation(),
+    orderflow: saved.orderflow || [],
+  }) : blankDay();
+  activeCP = "c908";
+  renderEverything();
+}
+
+/* ============================================================
+   RENDER: LEVELS
+============================================================ */
+function bindLevelField(id, key) {
+  document.getElementById(id).oninput = (e) => { DAY.levels[key] = e.target.value; scheduleAutoSave(); renderOpening(); };
+}
+function renderLevels() {
+  document.getElementById('lv_pdh').value = DAY.levels.pdh;
+  document.getElementById('lv_pdl').value = DAY.levels.pdl;
+  document.getElementById('lv_pdc').value = DAY.levels.pdc;
+  document.getElementById('lv_vah').value = DAY.levels.vah;
+  document.getElementById('lv_val').value = DAY.levels.val;
+  document.getElementById('lv_poc').value = DAY.levels.poc;
+  document.getElementById('lv_naked').value = DAY.levels.naked;
+}
+['pdh','pdl','pdc','vah','val'].forEach(k => bindLevelField('lv_'+k, k));
+document.getElementById('lv_poc').oninput = (e) => { DAY.levels.poc = e.target.value; scheduleAutoSave(); renderOpening(); };
+document.getElementById('lv_naked').oninput = (e) => { DAY.levels.naked = e.target.value; scheduleAutoSave(); };
+
+/* ============================================================
+   OPENING TYPE CALC
+============================================================ */
+function calcOpening() {
+  const L = DAY.levels, O = DAY.opening;
+  const open = parseFloat(O.open), pdh = parseFloat(L.pdh), pdl = parseFloat(L.pdl);
+  if (isNaN(open) || isNaN(pdh) || isNaN(pdl)) return null;
+
+  let base;
+  if (open >= pdl && open <= pdh) base = "OAIR";
+  else {
+    const dist = open > pdh ? open - pdh : pdl - open;
+    base = dist >= RULES.flatThresh ? "OAOR" : "FLAT";
+  }
+
+  const ER = effectiveRules();
+  const Ah = parseFloat(O.A.h), Al = parseFloat(O.A.l), Ac = parseFloat(O.A.c);
+  let sub = null;
+  // DRIVE — ab A ka CLOSE bhi confirm karna zaroori hai, sirf High/Low se nahi
+  if (!isNaN(Ah) && !isNaN(Al) && !isNaN(Ac)) {
+    const upMove = Ah - open, downMove = open - Al;
+    if (upMove <= ER.driveThresh && downMove > upMove && downMove > 0 && Ac < open) {
+      sub = { type:"DRIVE", dir:"down" };
+    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove > 0 && Ac > open) {
+      sub = { type:"DRIVE", dir:"up" };
+    }
+  }
+  if (!sub && !isNaN(Ac)) {
+    const levels = [["PDH",pdh],["PDL",pdl],["PDC",parseFloat(L.pdc)],["VAH",parseFloat(L.vah)],["VAL",parseFloat(L.val)],["POC",parseFloat(L.poc)]].filter(x=>!isNaN(x[1]));
+    for (const [name, lvl] of levels) {
+      if (!isNaN(Al) && Math.abs(Al - lvl) <= ER.testThresh && Ac < open) { sub = { type:"OTD", dir:"down", level:name }; break; }
+      if (!isNaN(Ah) && Math.abs(Ah - lvl) <= ER.testThresh && Ac > open) { sub = { type:"OTD", dir:"up", level:name }; break; }
+    }
+  }
+
+  let orr = null;
+  const Bc = parseFloat(O.B.c);
+  const bFilled = !isNaN(Bc);
+  if (bFilled) {
+    const upMove = (!isNaN(Ah) ? Ah-open : 0), downMove = (!isNaN(Al) ? open-Al : 0);
+    const aDir = downMove >= upMove ? "down" : "up";
+    const crossed = aDir === "down" ? (Bc - open) : (open - Bc);
+    if (crossed >= ER.orrMinCross) orr = { dir: aDir === "down" ? "up" : "down", cross: crossed };
+  }
+
+  return { base, sub, orr, waitForB: !sub, bFilled, ER };
+}
+
+function effectiveRules() {
+  const m = getMomentum();
+  if (m === 'fast') {
+    return {
+      flatThresh: RULES.flatThresh,
+      driveThresh: RULES.driveThresh,
+      testThresh: Math.max(RULES.testThresh, 30),
+      orrMinCross: Math.max(RULES.orrMinCross, 30),
+    };
+  }
+  return RULES;
+}
+
+function suggestMomentum() {
+  const o = DAY.opening;
+  const Ah = parseFloat(o.A.h), Al = parseFloat(o.A.l), vix = parseFloat(o.vix);
+  if (isNaN(Ah) || isNaN(Al)) return null;
+  const aRange = Ah - Al;
+  if (aRange >= 50) return 'fast';
+  if (aRange <= 25 && (isNaN(vix) || vix < 13)) return 'dull';
+  return null;
+}
+
+function getMomentum() {
+  if (DAY.opening.momentum === 'fast' || DAY.opening.momentum === 'dull') return DAY.opening.momentum;
+  return suggestMomentum();
+}
+
+function calcIB() {
+  const A = DAY.opening.A, B = DAY.opening.B;
+  const Ah=parseFloat(A.h), Al=parseFloat(A.l), Bh=parseFloat(B.h), Bl=parseFloat(B.l);
+  if ([Ah,Al,Bh,Bl].some(isNaN)) return null;
+  const ibHigh = Math.max(Ah,Bh), ibLow = Math.min(Al,Bl);
+  const len = ibHigh - ibLow;
+  let cat;
+  if (len <= 80) cat = "Small";
+  else if (len <= 150) cat = "Medium";
+  else if (len <= 220) cat = "Large";
+  else cat = "Very Large";
+  const half = len/2;
+  return { ibHigh, ibLow, len, cat, halfUpper: ibHigh+half, halfLower: ibLow-half };
+}
+
+function calcDayType() {
+  const o = DAY.opening;
+  if (o.ibTouchedBothSides === "yes") {
+    if (o.closeInsideIB === "in") return "Neutral (Center)";
+    if (o.closeInsideIB === "out") return "Neutral (Extreme)";
+    return "Neutral (?)";
+  }
+  if (o.ibTouchedBothSides === "no") {
+    if (o.halfIbAccess === "no") return "Normal Day";
+    if (o.halfIbAccess === "yes") {
+      if (o.vwapFrozenHHLL === "yes") return "Trend Day";
+      if (o.vwapFrozenHHLL === "no") return "Normal Variation";
+    }
+  }
+  return null;
+}
+
+function openingLabel(res) {
+  if (!res) return "Levels + Open + A bharo";
+  let parts = [res.base];
+  let extra = "";
+  if (res.sub) {
+    if (res.sub.type === "DRIVE") parts.push("Open Drive " + (res.sub.dir === "up" ? "Up" : "Down"));
+    else parts.push("OTD " + (res.sub.dir === "up" ? "Up" : "Down") + " (near " + res.sub.level + ")");
+  } else if (res.orr) {
+    parts.push("ORR " + (res.orr.dir === "up" ? "Up" : "Down"));
+  } else if (res.bFilled) {
+    extra = "B check ho gaya — ORR ke conditions nahi bane (" + res.ER.orrMinCross + "+ pts cross chahiye). Koi named sub-type confirm nahi hota, sirf " + res.base + " hai.";
+  } else {
+    extra = "Ambiguous — B period ka wait karo, ORR possible.";
+  }
+  if (res.sub && res.ER && getMomentum() === 'fast') {
+    extra = "(Fast momentum — tolerance " + res.ER.testThresh + " pts tak widen kiya)";
+  }
+  let label = parts.join(" + ");
+  return extra ? label + "\n" + extra : label;
+}
+
+function renderOpening() {
+  document.getElementById('op_open').value = DAY.opening.open;
+  document.getElementById('op_vix').value = DAY.opening.vix;
+  document.getElementById('op_Ah').value = DAY.opening.A.h;
+  document.getElementById('op_Al').value = DAY.opening.A.l;
+  document.getElementById('op_Ac').value = DAY.opening.A.c;
+  document.getElementById('op_Bh').value = DAY.opening.B.h;
+  document.getElementById('op_Bl').value = DAY.opening.B.l;
+  document.getElementById('op_Bc').value = DAY.opening.B.c;
+  renderToggleGroup('tg_momentum', getMomentum());
+  const suggested = suggestMomentum();
+  const suggestLine = document.getElementById('momentumSuggestLine');
+  if (DAY.opening.momentum === 'fast' || DAY.opening.momentum === 'dull') {
+    suggestLine.textContent = 'Manual override: ' + DAY.opening.momentum.toUpperCase();
+  } else if (suggested) {
+    suggestLine.textContent = 'Auto-suggested: ' + suggested.toUpperCase() + ' (A range/VIX se)';
+  } else {
+    suggestLine.textContent = 'A period bharo, auto-suggestion aa jayegi.';
+  }
+  const res = calcOpening();
+  const box = document.getElementById('openingResultBox');
+  const debugLine = '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36;font-size:10px;color:#7C8896">Reading → Open: ' +
+    (DAY.opening.open || '–') + ' · A(H/L/C): ' + (DAY.opening.A.h||'–') + ' / ' + (DAY.opening.A.l||'–') + ' / ' + (DAY.opening.A.c||'–') +
+    (DAY.opening.B.c ? ' · B(C): ' + DAY.opening.B.c : '') + '</div>';
+  if (!res) { box.innerHTML = "Levels + Open + A bharo" + debugLine; }
+  else {
+    const lbl = openingLabel(res);
+    box.innerHTML = '<div class="big">' + lbl.split("\n")[0] + '</div>' +
+      (lbl.split("\n")[1] ? '<div class="muted" style="margin-top:6px">' + lbl.split("\n")[1] + '</div>' : '') +
+      debugLine;
+  }
+
+  const ib = calcIB();
+  const ibBox = document.getElementById('ibResultBox');
+  if (!ib) { ibBox.textContent = "A + B dono bharo"; }
+  else {
+    ibBox.innerHTML =
+      '<div class="row"><span class="muted">IB High</span><b>' + ib.ibHigh.toFixed(1) + '</b></div>' +
+      '<div class="row"><span class="muted">IB Low</span><b>' + ib.ibLow.toFixed(1) + '</b></div>' +
+      '<div class="row"><span class="muted">IB Length</span><b>' + ib.len.toFixed(1) + ' pts (' + ib.cat + ')</b></div>' +
+      '<div class="row"><span class="muted">Half-IB Upper</span><b>' + ib.halfUpper.toFixed(1) + '</b></div>' +
+      '<div class="row"><span class="muted">Half-IB Lower</span><b>' + ib.halfLower.toFixed(1) + '</b></div>';
+  }
+
+  const dt = calcDayType();
+  const dtBox = document.getElementById('dayTypeResultBox');
+  dtBox.innerHTML = dt ? '<div class="big">' + dt + '</div>' : 'Ladder complete karo upar';
+
+  document.getElementById('flagsCard').style.display = dt ? 'block' : 'none';
+  document.getElementById('failedAuctionFlag').style.display = (dt && dt.startsWith('Neutral')) ? 'block' : 'none';
+  document.getElementById('threeIBFlag').style.display = (dt === 'Normal Variation') ? 'block' : 'none';
+  document.getElementById('q_threeIBFast').style.display = (DAY.opening.threeIB === 'yes') ? 'block' : 'none';
+
+  renderToggleGroup('tg_ibBoth', DAY.opening.ibTouchedBothSides);
+  renderToggleGroup('tg_closeInside', DAY.opening.closeInsideIB);
+  renderToggleGroup('tg_halfAccess', DAY.opening.halfIbAccess);
+  renderToggleGroup('tg_halfSide', DAY.opening.halfIbSide);
+  renderToggleGroup('tg_vwapTrend', DAY.opening.vwapFrozenHHLL);
+  renderToggleGroup('tg_failedAuction', DAY.opening.failedAuction);
+  renderToggleGroup('tg_threeIB', DAY.opening.threeIB);
+  renderToggleGroup('tg_threeIBFast', DAY.opening.threeIBFast);
+  renderToggleGroup('tg_cPeriodRejected', DAY.opening.cPeriodRejected);
+  renderToggleGroup('tg_abVolumeLow', DAY.opening.abVolumeLow);
+  renderToggleGroup('tg_value20pct', DAY.opening.value20pct);
+  renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
+  renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
+  renderToggleGroup('tg_prevSpikeHad', DAY.opening.prevSpikeHad);
+  document.getElementById('op_prevSpikeHigh').value = DAY.opening.prevSpikeHigh;
+  document.getElementById('op_prevSpikeLow').value = DAY.opening.prevSpikeLow;
+  document.getElementById('q_value20pctSide').style.display = (DAY.opening.value20pct === 'yes') ? 'block' : 'none';
+  document.getElementById('q_spikeLevels').style.display = (DAY.opening.prevSpikeHad === 'yes') ? 'block' : 'none';
+
+  renderToggleGroup('tg_profileShape', DAY.opening.profileShape);
+  renderToggleGroup('tg_profileShape2', DAY.opening.profileShape);
+  renderToggleGroup('tg_pShapeType', DAY.opening.pShapeType);
+  document.getElementById('q_pShapeType').style.display = (DAY.opening.profileShape === 'P') ? 'block' : 'none';
+  document.getElementById('q_doubleDLevels').style.display = (DAY.opening.profileShape === 'DoubleD') ? 'block' : 'none';
+  document.getElementById('op_bal1h').value = DAY.opening.bal1h;
+  document.getElementById('op_bal1l').value = DAY.opening.bal1l;
+  document.getElementById('op_bal2h').value = DAY.opening.bal2h;
+  document.getElementById('op_bal2l').value = DAY.opening.bal2l;
+
+  document.getElementById('oaorCard').style.display = (res && res.base === 'OAOR') ? 'block' : 'none';
+  renderToggleGroup('tg_oaorGapFilled', DAY.opening.oaorGapFilled);
+  renderToggleGroup('tg_aPeriodTail', DAY.opening.aPeriodTail);
+  renderToggleGroup('tg_aPeriodTailSide', DAY.opening.aPeriodTailSide);
+  document.getElementById('q_tailSide').style.display = (DAY.opening.aPeriodTail === 'yes') ? 'block' : 'none';
+
+  document.getElementById('trendSubCard').style.display = (dt === 'Trend Day') ? 'block' : 'none';
+  renderToggleGroup('tg_vwapTestCount', DAY.opening.vwapTestCount);
+
+  document.getElementById('q_closeInside').style.display = (DAY.opening.ibTouchedBothSides === 'yes') ? 'block' : 'none';
+  document.getElementById('q_halfAccess').style.display = (DAY.opening.ibTouchedBothSides === 'no') ? 'block' : 'none';
+  document.getElementById('q_halfSide').style.display = (DAY.opening.halfIbAccess === 'yes') ? 'block' : 'none';
+  document.getElementById('q_vwap').style.display = (DAY.opening.halfIbAccess === 'yes') ? 'block' : 'none';
+
+  document.getElementById('strategyBoxOpening').innerHTML = strategyHTML(dt, res, DAY.opening);
+  renderFinalStrategy();
+}
+
+function selectStrategy() {
+  const o = DAY.opening;
+  const L = DAY.levels;
+  const dt = calcDayType();
+  const res = calcOpening();
+  const ib = calcIB();
+
+  // 1. 3IB RULE — kal violent 3IB + high close, aaj Normal Variation
+  if (o.prevDay3IBHighClose === 'yes' && dt === 'Normal Variation' && ib) {
+    const half = ib.len / 2;
+    return {
+      name: "3IB Rule — Counter-trade",
+      entry: "Naye IB high + half-IB filter ke paar (~" + (ib.ibHigh + half).toFixed(1) + ") — ULTI direction (short) lo",
+      sl: "~" + ib.len.toFixed(0) + " pts defined risk (IB length ke barabar)",
+      target: "Naye din ka apna 2IB (" + (ib.ibHigh - ib.len).toFixed(1) + ") phir 3IB (" + (ib.ibHigh - ib.len * 2).toFixed(1) + "), ulti direction",
+      note: "Sirf kal violent 3IB + high pe close + aaj Normal Variation ban tabhi lagta hai. RR 1:10+ possible, rare setup. Trend Day/Neutral Extreme pe NAHI. Options: ATM/ITM, weekly/OTM avoid.",
+    };
+  }
+
+  // 2. SPIKE RULE — kal K/L/M me spike bana tha
+  if (o.prevSpikeHad === 'yes' && o.prevSpikeHigh && o.prevSpikeLow) {
+    const sh = parseFloat(o.prevSpikeHigh), sLow = parseFloat(o.prevSpikeLow), open = parseFloat(o.open);
+    if (!isNaN(sh) && !isNaN(sLow) && !isNaN(open)) {
+      if (open > sh) {
+        return { name: "Spike Rule — Long continuation", entry: "Open spike-high ke upar hua — long bias lo", sl: "Spike low (" + sLow.toFixed(1) + ")", target: "Continuation upar, trail karte raho", note: "Kal ka spike range: " + sLow.toFixed(1) + " – " + sh.toFixed(1) + ". Spike sirf Normal Variation day pe banta hai, Trend/Neutral Extreme pe nahi." };
+      } else if (open < sLow) {
+        return { name: "Spike Rule — Short continuation", entry: "Open spike-low ke neeche hua — short bias lo", sl: "Spike high (" + sh.toFixed(1) + ")", target: "Continuation neeche, trail karte raho", note: "Kal ka spike range: " + sLow.toFixed(1) + " – " + sh.toFixed(1) + "." };
+      } else {
+        return { name: "Spike Rule — Wait", entry: "Open spike zone ke ANDAR hua — abhi entry mat lo", sl: "—", target: "Pehle accept/reject dekho: spike-high ke upar CLOSE = long, spike-low ke neeche CLOSE = short", note: "Kal ka spike range: " + sLow.toFixed(1) + " – " + sh.toFixed(1) + "." };
+      }
+    }
+  }
+
+  // 3. FAILED AUCTION
+  if (dt && dt.startsWith('Neutral') && o.failedAuction === 'yes') {
+    return { name: "Failed Auction — Revisit counter-trade", entry: "Closing price pe, ya agle session flat-open + pullback pe", sl: "Fail point ke paas", target: "Revisit jahan PEHLA break hua (~75% chance, 5-6 session me)", note: "Concept hai, poor RR — carry-forward mat karo. Neutral CENTER ke liye best fit (dono taraf fail, beech me close)." };
+  }
+
+  // 4. TREND DAY
+  if (dt === 'Trend Day') {
+    return { name: "Trend Day — VWAP anchor", entry: "HH pattern (A high, B naya high nahi, C+D dono naya high) — half-IB se PEHLE partial entry; ya standard half-IB breakout", sl: "VWAP (sirf VWAP, koi aur SL nahi)", target: "Trend ride karo, ek hi VWAP-visit expect karo, dusra visit = exit signal", note: "VWAP freeze, POC freeze expect karo. 11:30 ke baad P/B/D shape dekho confirm karne ke liye." };
+  }
+
+  // 5. NORMAL VARIATION
+  if (dt === 'Normal Variation') {
+    const t1 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len).toFixed(1) : (ib.ibLow - ib.len).toFixed(1)) : "2IB";
+    const t2 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 2).toFixed(1) : (ib.ibLow - ib.len * 2).toFixed(1)) : "3IB";
+    return {
+      name: "Normal Variation — Half-IB Breakout",
+      entry: "Half-IB acceptance (CLOSE se, touch se nahi)",
+      sl: "VWAP",
+      target: "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)",
+      note: o.threeIB === 'yes' ? "3IB flag ON — agar high pe close hua, kal 3IB-Rule trigger check karna." : "",
+    };
+  }
+
+  // 6. NORMAL DAY sub-strategies
+  if (dt === 'Normal Day') {
+    if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && ib) {
+      const mid = (ib.ibHigh + ib.ibLow) / 2;
+      return {
+        name: "45-Degree Rule",
+        entry: "IB high ke paas SHORT (breakout fail hone pe) — ya IB low ke paas LONG. Filter mandatory (10-15 pts)",
+        sl: "High-cut stop-loss + filter",
+        target: "T1: 45° line / half-IB midpoint (~" + mid.toFixed(1) + ", ~" + (ib.len / 2).toFixed(0) + " pts move) · T2: VAH/VAL",
+        note: "Sirf OAIR/OAOR + LOW volume (A+B) me lagta hai. Agar Open Drive ya ORR ban raha hai, ye rule FAIL karega — mat lagao. 2 trades/din possible (top se aur bottom se).",
+      };
+    }
+    if (o.value20pct === 'yes') {
+      const targetLevel = o.value20pctSide === 'down' ? L.val : L.vah;
+      return {
+        name: "80% Rule (Acceptance inside value)",
+        entry: "Us period ke close pe jahan 20%+ previous-session value area ke andar aaya",
+        sl: "Us period ke low/high ke paas",
+        target: targetLevel ? "Previous session ka doosra VA extreme (" + targetLevel + ") — 80% probability poora value area travel karega" : "Previous session ka doosra VA extreme (VAH/VAL)",
+        note: "Poor RR — isse zyada 'confidence confirmation' tool ki tarah use karo agar pehle se position me ho (jaise Order Flow se confirm ho chuka ho).",
+      };
+    }
+    return { name: "Normal Day — Wait", entry: "Half-IB access ka wait karo", sl: "—", target: "Breakout trade avoid karo jab tak half-IB close se access na mile", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
+  }
+
+  // 7. C-PERIOD REJECTION (day-type-independent, standalone trigger)
+  if (o.cPeriodRejected === 'yes' && ib) {
+    return {
+      name: "C-Period Rejection",
+      entry: "Rejection close ke turant baad",
+      sl: "10-15 pts filter (period ke extreme ke paar)",
+      target: "T1: VWAP · T2: IB opposite side (" + (o.halfIbSide === 'up' ? ib.ibLow.toFixed(1) : ib.ibHigh.toFixed(1)) + ") — Failed Auction me convert ho sakta hai",
+      note: "Volume check karo — agar C period ka volume STRONG hai (IB se 50%+ zyada), to 'bluff' mat maano, short mat karo.",
+    };
+  }
+
+  return null;
+}
+
+function renderFinalStrategy() {
+  const s = selectStrategy();
+  const box = document.getElementById('finalStrategyBox');
+  if (!s) {
+    box.innerHTML = '<div class="final-strat-empty">Abhi kaafi data nahi — Day Type ladder complete karo aur Strategy Signals bharo upar.</div>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="final-strat">
+      <div class="fname">${s.name}</div>
+      <div class="frow"><div class="flabel">ENTRY</div><div class="fval">${s.entry}</div></div>
+      <div class="frow"><div class="flabel">SL</div><div class="fval">${s.sl}</div></div>
+      <div class="frow"><div class="flabel">TARGET</div><div class="fval">${s.target}</div></div>
+      ${s.note ? '<div class="fnote">' + s.note + '</div>' : ''}
+    </div>`;
+}
+
+function renderToggleGroup(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+}
+
+function strategyHTML(dayType, opening, o) {
+  const lines = [];
+  if (o.momentum === 'fast') lines.push("Context: FAST momentum — levels ke test ki tolerance wider maano (30+ pts bhi chalega), sirf points pe mat atko.");
+  else if (o.momentum === 'dull') lines.push("Context: DULL/low-liquidity — price idhar-udhar jump kar sakti hai orders fill karne ke liye. Tolerance mixed rahega, chhota move bhi ignore mat karo.");
+  if (o.profileShape) {
+    const shapeText = {
+      P: "P-shape — buying tail, buyer control. " + (o.pShapeType === 'shortcover' ? "Short covering lagta hai — buyer weak, scalp-range zyada likely, ~2:15-2:45 (K/L) me late-breakout attempt dekho, order flow se confirm karo." : o.pShapeType === 'fresh' ? "Fresh buying lagta hai — zyada bharosemand, continuation ki taraf jhukav." : "Fresh ya short-cover, abhi confirm nahi — order flow dekho."),
+      B: "b-shape — long liquidation (seller weak hai, ye fresh selling nahi hai). Range-bound resolve hone ki zyada chance.",
+      D: "D-shape — koi control nahi, fully balanced. VWAP center/POC ke paas milega.",
+      DoubleD: "Double-D shape — trend hi hai, par 2 pause liye, isliye lower-conviction. Dono balance zones (Bal-1, Bal-2) agle session ke naye reference level hain — save kar lo.",
+    };
+    lines.push(shapeText[o.profileShape] || "");
+  }
+  if (o.oaorGapFilled === 'no') lines.push("OAOR: gap G/H period tak fill NAHI hua → continuation ki high probability (70-80%) same direction me, agle 2-3 session tak bhi extend ho sakta hai.");
+  if (o.oaorGapFilled === 'yes') lines.push("OAOR: gap fill ho chuka — continuation wali strong bias nahi, normal process follow karo.");
+  if (o.aPeriodTail === 'yes' && o.aPeriodTailSide === 'selling') lines.push("A period ne SELLING tail chhodi (upar wick) — buy side avoid karo jab tak us area ke upar na jaye, pullback pe selling dhoondo, SL = open.");
+  if (o.aPeriodTail === 'yes' && o.aPeriodTailSide === 'buying') lines.push("A period ne BUYING tail chhodi (neeche wick) — sell side avoid karo jab tak wo low na toote, pullback pe buying dhoondo.");
+  if (dayType === 'Trend Day' && o.vwapTestCount === 'zero') lines.push("VWAP ZERO baar test hua → pure OTF move, sabse strong trend day, koi pullback nahi mila retail ko.");
+  if (dayType === 'Trend Day' && o.vwapTestCount === 'one') lines.push("VWAP ek baar test hua (~12:30-1:30 inventory-adjustment window ke aas-paas) — ye normal trend day hai, agar dusra test aaye to exit signal maano.");
+  if (!dayType) {
+    lines.push("Day type abhi determine nahi hua — 11:00 ke baad ladder complete karo.");
+  } else if (dayType.startsWith("Neutral")) {
+    lines.push("Neutral day — range ke andar rotation expect karo.");
+    if (dayType.includes("Center")) lines.push("Close IB ke andar → Center. (Center ka matlab literal midpoint nahi — kahin bhi IB ke andar ho to Center hai, POC/VWAP wahin paas milega, jaroori nahi hai.) Extremes ke paas fade karo, dono taraf VAH/VAL reaction dhoondo.");
+    else lines.push("Close IB ke bahar, extreme ke paas → Extreme day. Us extreme ki taraf halka continuation possible.");
+    if (o.failedAuction === "yes") lines.push("Failed Auction ON (Ray Barros ka concept) — revisit level = jahan PEHLA break hua (na ki jahan close hua). ~70% chance 5-6 session me (khud Ray Barros ke number se, 30% miss bhi hota hai). Concept hai, poor RR — strategy mat maano, carry-forward mat karo.");
+  } else if (dayType === "Normal Day") {
+    lines.push("Normal Day — half-IB access nahi mila. Breakout trade avoid karo jab tak half-IB close se access na mile.");
+    lines.push("Note: beech me price IB se bahar bhi jaake wapas aa sakti hai (fake breakout) — jab tak CLOSE IB ke andar hai, phir bhi Normal Day hi hai.");
+  } else if (dayType === "Normal Variation") {
+    const slText = o.slChoice === 'ibExtreme' ? "SL: IB extreme (tighter alternative, aapne choose kiya)" : "SL: VWAP (full risk) — IB chota ho to VWAP door nahi hota, IB bada ho to VWAP-risk zyada ho sakta hai, tab IB-extreme wala tighter SL bhi option hai (upar choose kar sakte ho).";
+    lines.push("Entry: half-IB acceptance (CLOSE se, touch se nahi). " + slText);
+    lines.push("T1: 2IB — partial book, minimum 1:1. T2: 3IB — sirf agar breakout jaldi (C/D/E) + participation broad (7-8 stocks).");
+    lines.push("Booking rule: half-IB access ke waqt agar participation STRONG hai to 2IB tak hold karo, partial mat karo. Agar participation weak/lacking hai to wahi partial book kar lo, TSL VWAP pe rakho.");
+    if (o.threeIB === "yes") {
+      if (o.threeIBFast === "fast") lines.push("3IB + high pe close → AGLE session '3IB Rule' candidate: naya IB banne do, counter-trade lo (half-IB filter ke paar), target naye din ka 2IB-3IB ulti taraf. SIRF agar kal ka day type bhi Normal Variation bane.");
+      else if (o.threeIBFast === "late") lines.push("3IB hua par close high se door / late bana — 3IB Rule ka clean trigger nahi. Kal normal process follow karo.");
+    }
+  } else if (dayType === "Trend Day") {
+    lines.push("Trend Day — VWAP freeze, POC dheere-dheere shift hoga price ke saath, max ek hi VWAP visit expect karo (dusra aaye to exit signal).");
+    lines.push("Early entry: A high, B naya high nahi, C+D dono naya high (HH pattern) — half-IB se pehle partial entry, SL sirf VWAP, dip pe add karo.");
+    if (!(opening && opening.sub)) lines.push("⚠ Caution: Trend Day ke liye Open Drive (ya kam se kam ORR) chahiye hota hai — coach: 'we cannot get trend day in open auction in/out of range'. Aapki Opening me koi Drive/OTD/ORR confirm nahi hua tha — is Trend Day classification ko dobara verify kar lo.");
+  }
+  if (opening && opening.orr) lines.push("ORR confirm hua — ye kam-magnitude wala din maana jata hai, size chhoti rakho.");
+  if (opening && opening.waitForB && !opening.orr) {
+    if (opening.bFilled) {
+      lines.push("B ka close check ho chuka — ORR ke conditions nahi bane (" + (opening.ER ? opening.ER.orrMinCross : 30) + "+ pts cross chahiye tha). Confirm hai: sirf " + opening.base + ", koi named sub-type nahi bana. Ye khud ek valid, final classification hai — quiet/ambiguous open maano.");
+    } else {
+      lines.push("A ke baad ambiguous tha — B ka close abhi bharo, ORR confirm/reject hoga.");
+    }
+  }
+  return lines.map(l => '<div>' + l + '</div>').join('');
+}
+
+// bind opening inputs
+['open','vix'].forEach(k => {
+  document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
+});
+['Ah','Al','Ac','Bh','Bl','Bc'].forEach(id => {
+  document.getElementById('op_'+id).oninput = (e) => {
+    const period = id[0] === 'A' ? 'A' : 'B';
+    const field = id[1].toLowerCase();
+    DAY.opening[period][field] = e.target.value;
+    scheduleAutoSave(); renderOpening();
+  };
+});
+
+function wireToggle(id, path) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      const cur = path.get();
+      path.set(cur === b.dataset.val ? null : b.dataset.val);
+      scheduleAutoSave(); renderOpening();
+    };
+  });
+}
+wireToggle('tg_momentum', { get:()=>DAY.opening.momentum, set:(v)=>DAY.opening.momentum=v });
+document.getElementById('resetMomentumBtn').onclick = () => { DAY.opening.momentum = null; scheduleAutoSave(); renderOpening(); };
+wireToggle('tg_ibBoth', { get:()=>DAY.opening.ibTouchedBothSides, set:(v)=>DAY.opening.ibTouchedBothSides=v });
+wireToggle('tg_closeInside', { get:()=>DAY.opening.closeInsideIB, set:(v)=>DAY.opening.closeInsideIB=v });
+wireToggle('tg_halfAccess', { get:()=>DAY.opening.halfIbAccess, set:(v)=>DAY.opening.halfIbAccess=v });
+wireToggle('tg_halfSide', { get:()=>DAY.opening.halfIbSide, set:(v)=>DAY.opening.halfIbSide=v });
+wireToggle('tg_vwapTrend', { get:()=>DAY.opening.vwapFrozenHHLL, set:(v)=>DAY.opening.vwapFrozenHHLL=v });
+wireToggle('tg_failedAuction', { get:()=>DAY.opening.failedAuction, set:(v)=>DAY.opening.failedAuction=v });
+wireToggle('tg_threeIB', { get:()=>DAY.opening.threeIB, set:(v)=>DAY.opening.threeIB=v });
+wireToggle('tg_threeIBFast', { get:()=>DAY.opening.threeIBFast, set:(v)=>DAY.opening.threeIBFast=v });
+wireToggle('tg_cPeriodRejected', { get:()=>DAY.opening.cPeriodRejected, set:(v)=>DAY.opening.cPeriodRejected=v });
+wireToggle('tg_abVolumeLow', { get:()=>DAY.opening.abVolumeLow, set:(v)=>DAY.opening.abVolumeLow=v });
+wireToggle('tg_value20pct', { get:()=>DAY.opening.value20pct, set:(v)=>DAY.opening.value20pct=v });
+wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>DAY.opening.value20pctSide=v });
+wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
+wireToggle('tg_prevSpikeHad', { get:()=>DAY.opening.prevSpikeHad, set:(v)=>DAY.opening.prevSpikeHad=v });
+
+wireToggle('tg_profileShape', { get:()=>DAY.opening.profileShape, set:(v)=>DAY.opening.profileShape=v });
+wireToggle('tg_profileShape2', { get:()=>DAY.opening.profileShape, set:(v)=>DAY.opening.profileShape=v });
+wireToggle('tg_pShapeType', { get:()=>DAY.opening.pShapeType, set:(v)=>DAY.opening.pShapeType=v });
+wireToggle('tg_oaorGapFilled', { get:()=>DAY.opening.oaorGapFilled, set:(v)=>DAY.opening.oaorGapFilled=v });
+wireToggle('tg_aPeriodTail', { get:()=>DAY.opening.aPeriodTail, set:(v)=>DAY.opening.aPeriodTail=v });
+wireToggle('tg_aPeriodTailSide', { get:()=>DAY.opening.aPeriodTailSide, set:(v)=>DAY.opening.aPeriodTailSide=v });
+wireToggle('tg_vwapTestCount', { get:()=>DAY.opening.vwapTestCount, set:(v)=>DAY.opening.vwapTestCount=v });
+wireToggle('tg_slChoice', { get:()=>DAY.opening.slChoice, set:(v)=>DAY.opening.slChoice=v });
+
+['bal1h','bal1l','bal2h','bal2l'].forEach(k => {
+  document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
+});
+
+document.getElementById('op_prevSpikeHigh').oninput = (e) => { DAY.opening.prevSpikeHigh = e.target.value; scheduleAutoSave(); renderOpening(); };
+document.getElementById('op_prevSpikeLow').oninput = (e) => { DAY.opening.prevSpikeLow = e.target.value; scheduleAutoSave(); renderOpening(); };
+
+/* ============================================================
+   PARTICIPATION
+============================================================ */
+function computeFromValues(values, nifty, cp) {
+  const entries = STOCKS.map(s => ({ ...s, val: parseFloat(values[s.name] ? values[s.name][cp] : NaN) })).filter(e => !isNaN(e.val));
+  if (entries.length === 0) return null;
+  const up = entries.filter(e => e.val >= 0.5).length;
+  const down = entries.filter(e => e.val <= -0.5).length;
+  const flat = entries.filter(e => e.val > -0.25 && e.val < 0.25).length;
+  const mid = entries.length - up - down - flat;
+  const pullPct = entries.reduce((s, e) => s + e.val * e.weight, 0) / 100;
+  const points = (pullPct * nifty) / 100;
+  const legVals = STOCKS.filter(s => s.leg).map(s => parseFloat(values[s.name][cp])).filter(v => !isNaN(v));
+  const legUp = legVals.filter(v => v >= 0.5).length, legDown = legVals.filter(v => v <= -0.5).length;
+  const legSignal = legVals.length === 0 ? null : (legUp >= 3 ? "BULL" : legDown >= 3 ? "BEAR" : "MIXED");
+  let signal = "NO CONVICTION";
+  if (flat >= 7) signal = "FLAT"; else if (up >= 7) signal = "BUY"; else if (down >= 7) signal = "SELL";
+  return { up, down, flat, mid, pullPct, points, legSignal, signal, total: entries.length };
+}
+function computeCheckpoint(cp) {
+  const nifty = parseFloat(document.getElementById('niftyPrice').value) || 0;
+  return computeFromValues(DAY.participation, nifty, cp);
+}
+function checkpointFillCount(values, cp) {
+  return STOCKS.filter(s => !isNaN(parseFloat(values[s.name][cp]))).length;
+}
+function signalColor(sig) {
+  if (sig === "BUY") return COL.green; if (sig === "SELL") return COL.red;
+  if (sig === "FLAT" || sig === "NO CONVICTION") return COL.amber; return COL.sub;
+}
+function legColor(leg) {
+  if (leg === "BULL") return COL.green; if (leg === "BEAR") return COL.red;
+  if (leg === "MIXED") return COL.amber; return COL.sub;
+}
+
+function renderTabs() {
+  const box = document.getElementById('tabs');
+  box.innerHTML = "";
+  CHECKPOINTS.forEach(cp => {
+    const count = checkpointFillCount(DAY.participation, cp.key);
+    const pct = Math.round((count / STOCKS.length) * 100);
+    const barColor = count === STOCKS.length ? COL.green : count > 0 ? COL.cyan : "#232B36";
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (activeCP === cp.key ? ' active' : '');
+    btn.innerHTML = cp.label + '<div class="fill-track"><div class="fill-bar" style="width:'+pct+'%;background:'+barColor+'"></div></div><div class="fill-count">'+count+'/12</div>';
+    btn.onclick = () => { activeCP = cp.key; renderTabs(); renderStockList(); renderResult(); renderCompare(); renderDrift(); };
+    box.appendChild(btn);
+  });
+}
+
+function renderStockList() {
+  const box = document.getElementById('stockList');
+  box.innerHTML = "";
+  STOCKS.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'stock-row' + (s.leg ? ' leg' : '');
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'stock-name';
+    nameDiv.innerHTML = '<span class="nm">'+s.name+'</span>'+(s.leg?'<span class="badge">L1</span>':'');
+    const group = document.createElement('div'); group.className = 'input-group';
+    const signBtn = document.createElement('button');
+    const currentRaw = DAY.participation[s.name][activeCP];
+    const isNeg = currentRaw.toString().trim().startsWith('-');
+    signBtn.className = 'sign-btn' + (isNeg ? ' neg' : currentRaw ? ' pos' : '');
+    signBtn.textContent = isNeg ? '−' : '+';
+    signBtn.onclick = () => {
+      let v = DAY.participation[s.name][activeCP];
+      if (v === '' || v == null) DAY.participation[s.name][activeCP] = '-';
+      else if (v === '-') DAY.participation[s.name][activeCP] = '';
+      else if (v.toString().startsWith('-')) DAY.participation[s.name][activeCP] = v.toString().slice(1);
+      else DAY.participation[s.name][activeCP] = '-' + v;
+      renderStockList(); renderResult(); renderTabs(); renderCompare(); renderDrift(); scheduleAutoSave();
+    };
+    const input = document.createElement('input');
+    input.inputMode = 'decimal'; input.placeholder = '0.00';
+    const displayVal = currentRaw.toString().replace('-', '');
+    input.value = displayVal;
+    input.oninput = (e) => {
+      let v = e.target.value;
+      if (v !== "" && !/^\d*\.?\d*$/.test(v)) { e.target.value = displayVal; return; }
+      const wasNeg = DAY.participation[s.name][activeCP].toString().startsWith('-');
+      DAY.participation[s.name][activeCP] = (wasNeg && v !== "" ? '-' : '') + v;
+      renderResult(); renderTabs(); renderCompare(); renderDrift(); scheduleAutoSave();
+    };
+    group.appendChild(signBtn); group.appendChild(input);
+    row.appendChild(nameDiv); row.appendChild(group);
+    box.appendChild(row);
+  });
+}
+
+function renderResult() {
+  document.getElementById('resultLabel').textContent = CHECKPOINTS.find(c => c.key === activeCP).label + ' RESULT';
+  const body = document.getElementById('resultBody');
+  const r = computeCheckpoint(activeCP);
+  if (!r) { body.innerHTML = '<div class="empty-msg">Enter at least one stock % to see the signal.</div>'; return; }
+  body.innerHTML = `
+    <div class="entered-line">Entered: ${r.total} / 12</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="val" style="color:${COL.green}">${r.up}</div><div class="lbl">UP</div></div>
+      <div class="stat-box"><div class="val" style="color:${COL.red}">${r.down}</div><div class="lbl">DOWN</div></div>
+      <div class="stat-box"><div class="val" style="color:${COL.sub}">${r.mid}</div><div class="lbl">MID</div></div>
+      <div class="stat-box"><div class="val" style="color:${COL.sub}">${r.flat}</div><div class="lbl">FLAT</div></div>
+    </div>
+    <div class="kv-row"><span>Pull</span><b>${r.pullPct>=0?'+':''}${r.pullPct.toFixed(3)}%</b></div>
+    <div class="kv-row"><span>Points</span><b>${r.points>=0?'+':''}${r.points.toFixed(1)} pts</b></div>
+    <div class="two-grid">
+      <div class="pill-box" style="border-color:${legColor(r.legSignal)}55"><div class="lbl">LEG-1</div><div class="val" style="color:${legColor(r.legSignal)}">${r.legSignal||'–'}</div></div>
+      <div class="pill-box" style="border-color:${signalColor(r.signal)}55"><div class="lbl">SIGNAL</div><div class="val" style="color:${signalColor(r.signal)}">${r.signal}</div></div>
+    </div>`;
+}
+
+function renderCompare() {
+  const box = document.getElementById('compareGrid'); box.innerHTML = "";
+  CHECKPOINTS.forEach(cp => {
+    const r = computeCheckpoint(cp.key);
+    const cell = document.createElement('div'); cell.className = 'compare-cell';
+    cell.innerHTML = '<div class="lbl">'+cp.label+'</div><div class="sig" style="color:'+(r?signalColor(r.signal):'#232B36')+'">'+(r?r.signal:'–')+'</div>';
+    box.appendChild(cell);
+  });
+}
+
+function renderDrift() {
+  const c908 = computeCheckpoint('c908'), c930 = computeCheckpoint('c930');
+  const card = document.getElementById('driftCard');
+  if (!c908 || !c930) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const diff = c930.pullPct - c908.pullPct;
+  let label, color;
+  if (diff > 0.03) { label='RISING ▲'; color=COL.green; } else if (diff < -0.03) { label='FADING ▼'; color=COL.amber; } else { label='STABLE'; color=COL.sub; }
+  const el = document.getElementById('driftVal'); el.textContent = label; el.style.color = color;
+}
+
+document.getElementById('niftyPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; renderResult(); renderCompare(); renderDrift(); scheduleAutoSave(); };
+
+/* ============================================================
+   ORDER FLOW
+============================================================ */
+function ofPosition(h,l,poc) {
+  if ([h,l,poc].some(isNaN) || h<=l) return null;
+  return ((poc-l)/(h-l))*100;
+}
+function ofZone(pct) { if (pct==null) return null; if (pct<=25) return "BOTTOM"; if (pct>=75) return "TOP"; return "CENTER"; }
+function suggestTag(color, zone) {
+  if (!zone) return "–";
+  if (color==="red" && zone==="BOTTOM") return "RB (nakli)";
+  if (color==="red" && zone==="CENTER") return "IS (asli)";
+  if (color==="green" && zone==="TOP") return "RS (nakli)";
+  if (color==="green" && zone==="CENTER") return "IB (asli)";
+  return "Not clean fit";
+}
+
+function renderOF() {
+  const box = document.getElementById('ofList');
+  box.innerHTML = "";
+  if (DAY.orderflow.length === 0) {
+    box.innerHTML = '<div class="history-empty">Koi pattern add nahi hua abhi. "+ Add Pattern" dabao.</div>';
+  }
+  DAY.orderflow.forEach((entry, i) => {
+    const h = parseFloat(entry.h), l = parseFloat(entry.l), poc = parseFloat(entry.poc);
+    const pct = ofPosition(h,l,poc);
+    const zone = ofZone(pct);
+    const auto = suggestTag(entry.color, zone);
+    const du = parseFloat(entry.du)||0, dd = parseFloat(entry.dd)||0;
+    const netDelta = entry.color==='green' ? (du-dd) : (dd-du)*-1;
+
+    const div = document.createElement('div');
+    div.className = 'of-entry';
+    div.innerHTML = `
+      <div class="of-head"><span class="idx">#${i+1} ${entry.time?('· '+entry.time):''}</span><button class="of-del">✕</button></div>
+      <div class="of-color-toggle">
+        <button class="red ${entry.color==='red'?'active':''}" data-c="red">RED</button>
+        <button class="green ${entry.color==='green'?'active':''}" data-c="green">GREEN</button>
+      </div>
+      <div class="of-grid3">
+        <div><label>HIGH</label><input class="fh" value="${entry.h}"></div>
+        <div><label>LOW</label><input class="fl" value="${entry.l}"></div>
+        <div><label>POC</label><input class="fp" value="${entry.poc}"></div>
+      </div>
+      <div class="of-delta-grid">
+        <div><label>DELTA +</label><input class="fdu" value="${entry.du}"></div>
+        <div><label>DELTA −</label><input class="fdd" value="${entry.dd}"></div>
+      </div>
+      <div class="of-auto" style="color:${zone?COL.cyan:COL.sub}">
+        ${pct!=null ? 'POC @ '+pct.toFixed(0)+'% ('+zone+') → suggest: '+auto : 'H/L/POC bharo → auto suggestion'}
+      </div>
+      <select class="of-tag-select">
+        <option value="">-- Tag confirm karo --</option>
+        <option ${entry.tag==='RB'?'selected':''}>RB</option>
+        <option ${entry.tag==='IS'?'selected':''}>IS</option>
+        <option ${entry.tag==='RS'?'selected':''}>RS</option>
+        <option ${entry.tag==='IB'?'selected':''}>IB</option>
+        <option ${entry.tag==='Absorption'?'selected':''}>Absorption</option>
+        <option ${entry.tag==='Exhaustion-end'?'selected':''}>Exhaustion (end zeros)</option>
+        <option ${entry.tag==='Exhaustion-POC'?'selected':''}>Exhaustion (POC extreme)</option>
+        <option ${entry.tag==='Continuation-mid'?'selected':''}>Continuation (mid zeros)</option>
+        <option ${entry.tag==='Not-useful'?'selected':''}>Not useful</option>
+      </select>
+      <textarea class="of-note" placeholder="note...">${entry.note||''}</textarea>
+    `;
+    div.querySelector('.of-del').onclick = () => { DAY.orderflow.splice(i,1); renderOF(); renderOfTally(); scheduleAutoSave(); };
+    div.querySelectorAll('.of-color-toggle button').forEach(b => {
+      b.onclick = () => { entry.color = b.dataset.c; renderOF(); renderOfTally(); scheduleAutoSave(); };
+    });
+    div.querySelector('.fh').oninput = (e) => { entry.h = e.target.value; renderOF(); scheduleAutoSave(); };
+    div.querySelector('.fl').oninput = (e) => { entry.l = e.target.value; renderOF(); scheduleAutoSave(); };
+    div.querySelector('.fp').oninput = (e) => { entry.poc = e.target.value; renderOF(); scheduleAutoSave(); };
+    div.querySelector('.fdu').oninput = (e) => { entry.du = e.target.value; scheduleAutoSave(); };
+    div.querySelector('.fdd').oninput = (e) => { entry.dd = e.target.value; scheduleAutoSave(); };
+    div.querySelector('.of-tag-select').onchange = (e) => { entry.tag = e.target.value; renderOfTally(); scheduleAutoSave(); };
+    div.querySelector('.of-note').oninput = (e) => { entry.note = e.target.value; scheduleAutoSave(); };
+    box.appendChild(div);
+  });
+}
+
+function renderOfTally() {
+  const box = document.getElementById('ofTally');
+  const tags = ["RB","IS","RS","IB","Absorption","Exhaustion-end","Exhaustion-POC","Continuation-mid","Not-useful"];
+  const counts = {};
+  tags.forEach(t => counts[t] = 0);
+  DAY.orderflow.forEach(e => { if (e.tag && counts[e.tag] !== undefined) counts[e.tag]++; });
+  box.innerHTML = tags.map(t => `<div class="of-tally-box"><div class="n">${counts[t]}</div><div class="t">${t}</div></div>`).join('');
+}
+
+document.getElementById('addOfBtn').onclick = () => {
+  DAY.orderflow.push({ time:"", color:"red", h:"", l:"", poc:"", du:"", dd:"", tag:"", note:"" });
+  renderOF(); renderOfTally(); scheduleAutoSave();
+};
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+function renderSummary() {
+  const res = calcOpening();
+  const ib = calcIB();
+  const dt = calcDayType();
+  const box = document.getElementById('summaryBox');
+
+  const partR = computeCheckpoint('now') || computeCheckpoint('c930') || computeCheckpoint('c920') || computeCheckpoint('c908');
+
+  let ofCounts = {};
+  DAY.orderflow.forEach(e => { if (e.tag) ofCounts[e.tag] = (ofCounts[e.tag]||0)+1; });
+  const ofSummary = Object.keys(ofCounts).length
+    ? Object.entries(ofCounts).map(([k,v]) => k+': '+v).join(' · ')
+    : 'Koi tagged pattern nahi abhi';
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="card-title">OPENING</div>
+      <div class="result-box">${res ? openingLabel(res).replace('\\n','<br><span class="muted">')+'</span>' : 'Incomplete'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">IB</div>
+      <div class="result-box">${ib ? ib.len.toFixed(1)+' pts ('+ib.cat+') · Half-IB '+ib.halfLower.toFixed(1)+' – '+ib.halfUpper.toFixed(1) : 'Incomplete'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">DAY TYPE</div>
+      <div class="result-box"><span class="big">${dt || 'Not determined yet'}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">STRATEGY</div>
+      <div class="strategy-list">${strategyHTML(dt, res, DAY.opening) || '<div>—</div>'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">PARTICIPATION (latest)</div>
+      <div class="result-box">${partR ? 'SIGNAL: '+partR.signal+' · LEG-1: '+(partR.legSignal||'–')+' · '+(partR.points>=0?'+':'')+partR.points.toFixed(1)+' pts' : 'Koi data nahi'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">ORDER FLOW TALLY</div>
+      <div class="result-box">${ofSummary}</div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   HISTORY
+============================================================ */
+function renderDayBanner() {
+  document.getElementById('dayLabel').textContent = formatDateKey(dateKey);
+  document.getElementById('goTodayBtn').style.display = (dateKey !== todayKey()) ? 'inline-block' : 'none';
+  const core = ["c908","c920","c930"];
+  const doneCount = core.filter(cp => checkpointFillCount(DAY.participation, cp) === STOCKS.length).length;
+  const pill = document.getElementById('completePill');
+  if (doneCount === 3) { pill.textContent='✓ Complete'; pill.style.color=COL.green; pill.style.background=COL.green+'22'; }
+  else { pill.textContent=doneCount+'/3 checkpoints'; pill.style.color=COL.amber; pill.style.background=COL.amber+'22'; }
+}
+
+function getAllSavedDays() {
+  const days = [];
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf(STORAGE_PREFIX) === 0) {
+      const key = k.slice(STORAGE_PREFIX.length);
+      try { days.push({ key, saved: JSON.parse(localStorage.getItem(k)) }); } catch(e) {}
+    }
+  }
+  days.sort((a,b) => b.key.localeCompare(a.key));
+  return days;
+}
+
+function renderHistory() {
+  const box = document.getElementById('historyList');
+  const days = getAllSavedDays();
+  if (days.length === 0) { box.innerHTML = '<div class="history-empty">Koi saved day nahi abhi.</div>'; return; }
+  box.innerHTML = "";
+  days.forEach(({key, saved}) => {
+    const nifty = parseFloat(saved.niftyPrice) || 0;
+    let r = null;
+    for (const cp of ["now","c930","c920","c908"]) { r = computeFromValues(saved.participation||{}, nifty, cp); if (r) break; }
+    const row = document.createElement('div');
+    row.className = 'history-item' + (key === todayKey() ? ' today-item' : '');
+    row.innerHTML = `
+      <div class="hdate">${formatDateKey(key)}${key===todayKey()?'<span>Today</span>':'<span>Tap to edit →</span>'}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="hchip" style="color:${r?signalColor(r.signal):'#7C8896'};background:${r?signalColor(r.signal)+'22':'transparent'}">${r?r.signal:'–'}</span>
+      </div>`;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'hdel'; delBtn.textContent = '✕';
+    delBtn.onclick = (ev) => { ev.stopPropagation(); if (confirm('Delete '+formatDateKey(key)+'?')) { localStorage.removeItem(STORAGE_PREFIX+key); if (dateKey===key) loadDay(todayKey()); renderHistory(); } };
+    row.querySelector('div[style]').appendChild(delBtn);
+    row.onclick = () => loadDay(key);
+    box.appendChild(row);
+  });
+}
+
+document.getElementById('jumpDateBtn').onclick = () => {
+  const v = document.getElementById('jumpDate').value;
+  if (v) loadDay(v);
+};
+document.getElementById('goTodayBtn').onclick = () => loadDay(todayKey());
+document.getElementById('saveBtn').onclick = () => saveDay(false);
+document.getElementById('resetBtn').onclick = function() {
+  if (!this.dataset.confirm) {
+    this.dataset.confirm = "1"; this.textContent = 'Tap again to erase';
+    this.classList.add('confirm');
+    setTimeout(() => { this.dataset.confirm = ""; this.textContent = 'Erase this day'; this.classList.remove('confirm'); }, 2500);
+    return;
+  }
+  DAY = blankDay();
+  localStorage.removeItem(STORAGE_PREFIX + dateKey);
+  this.dataset.confirm = ""; this.textContent = 'Erase this day'; this.classList.remove('confirm');
+  renderEverything(); renderHistory();
+};
+
+/* ============================================================
+   BACKUP / RESTORE
+============================================================ */
+document.getElementById('backupToggle').onclick = function() {
+  const card = document.getElementById('backupCard');
+  const open = card.style.display !== 'none';
+  card.style.display = open ? 'none' : 'block';
+  this.textContent = open ? '💾 Backup / Restore ▾' : '💾 Backup / Restore ▴';
+};
+document.getElementById('copyBackupBtn').onclick = async () => {
+  const all = {};
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && (k.indexOf(STORAGE_PREFIX)===0 || k===WEIGHTS_KEY || k===RULES_KEY)) all[k] = localStorage.getItem(k);
+  }
+  const text = JSON.stringify(all);
+  document.getElementById('backupText').value = text;
+  try { await navigator.clipboard.writeText(text); alert('Copied! Kahin safe paste kar do (Notes app).'); }
+  catch(e) { alert('Clipboard access nahi mila — neeche text box se manually copy kar lo (select all).'); }
+};
+document.getElementById('restoreBackupBtn').onclick = () => {
+  const text = document.getElementById('backupText').value.trim();
+  if (!text) { alert('Pehle backup text paste karo.'); return; }
+  try {
+    const all = JSON.parse(text);
+    Object.keys(all).forEach(k => localStorage.setItem(k, all[k]));
+    loadWeights(); loadRules();
+    loadDay(dateKey);
+    renderHistory();
+    alert('Restore ho gaya!');
+  } catch(e) { alert('Ye valid backup text nahi lag raha.'); }
+};
+
+/* ============================================================
+   RULES EDITOR
+============================================================ */
+document.getElementById('rulesToggle').onclick = function() {
+  const card = document.getElementById('rulesCard');
+  const open = card.style.display !== 'none';
+  card.style.display = open ? 'none' : 'block';
+  this.textContent = open ? '⚙ Edit Thresholds ▾' : '⚙ Edit Thresholds ▴';
+  if (!open) {
+    document.getElementById('rule_flat').value = RULES.flatThresh;
+    document.getElementById('rule_drive').value = RULES.driveThresh;
+    document.getElementById('rule_test').value = RULES.testThresh;
+    document.getElementById('rule_orr').value = RULES.orrMinCross;
+  }
+};
+document.getElementById('saveRulesBtn').onclick = () => {
+  RULES.flatThresh = parseFloat(document.getElementById('rule_flat').value) || DEFAULT_RULES.flatThresh;
+  RULES.driveThresh = parseFloat(document.getElementById('rule_drive').value) || DEFAULT_RULES.driveThresh;
+  RULES.testThresh = parseFloat(document.getElementById('rule_test').value) || DEFAULT_RULES.testThresh;
+  RULES.orrMinCross = parseFloat(document.getElementById('rule_orr').value) || DEFAULT_RULES.orrMinCross;
+  try { localStorage.setItem(RULES_KEY, JSON.stringify(RULES)); } catch(e) {}
+  const btn = document.getElementById('saveRulesBtn'); btn.textContent='Saved ✓'; setTimeout(()=>btn.textContent='Save Thresholds',1500);
+  renderOpening();
+};
+document.getElementById('resetRulesBtn').onclick = () => {
+  RULES = Object.assign({}, DEFAULT_RULES);
+  try { localStorage.removeItem(RULES_KEY); } catch(e) {}
+  document.getElementById('rule_flat').value = RULES.flatThresh;
+  document.getElementById('rule_drive').value = RULES.driveThresh;
+  document.getElementById('rule_test').value = RULES.testThresh;
+  document.getElementById('rule_orr').value = RULES.orrMinCross;
+  renderOpening();
+};
+
+/* ============================================================
+   WEIGHTS EDITOR
+============================================================ */
+function renderWeightsEditor() {
+  const box = document.getElementById('weightsList'); box.innerHTML = "";
+  STOCKS.forEach(s => {
+    const row = document.createElement('div'); row.className = 'weight-row';
+    const nm = document.createElement('span'); nm.className='wname'; nm.textContent = s.name;
+    const inp = document.createElement('input'); inp.inputMode='decimal'; inp.value = s.weight.toFixed(2); inp.dataset.stock = s.name;
+    inp.oninput = () => { let sum=0; box.querySelectorAll('input').forEach(i=>sum+=parseFloat(i.value)||0); document.getElementById('weightSum').textContent = sum.toFixed(2)+'%'; };
+    row.appendChild(nm); row.appendChild(inp); box.appendChild(row);
+  });
+  let sum=0; STOCKS.forEach(s=>sum+=s.weight); document.getElementById('weightSum').textContent = sum.toFixed(2)+'%';
+}
+document.getElementById('weightsToggle').onclick = function() {
+  const card = document.getElementById('weightsCard'); const open = card.style.display !== 'none';
+  card.style.display = open ? 'none' : 'block';
+  this.textContent = open ? '⚙ Edit Stock Weights ▾' : '⚙ Edit Stock Weights ▴';
+  if (!open) renderWeightsEditor();
+};
+document.getElementById('saveWeightsBtn').onclick = () => {
+  const inputs = document.querySelectorAll('#weightsList input'); const newWeights = {};
+  inputs.forEach(i => { const v=parseFloat(i.value); if (!isNaN(v)) newWeights[i.dataset.stock]=v; });
+  STOCKS.forEach(s => { if (typeof newWeights[s.name]==="number") s.weight = newWeights[s.name]; });
+  try { localStorage.setItem(WEIGHTS_KEY, JSON.stringify(newWeights)); } catch(e) {}
+  const btn = document.getElementById('saveWeightsBtn'); btn.textContent='Saved ✓'; setTimeout(()=>btn.textContent='Save Weights',1500);
+  renderResult(); renderTabs(); renderCompare(); renderDrift(); renderHistory();
+};
+document.getElementById('resetWeightsBtn').onclick = () => {
+  STOCKS.forEach(s => { s.weight = DEFAULT_WEIGHTS[s.name]; });
+  try { localStorage.removeItem(WEIGHTS_KEY); } catch(e) {}
+  renderWeightsEditor();
+  renderResult(); renderTabs(); renderCompare(); renderDrift(); renderHistory();
+};
+
+/* ============================================================
+   MASTER RENDER + INIT
+============================================================ */
+function renderEverything() {
+  document.getElementById('niftyPrice').value = DAY.niftyPrice;
+  renderDayBanner();
+  renderLevels();
+  renderOpening();
+  renderTabs();
+  renderStockList();
+  renderResult();
+  renderCompare();
+  renderDrift();
+  renderOF();
+  renderOfTally();
+}
+
+showSection('levels');
+loadDay(todayKey());
+renderHistory();
+</script>
+
+</body>
+</html>
