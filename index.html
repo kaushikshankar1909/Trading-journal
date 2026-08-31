@@ -178,7 +178,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v9</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v10</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -209,6 +209,7 @@
       <div class="field-row"><span class="lbl">VAH</span><input id="lv_vah" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">VAL</span><input id="lv_val" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">POC</span><input id="lv_poc" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Psychological (round no.)</span><input id="lv_psych" inputmode="decimal"></div>
       <div class="textarea-wrap">
         <span class="lbl">Naked POC / other levels / notes</span>
         <textarea id="lv_naked" placeholder="e.g. purana POC 24080, ya koi aur naked level"></textarea>
@@ -412,6 +413,20 @@
 
     <div class="card">
       <div class="card-title">STRATEGY SIGNALS (khud dekh ke batao)</div>
+
+      <div class="toggle-q">A/B ka fast move Order Flow se GENUINE (IB/IS) tha ya FAKE (RB/RS, sentiment-manipulation)?</div>
+      <div class="toggle-group" id="tg_ofReality">
+        <button data-val="genuine">Genuine (IB/IS)</button>
+        <button data-val="fake">Fake (RB/RS)</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: "single IS/IB has no meaning into opening, but big RB/RS can manipulate sentiment. Pattern: fast move → hold hold → VWAP attempt → phir boom (asli move)." Fake ho to chase mat karo, VWAP-attempt ka wait karo.</div>
+
+      <div class="toggle-q">Participation kisi EK stock ke isolated news se distort lag rahi hai?</div>
+      <div class="toggle-group" id="tg_newsDistortion">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Agar haan, to participation ka broad BUY/SELL signal us stock ki wajah se skew ho sakta hai — genuine broad conviction na maano.</div>
 
       <div class="toggle-q">C period rejected hua (bluff, wapas andar band hui)?</div>
       <div class="toggle-group" id="tg_cPeriodRejected">
@@ -657,13 +672,14 @@ function blankParticipation() {
 function blankDay() {
   return {
     niftyPrice: "24000",
-    levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", naked:"" },
+    levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", psych:"", naked:"" },
     opening: {
       open:"", vix:"", momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
       ibTouchedBothSides: null, closeInsideIB: null,
       halfIbAccess: null, halfIbSide: null, vwapFrozenHHLL: null,
       failedAuction: null, threeIB: null, threeIBFast: null,
       cPeriodRejected: null, abVolumeLow: null,
+      ofReality: null, newsDistortion: null,
       value20pct: null, value20pctSide: null,
       prevDay3IBHighClose: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "",
       profileShape: null, pShapeType: null,
@@ -760,10 +776,12 @@ function renderLevels() {
   document.getElementById('lv_vah').value = DAY.levels.vah;
   document.getElementById('lv_val').value = DAY.levels.val;
   document.getElementById('lv_poc').value = DAY.levels.poc;
+  document.getElementById('lv_psych').value = DAY.levels.psych;
   document.getElementById('lv_naked').value = DAY.levels.naked;
 }
 ['pdh','pdl','pdc','vah','val'].forEach(k => bindLevelField('lv_'+k, k));
 document.getElementById('lv_poc').oninput = (e) => { DAY.levels.poc = e.target.value; scheduleAutoSave(); renderOpening(); };
+document.getElementById('lv_psych').oninput = (e) => { DAY.levels.psych = e.target.value; scheduleAutoSave(); };
 document.getElementById('lv_naked').oninput = (e) => { DAY.levels.naked = e.target.value; scheduleAutoSave(); };
 
 /* ============================================================
@@ -958,6 +976,8 @@ function renderOpening() {
   renderToggleGroup('tg_threeIBFast', DAY.opening.threeIBFast);
   renderToggleGroup('tg_cPeriodRejected', DAY.opening.cPeriodRejected);
   renderToggleGroup('tg_abVolumeLow', DAY.opening.abVolumeLow);
+  renderToggleGroup('tg_ofReality', DAY.opening.ofReality);
+  renderToggleGroup('tg_newsDistortion', DAY.opening.newsDistortion);
   renderToggleGroup('tg_value20pct', DAY.opening.value20pct);
   renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
   renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
@@ -1115,6 +1135,9 @@ function renderToggleGroup(id, val) {
 
 function strategyHTML(dayType, opening, o) {
   const lines = [];
+  if (o.ofReality === 'fake') lines.push("⚠ A/B ka fast move Order Flow se FAKE hai (RB/RS, sentiment-manipulation) — genuine IS/IB nahi. Chase mat karo. Coach ka pattern: fast move → hold hold (balance) → VWAP ka attempt → phir BOOM (asli move). Us VWAP-attempt ka wait karo, tabhi asli direction pata chalegi.");
+  if (o.ofReality === 'genuine') lines.push("A/B ka move Order Flow se GENUINE hai (IS/IB) — real conviction, MP-structure ke saath align karke trust kar sakte ho.");
+  if (o.newsDistortion === 'yes') lines.push("Participation ka broad signal kisi EK stock ke isolated news se distort ho sakta hai — genuine broad conviction mat maano, individual stock news check kar lo.");
   if (o.momentum === 'fast') lines.push("Context: FAST momentum — levels ke test ki tolerance wider maano (30+ pts bhi chalega), sirf points pe mat atko.");
   else if (o.momentum === 'dull') lines.push("Context: DULL/low-liquidity — price idhar-udhar jump kar sakti hai orders fill karne ke liye. Tolerance mixed rahega, chhota move bhi ignore mat karo.");
   if (o.profileShape) {
@@ -1203,6 +1226,8 @@ wireToggle('tg_threeIB', { get:()=>DAY.opening.threeIB, set:(v)=>DAY.opening.thr
 wireToggle('tg_threeIBFast', { get:()=>DAY.opening.threeIBFast, set:(v)=>DAY.opening.threeIBFast=v });
 wireToggle('tg_cPeriodRejected', { get:()=>DAY.opening.cPeriodRejected, set:(v)=>DAY.opening.cPeriodRejected=v });
 wireToggle('tg_abVolumeLow', { get:()=>DAY.opening.abVolumeLow, set:(v)=>DAY.opening.abVolumeLow=v });
+wireToggle('tg_ofReality', { get:()=>DAY.opening.ofReality, set:(v)=>DAY.opening.ofReality=v });
+wireToggle('tg_newsDistortion', { get:()=>DAY.opening.newsDistortion, set:(v)=>DAY.opening.newsDistortion=v });
 wireToggle('tg_value20pct', { get:()=>DAY.opening.value20pct, set:(v)=>DAY.opening.value20pct=v });
 wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>DAY.opening.value20pctSide=v });
 wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
