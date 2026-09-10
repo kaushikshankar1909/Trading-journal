@@ -178,7 +178,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v12</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v13</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -423,6 +423,7 @@
       <div class="hint-box" style="padding:0 14px 12px">VWAP REJECT ho jaye to explicit EXIT signal hai — Normal Variation/Trend Day dono me. Hold/Accept ho to position ke saath chalte raho.</div>
 
       <div class="toggle-q">A/B ka fast move Order Flow se GENUINE (IB/IS) tha ya FAKE (RB/RS, sentiment-manipulation)?</div>
+      <div id="ofRealitySuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
       <div class="toggle-group" id="tg_ofReality">
         <button data-val="genuine">Genuine (IB/IS)</button>
         <button data-val="fake">Fake (RB/RS)</button>
@@ -441,8 +442,20 @@
         <button data-val="yes">Haan</button>
         <button data-val="no">Nahi</button>
       </div>
+      <div id="q_cBluffDir" style="display:none">
+        <div class="toggle-q">Bluff kis taraf tha?</div>
+        <div class="toggle-group" id="tg_cPeriodBluffDir">
+          <button data-val="up">Upar fake tod (asli direction NEECHE)</button>
+          <button data-val="down">Neeche fake tod (asli direction UPAR)</button>
+        </div>
+        <div class="toggle-q">C ka close VWAP ke bilkul paas hai (T1 already price pe)?</div>
+        <div class="toggle-group" id="tg_cCloseNearVwap">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+      </div>
 
-      <div class="toggle-q">A+B period ka volume LOW tha (600K-1M se kam, dull)?</div>
+      <div class="toggle-q">A+B period ka volume LOW tha? (A ka volume + B ka volume JOD KE dekho, alag-alag nahi — total 1M se upar ho to "Nahi", neeche ho to "Haan")</div>
       <div class="toggle-group" id="tg_abVolumeLow">
         <button data-val="yes">Haan</button>
         <button data-val="no">Nahi</button>
@@ -686,7 +699,7 @@ function blankDay() {
       ibTouchedBothSides: null, closeInsideIB: null,
       halfIbAccess: null, halfIbSide: null, vwapFrozenHHLL: null,
       failedAuction: null, threeIB: null, threeIBFast: null,
-      cPeriodRejected: null, abVolumeLow: null,
+      cPeriodRejected: null, cPeriodBluffDir: null, cCloseNearVwap: null, abVolumeLow: null,
       ofReality: null, newsDistortion: null,
       value20pct: null, value20pctSide: null,
       prevDay3IBHighClose: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "",
@@ -810,12 +823,13 @@ function calcOpening() {
   const ER = effectiveRules();
   const Ah = parseFloat(O.A.h), Al = parseFloat(O.A.l), Ac = parseFloat(O.A.c);
   let sub = null;
-  // DRIVE — ab A ka CLOSE bhi confirm karna zaroori hai, sirf High/Low se nahi
+  // DRIVE — A ka CLOSE zaroori hai, aur close open se MEANINGFULLY door bhi hona chahiye (sirf side match kaafi nahi)
+  const MIN_CLOSE_AWAY = 10;
   if (!isNaN(Ah) && !isNaN(Al) && !isNaN(Ac)) {
     const upMove = Ah - open, downMove = open - Al;
-    if (upMove <= ER.driveThresh && downMove > upMove && downMove > 0 && Ac < open) {
+    if (upMove <= ER.driveThresh && downMove > upMove && downMove > 0 && (open - Ac) >= MIN_CLOSE_AWAY) {
       sub = { type:"DRIVE", dir:"down" };
-    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove > 0 && Ac > open) {
+    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove > 0 && (Ac - open) >= MIN_CLOSE_AWAY) {
       sub = { type:"DRIVE", dir:"up" };
     }
   }
@@ -866,6 +880,11 @@ function suggestMomentum() {
 function getMomentum() {
   if (DAY.opening.momentum === 'fast' || DAY.opening.momentum === 'dull') return DAY.opening.momentum;
   return suggestMomentum();
+}
+
+function getOfReality() {
+  if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake') return DAY.opening.ofReality;
+  return computeOfRealityFromEntries();
 }
 
 function calcIB() {
@@ -983,8 +1002,20 @@ function renderOpening() {
   renderToggleGroup('tg_threeIB', DAY.opening.threeIB);
   renderToggleGroup('tg_threeIBFast', DAY.opening.threeIBFast);
   renderToggleGroup('tg_cPeriodRejected', DAY.opening.cPeriodRejected);
+  renderToggleGroup('tg_cPeriodBluffDir', DAY.opening.cPeriodBluffDir);
+  renderToggleGroup('tg_cCloseNearVwap', DAY.opening.cCloseNearVwap);
+  document.getElementById('q_cBluffDir').style.display = (DAY.opening.cPeriodRejected === 'yes') ? 'block' : 'none';
   renderToggleGroup('tg_abVolumeLow', DAY.opening.abVolumeLow);
-  renderToggleGroup('tg_ofReality', DAY.opening.ofReality);
+  renderToggleGroup('tg_ofReality', getOfReality());
+  const ofSuggested = computeOfRealityFromEntries();
+  const ofSuggestLine = document.getElementById('ofRealitySuggestLine');
+  if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake') {
+    ofSuggestLine.textContent = 'Manual override: ' + DAY.opening.ofReality.toUpperCase();
+  } else if (ofSuggested) {
+    ofSuggestLine.textContent = 'Auto (Order Flow tab me A+B period tags se): ' + ofSuggested.toUpperCase();
+  } else {
+    ofSuggestLine.textContent = 'Order Flow tab me A aur B period ke candles tag karo (period + tag dono) — auto-suggestion aa jayegi. Sirf A dekh ke mat laga, dono chahiye.';
+  }
   renderToggleGroup('tg_newsDistortion', DAY.opening.newsDistortion);
   renderToggleGroup('tg_value20pct', DAY.opening.value20pct);
   renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
@@ -1102,17 +1133,50 @@ function selectStrategy() {
         note: "Poor RR — isse zyada 'confidence confirmation' tool ki tarah use karo agar pehle se position me ho (jaise Order Flow se confirm ho chuka ho).",
       };
     }
+    if (res && res.base === 'OAOR' && o.oaorGapFilled === 'no' && ib) {
+      const dir = res.sub && res.sub.dir === 'up' ? 'up' : (res.sub && res.sub.dir === 'down' ? 'down' : null);
+      return {
+        name: "Normal Day — OAOR Gap Unfilled (same-direction bias)",
+        entry: "IB extreme ke close se (C period ke baad) — gap ki direction me",
+        sl: "IB opposite extreme ke paar",
+        target: dir === 'down' ? "Naked levels neeche ki taraf, ya 2IB/3IB agar momentum bane" : "Naked levels upar ki taraf, ya 2IB/3IB agar momentum bane",
+        note: "Gap G/H period (~12:30) tak fill nahi hua — 70-80% continuation probability same direction me. Half-IB mandatory NAHI is case me, IB extreme ka close hi kaafi hai.",
+      };
+    }
+    if (res && res.base === 'OAOR' && o.oaorGapFilled === 'yes') {
+      return { name: "Normal Day — Wait (gap filled)", entry: "Half-IB access ka wait karo", sl: "—", target: "Gap fill ho chuka — continuation wali strong bias nahi bachi, normal half-IB process follow karo", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
+    }
     return { name: "Normal Day — Wait", entry: "Half-IB access ka wait karo", sl: "—", target: "Breakout trade avoid karo jab tak half-IB close se access na mile", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
   }
 
   // 7. C-PERIOD REJECTION (day-type-independent, standalone trigger)
   if (o.cPeriodRejected === 'yes' && ib) {
+    if (o.cCloseNearVwap === 'yes') {
+      return {
+        name: "C-Period Rejection — Skip (T1 already at price)",
+        entry: "Fresh entry MAT LO — C close VWAP ke bilkul paas hai, matlab T1 already price pe hai",
+        sl: "—",
+        target: "Agar pehle se position me ho to yahi partial book kar lo. Naya entry ka wait karo — half-IB ya agla clean signal.",
+        note: "C-bluff entry ka poora RR sirf tab milta hai jab VWAP door ho. Yahan VWAP already paas hai, isliye fresh short/long lena risk/reward kharab kar dega.",
+      };
+    }
+    let t2Text, dirNote;
+    if (o.cPeriodBluffDir === 'up') {
+      t2Text = ib.ibLow.toFixed(1) + " (IB LOW — bluff upar tha, asli direction NEECHE)";
+      dirNote = "C ne upar fake breakout diya tha, phir neeche aa gayi — asli move neeche hai.";
+    } else if (o.cPeriodBluffDir === 'down') {
+      t2Text = ib.ibHigh.toFixed(1) + " (IB HIGH — bluff neeche tha, asli direction UPAR)";
+      dirNote = "C ne neeche fake breakdown diya tha, phir upar aa gayi — asli move upar hai.";
+    } else {
+      t2Text = "IB ka opposite extreme — pehle 'Bluff kis taraf tha?' toggle bharo upar";
+      dirNote = "Bluff direction abhi nahi bataya — target confirm nahi ho sakta jab tak upar wala toggle na bharo.";
+    }
     return {
       name: "C-Period Rejection",
-      entry: "Rejection close ke turant baad",
+      entry: "Rejection close ke turant baad, bluff ke ULTI direction me",
       sl: "10-15 pts filter (period ke extreme ke paar)",
-      target: "T1: VWAP · T2: IB opposite side (" + (o.halfIbSide === 'up' ? ib.ibLow.toFixed(1) : ib.ibHigh.toFixed(1)) + ") — Failed Auction me convert ho sakta hai",
-      note: "Volume check karo — agar C period ka volume STRONG hai (IB se 50%+ zyada), to 'bluff' mat maano, short mat karo. Bluff ka signature: bada bar + koi FOLLOW-THROUGH nahi (agli candles continue nahi karti) — 1-2 ghante jaanbujh kar waste karwaye jate hain.",
+      target: "T1: VWAP · T2: " + t2Text + " — Failed Auction me convert ho sakta hai",
+      note: dirNote + " Volume check karo — agar C period ka volume STRONG hai (IB se 50%+ zyada), to 'bluff' mat maano. Bluff ka signature: bada bar + koi FOLLOW-THROUGH nahi — 1-2 ghante jaanbujh kar waste karwaye jate hain.",
     };
   }
 
@@ -1144,8 +1208,13 @@ function renderToggleGroup(id, val) {
 
 function strategyHTML(dayType, opening, o) {
   const lines = [];
-  if (o.ofReality === 'fake') lines.push("⚠ A/B ka fast move Order Flow se FAKE hai (RB/RS, sentiment-manipulation) — genuine IS/IB nahi. Chase mat karo. Signature: bada bar banta hai, uske baad FOLLOW-THROUGH nahi aata (agli candles continue nahi karti) — 1-2 ghante jaanbujh kar 'waste' karwaye jate hain, taki lage 'selling/buying ho rahi hai'. Bluff zyada tar C period me aata hai — C me na aaye to wait karo, badi candle (asli move) baad me aayegi.");
-  if (o.ofReality === 'genuine') lines.push("A/B ka move Order Flow se GENUINE hai (IS/IB) — real conviction, MP-structure ke saath align karke trust kar sakte ho.");
+  const vixNum = parseFloat(o.vix);
+  if (!isNaN(vixNum) && vixNum < 13) {
+    lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ") — light size rakho. T1 VWAP/IB ke paas hi rakho, 2IB/3IB expect mat karo. VWAP ulti taraf CLOSE ho jaye to turant nikal jao.");
+  }
+  const ofR = getOfReality();
+  if (ofR === 'fake') lines.push("⚠ A/B ka fast move Order Flow se FAKE hai (RB/RS, sentiment-manipulation) — genuine IS/IB nahi. Chase mat karo. Signature: bada bar banta hai, uske baad FOLLOW-THROUGH nahi aata (agli candles continue nahi karti) — 1-2 ghante jaanbujh kar 'waste' karwaye jate hain, taki lage 'selling/buying ho rahi hai'. Bluff zyada tar C period me aata hai — C me na aaye to wait karo, badi candle (asli move) baad me aayegi.");
+  if (ofR === 'genuine') lines.push("A/B ka move Order Flow se GENUINE hai (IS/IB) — real conviction, MP-structure ke saath align karke trust kar sakte ho.");
   if (o.newsDistortion === 'yes') lines.push("Participation ka broad signal kisi EK stock ke isolated news se distort ho sakta hai — genuine broad conviction mat maano, individual stock news check kar lo.");
   if (o.momentum === 'fast') lines.push("Context: FAST momentum — levels ke test ki tolerance wider maano (30+ pts bhi chalega), sirf points pe mat atko.");
   else if (o.momentum === 'dull') lines.push("Context: DULL/low-liquidity — price idhar-udhar jump kar sakti hai orders fill karne ke liye. Tolerance mixed rahega, chhota move bhi ignore mat karo.");
@@ -1177,10 +1246,6 @@ function strategyHTML(dayType, opening, o) {
   } else if (dayType === "Normal Variation") {
     const slText = o.slChoice === 'ibExtreme' ? "SL: IB extreme (tighter alternative, aapne choose kiya)" : "SL: VWAP (full risk) — IB chota ho to VWAP door nahi hota, IB bada ho to VWAP-risk zyada ho sakta hai, tab IB-extreme wala tighter SL bhi option hai (upar choose kar sakte ho).";
     lines.push("Entry: half-IB acceptance (CLOSE se, touch se nahi). " + slText);
-    const vixNum = parseFloat(o.vix);
-    if (!isNaN(vixNum) && vixNum < 13 && getMomentum() === 'dull') {
-      lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ") + DULL momentum — half-IB entry structure se valid hai. Par low VIX + no momentum → options move limited rahega, premium high hoga. T1 CHHOTA rakho (VWAP/IB ke paas). 2IB/3IB expect MAT karo aise din.");
-    }
     lines.push("T1: 2IB — partial book, minimum 1:1. T2: 3IB — sirf agar breakout jaldi (C/D/E) + participation broad (7-8 stocks).");
     lines.push("Booking rule: half-IB access ke waqt agar participation STRONG hai to 2IB tak hold karo, partial mat karo. Agar participation weak/lacking hai to wahi partial book kar lo, TSL VWAP pe rakho.");
     if (o.vwapReaction === 'reject') lines.push("⚠ VWAP REJECT hua hai (aapne mark kiya) — ye EXPLICIT EXIT signal hai. Position khuli hai to turant nikal jao, wait mat karo.");
@@ -1242,6 +1307,8 @@ wireToggle('tg_failedAuction', { get:()=>DAY.opening.failedAuction, set:(v)=>DAY
 wireToggle('tg_threeIB', { get:()=>DAY.opening.threeIB, set:(v)=>DAY.opening.threeIB=v });
 wireToggle('tg_threeIBFast', { get:()=>DAY.opening.threeIBFast, set:(v)=>DAY.opening.threeIBFast=v });
 wireToggle('tg_cPeriodRejected', { get:()=>DAY.opening.cPeriodRejected, set:(v)=>DAY.opening.cPeriodRejected=v });
+wireToggle('tg_cPeriodBluffDir', { get:()=>DAY.opening.cPeriodBluffDir, set:(v)=>DAY.opening.cPeriodBluffDir=v });
+wireToggle('tg_cCloseNearVwap', { get:()=>DAY.opening.cCloseNearVwap, set:(v)=>DAY.opening.cCloseNearVwap=v });
 wireToggle('tg_abVolumeLow', { get:()=>DAY.opening.abVolumeLow, set:(v)=>DAY.opening.abVolumeLow=v });
 wireToggle('tg_ofReality', { get:()=>DAY.opening.ofReality, set:(v)=>DAY.opening.ofReality=v });
 wireToggle('tg_newsDistortion', { get:()=>DAY.opening.newsDistortion, set:(v)=>DAY.opening.newsDistortion=v });
@@ -1424,14 +1491,8 @@ function renderOF() {
   if (DAY.orderflow.length === 0) {
     box.innerHTML = '<div class="history-empty">Koi pattern add nahi hua abhi. "+ Add Pattern" dabao.</div>';
   }
+  const PERIODS = ["","A","B","C","D","E","F","G","H","I","J","K","L","M","Other"];
   DAY.orderflow.forEach((entry, i) => {
-    const h = parseFloat(entry.h), l = parseFloat(entry.l), poc = parseFloat(entry.poc);
-    const pct = ofPosition(h,l,poc);
-    const zone = ofZone(pct);
-    const auto = suggestTag(entry.color, zone);
-    const du = parseFloat(entry.du)||0, dd = parseFloat(entry.dd)||0;
-    const netDelta = entry.color==='green' ? (du-dd) : (dd-du)*-1;
-
     const div = document.createElement('div');
     div.className = 'of-entry';
     div.innerHTML = `
@@ -1440,6 +1501,10 @@ function renderOF() {
         <button class="red ${entry.color==='red'?'active':''}" data-c="red">RED</button>
         <button class="green ${entry.color==='green'?'active':''}" data-c="green">GREEN</button>
       </div>
+      <select class="of-period-select" style="width:100%;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:12px;font-weight:700;padding:8px;outline:none;font-family:inherit;margin-bottom:8px">
+        <option value="">-- Period (A/B/C...) --</option>
+        ${PERIODS.slice(1).map(p => `<option ${entry.period===p?'selected':''}>${p}</option>`).join('')}
+      </select>
       <div class="of-grid3">
         <div><label>HIGH</label><input class="fh" value="${entry.h}"></div>
         <div><label>LOW</label><input class="fl" value="${entry.l}"></div>
@@ -1449,9 +1514,7 @@ function renderOF() {
         <div><label>DELTA +</label><input class="fdu" value="${entry.du}"></div>
         <div><label>DELTA −</label><input class="fdd" value="${entry.dd}"></div>
       </div>
-      <div class="of-auto" style="color:${zone?COL.cyan:COL.sub}">
-        ${pct!=null ? 'POC @ '+pct.toFixed(0)+'% ('+zone+') → suggest: '+auto : 'H/L/POC bharo → auto suggestion'}
-      </div>
+      <div class="of-auto"></div>
       <select class="of-tag-select">
         <option value="">-- Tag confirm karo --</option>
         <option ${entry.tag==='RB'?'selected':''}>RB</option>
@@ -1466,19 +1529,43 @@ function renderOF() {
       </select>
       <textarea class="of-note" placeholder="note...">${entry.note||''}</textarea>
     `;
+
+    const autoBox = div.querySelector('.of-auto');
+    function refreshAuto() {
+      const h = parseFloat(entry.h), l = parseFloat(entry.l), poc = parseFloat(entry.poc);
+      const pct = ofPosition(h,l,poc);
+      const zone = ofZone(pct);
+      const auto = suggestTag(entry.color, zone);
+      autoBox.style.color = zone ? COL.cyan : COL.sub;
+      autoBox.textContent = pct != null ? 'POC @ ' + pct.toFixed(0) + '% (' + zone + ') → suggest: ' + auto : 'H/L/POC bharo → auto suggestion';
+    }
+    refreshAuto();
+
     div.querySelector('.of-del').onclick = () => { DAY.orderflow.splice(i,1); renderOF(); renderOfTally(); scheduleAutoSave(); };
     div.querySelectorAll('.of-color-toggle button').forEach(b => {
-      b.onclick = () => { entry.color = b.dataset.c; renderOF(); renderOfTally(); scheduleAutoSave(); };
+      b.onclick = () => { entry.color = b.dataset.c; div.querySelectorAll('.of-color-toggle button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); refreshAuto(); renderOfTally(); scheduleAutoSave(); };
     });
-    div.querySelector('.fh').oninput = (e) => { entry.h = e.target.value; renderOF(); scheduleAutoSave(); };
-    div.querySelector('.fl').oninput = (e) => { entry.l = e.target.value; renderOF(); scheduleAutoSave(); };
-    div.querySelector('.fp').oninput = (e) => { entry.poc = e.target.value; renderOF(); scheduleAutoSave(); };
+    div.querySelector('.of-period-select').onchange = (e) => { entry.period = e.target.value; scheduleAutoSave(); renderOpening(); };
+    div.querySelector('.fh').oninput = (e) => { entry.h = e.target.value; refreshAuto(); scheduleAutoSave(); };
+    div.querySelector('.fl').oninput = (e) => { entry.l = e.target.value; refreshAuto(); scheduleAutoSave(); };
+    div.querySelector('.fp').oninput = (e) => { entry.poc = e.target.value; refreshAuto(); scheduleAutoSave(); };
     div.querySelector('.fdu').oninput = (e) => { entry.du = e.target.value; scheduleAutoSave(); };
     div.querySelector('.fdd').oninput = (e) => { entry.dd = e.target.value; scheduleAutoSave(); };
-    div.querySelector('.of-tag-select').onchange = (e) => { entry.tag = e.target.value; renderOfTally(); scheduleAutoSave(); };
+    div.querySelector('.of-tag-select').onchange = (e) => { entry.tag = e.target.value; renderOfTally(); scheduleAutoSave(); renderOpening(); };
     div.querySelector('.of-note').oninput = (e) => { entry.note = e.target.value; scheduleAutoSave(); };
     box.appendChild(div);
   });
+}
+
+function computeOfRealityFromEntries() {
+  const aEntry = DAY.orderflow.find(e => e.period === 'A' && e.tag);
+  const bEntry = DAY.orderflow.find(e => e.period === 'B' && e.tag);
+  if (!aEntry || !bEntry) return null;
+  const realTags = ['IS', 'IB'];
+  const aReal = realTags.includes(aEntry.tag);
+  const bReal = realTags.includes(bEntry.tag);
+  if (aReal && bReal) return 'genuine';
+  return 'fake';
 }
 
 function renderOfTally() {
@@ -1491,7 +1578,7 @@ function renderOfTally() {
 }
 
 document.getElementById('addOfBtn').onclick = () => {
-  DAY.orderflow.push({ time:"", color:"red", h:"", l:"", poc:"", du:"", dd:"", tag:"", note:"" });
+  DAY.orderflow.push({ time:"", period:"", color:"red", h:"", l:"", poc:"", du:"", dd:"", tag:"", note:"" });
   renderOF(); renderOfTally(); scheduleAutoSave();
 };
 
