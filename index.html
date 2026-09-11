@@ -178,7 +178,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v13</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v14</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -427,6 +427,7 @@
       <div class="toggle-group" id="tg_ofReality">
         <button data-val="genuine">Genuine (IB/IS)</button>
         <button data-val="fake">Fake (RB/RS)</button>
+        <button data-val="not_useful">Not Useful</button>
       </div>
       <div class="hint-box" style="padding:0 14px 12px">Coach: "single IS/IB has no meaning into opening, but big RB/RS can manipulate sentiment. Pattern: fast move → hold hold → VWAP attempt → phir boom (asli move)." Fake ho to chase mat karo, VWAP-attempt ka wait karo.</div>
 
@@ -479,6 +480,16 @@
         <button data-val="yes">Haan</button>
         <button data-val="no">Nahi</button>
       </div>
+
+      <div class="toggle-q">Kal ka Day Type kya tha?</div>
+      <select id="sel_prevDayType" class="of-tag-select">
+        <option value="">-- Select --</option>
+        <option value="Normal">Normal</option>
+        <option value="Normal Variation">Normal Variation</option>
+        <option value="Neutral">Neutral</option>
+        <option value="Neutral Extreme">Neutral Extreme</option>
+        <option value="Trend">Trend</option>
+      </select>
 
       <div class="toggle-q">Kal ke K/L/M period me Spike bana tha?</div>
       <div class="toggle-group" id="tg_prevSpikeHad">
@@ -702,7 +713,7 @@ function blankDay() {
       cPeriodRejected: null, cPeriodBluffDir: null, cCloseNearVwap: null, abVolumeLow: null,
       ofReality: null, newsDistortion: null,
       value20pct: null, value20pctSide: null,
-      prevDay3IBHighClose: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "",
+      prevDay3IBHighClose: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
       profileShape: null, pShapeType: null,
       bal1h:"", bal1l:"", bal2h:"", bal2l:"",
       oaorGapFilled: null, aPeriodTail: null, aPeriodTailSide: null,
@@ -834,10 +845,11 @@ function calcOpening() {
     }
   }
   if (!sub && !isNaN(Ac)) {
+    const OTD_TEST = 10, OTD_PROBE = 25, OTD_BREAK = 20;
     const levels = [["PDH",pdh],["PDL",pdl],["PDC",parseFloat(L.pdc)],["VAH",parseFloat(L.vah)],["VAL",parseFloat(L.val)],["POC",parseFloat(L.poc)]].filter(x=>!isNaN(x[1]));
     for (const [name, lvl] of levels) {
-      if (!isNaN(Al) && Math.abs(Al - lvl) <= ER.testThresh && Ac < open) { sub = { type:"OTD", dir:"down", level:name }; break; }
-      if (!isNaN(Ah) && Math.abs(Ah - lvl) <= ER.testThresh && Ac > open) { sub = { type:"OTD", dir:"up", level:name }; break; }
+      if (!isNaN(Al) && !isNaN(Ah) && Math.abs(Al - lvl) <= OTD_TEST && Ac < open && (Ah - open) <= OTD_PROBE && (lvl - Ac) < OTD_BREAK) { sub = { type:"OTD", dir:"down", level:name }; break; }
+      if (!isNaN(Ah) && !isNaN(Al) && Math.abs(Ah - lvl) <= OTD_TEST && Ac > open && (open - Al) <= OTD_PROBE && (Ac - lvl) < OTD_BREAK) { sub = { type:"OTD", dir:"up", level:name }; break; }
     }
   }
 
@@ -883,7 +895,7 @@ function getMomentum() {
 }
 
 function getOfReality() {
-  if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake') return DAY.opening.ofReality;
+  if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake' || DAY.opening.ofReality === 'not_useful') return DAY.opening.ofReality;
   return computeOfRealityFromEntries();
 }
 
@@ -1009,7 +1021,7 @@ function renderOpening() {
   renderToggleGroup('tg_ofReality', getOfReality());
   const ofSuggested = computeOfRealityFromEntries();
   const ofSuggestLine = document.getElementById('ofRealitySuggestLine');
-  if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake') {
+  if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake' || DAY.opening.ofReality === 'not_useful') {
     ofSuggestLine.textContent = 'Manual override: ' + DAY.opening.ofReality.toUpperCase();
   } else if (ofSuggested) {
     ofSuggestLine.textContent = 'Auto (Order Flow tab me A+B period tags se): ' + ofSuggested.toUpperCase();
@@ -1020,6 +1032,7 @@ function renderOpening() {
   renderToggleGroup('tg_value20pct', DAY.opening.value20pct);
   renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
   renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
+  document.getElementById('sel_prevDayType').value = DAY.opening.prevDayType || "";
   renderToggleGroup('tg_prevSpikeHad', DAY.opening.prevSpikeHad);
   document.getElementById('op_prevSpikeHigh').value = DAY.opening.prevSpikeHigh;
   document.getElementById('op_prevSpikeLow').value = DAY.opening.prevSpikeLow;
@@ -1212,9 +1225,13 @@ function strategyHTML(dayType, opening, o) {
   if (!isNaN(vixNum) && vixNum < 13) {
     lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ") — light size rakho. T1 VWAP/IB ke paas hi rakho, 2IB/3IB expect mat karo. VWAP ulti taraf CLOSE ho jaye to turant nikal jao.");
   }
+  if (o.prevDayType === 'Neutral Extreme') {
+    lines.push("Kal Neutral Extreme. Aaj opposite bounce / counter-NE soch sakte ho. Early light entry allowed, confirmation nahi. IB/half-IB ke bina full size mat lo.");
+  }
   const ofR = getOfReality();
   if (ofR === 'fake') lines.push("⚠ A/B ka fast move Order Flow se FAKE hai (RB/RS, sentiment-manipulation) — genuine IS/IB nahi. Chase mat karo. Signature: bada bar banta hai, uske baad FOLLOW-THROUGH nahi aata (agli candles continue nahi karti) — 1-2 ghante jaanbujh kar 'waste' karwaye jate hain, taki lage 'selling/buying ho rahi hai'. Bluff zyada tar C period me aata hai — C me na aaye to wait karo, badi candle (asli move) baad me aayegi.");
   if (ofR === 'genuine') lines.push("A/B ka move Order Flow se GENUINE hai (IS/IB) — real conviction, MP-structure ke saath align karke trust kar sakte ho.");
+  if (ofR === 'not_useful') lines.push("A/B ka Order Flow combo clean IS/IB ya RB/RS nahi bana (ek missing, mixed, ya Not-useful tag) — is signal pe trust mat karo, sirf MP-structure (Day Type, half-IB) pe rely karo.");
   if (o.newsDistortion === 'yes') lines.push("Participation ka broad signal kisi EK stock ke isolated news se distort ho sakta hai — genuine broad conviction mat maano, individual stock news check kar lo.");
   if (o.momentum === 'fast') lines.push("Context: FAST momentum — levels ke test ki tolerance wider maano (30+ pts bhi chalega), sirf points pe mat atko.");
   else if (o.momentum === 'dull') lines.push("Context: DULL/low-liquidity — price idhar-udhar jump kar sakti hai orders fill karne ke liye. Tolerance mixed rahega, chhota move bhi ignore mat karo.");
@@ -1316,6 +1333,7 @@ wireToggle('tg_value20pct', { get:()=>DAY.opening.value20pct, set:(v)=>DAY.openi
 wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>DAY.opening.value20pctSide=v });
 wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
 wireToggle('tg_prevSpikeHad', { get:()=>DAY.opening.prevSpikeHad, set:(v)=>DAY.opening.prevSpikeHad=v });
+document.getElementById('sel_prevDayType').onchange = (e) => { DAY.opening.prevDayType = e.target.value || null; scheduleAutoSave(); renderOpening(); };
 
 wireToggle('tg_profileShape', { get:()=>DAY.opening.profileShape, set:(v)=>DAY.opening.profileShape=v });
 wireToggle('tg_profileShape2', { get:()=>DAY.opening.profileShape, set:(v)=>DAY.opening.profileShape=v });
@@ -1560,12 +1578,15 @@ function renderOF() {
 function computeOfRealityFromEntries() {
   const aEntry = DAY.orderflow.find(e => e.period === 'A' && e.tag);
   const bEntry = DAY.orderflow.find(e => e.period === 'B' && e.tag);
-  if (!aEntry || !bEntry) return null;
+  if (!aEntry && !bEntry) return null;
+  if (!aEntry || !bEntry) return 'not_useful';
   const realTags = ['IS', 'IB'];
-  const aReal = realTags.includes(aEntry.tag);
-  const bReal = realTags.includes(bEntry.tag);
+  const fakeTags = ['RB', 'RS'];
+  const aReal = realTags.includes(aEntry.tag), bReal = realTags.includes(bEntry.tag);
+  const aFake = fakeTags.includes(aEntry.tag), bFake = fakeTags.includes(bEntry.tag);
   if (aReal && bReal) return 'genuine';
-  return 'fake';
+  if (aFake && bFake) return 'fake';
+  return 'not_useful';
 }
 
 function renderOfTally() {
