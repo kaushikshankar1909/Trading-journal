@@ -178,7 +178,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v14</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -825,28 +825,46 @@ function calcOpening() {
   if (isNaN(open) || isNaN(pdh) || isNaN(pdl)) return null;
 
   let base;
+  let gapDist = 0;
   if (open >= pdl && open <= pdh) base = "OAIR";
   else {
-    const dist = open > pdh ? open - pdh : pdl - open;
-    base = dist >= RULES.flatThresh ? "OAOR" : "FLAT";
+    gapDist = open > pdh ? open - pdh : pdl - open;
+    base = gapDist >= RULES.flatThresh ? "OAOR" : "FLAT";
   }
 
   const ER = effectiveRules();
   const Ah = parseFloat(O.A.h), Al = parseFloat(O.A.l), Ac = parseFloat(O.A.c);
   let sub = null;
-  // DRIVE — A ka CLOSE zaroori hai, aur close open se MEANINGFULLY door bhi hona chahiye (sirf side match kaafi nahi)
+
+  // BIG GAP OAOR — Drive/OTD dono disable, sirf Open accept/reject applicable hai (coach ka rule)
+  const BIG_GAP = ER.flatThresh * 2;
+  const bigGapOAOR = base === 'OAOR' && gapDist >= BIG_GAP;
+
+  // DRIVE — sirf OAIR ya CHHOTA OAOR (bada gap OAOR pe Drive allow nahi)
+  // Close dono extreme se check: driven-extreme ke paas hona chahiye AUR doosre extreme se door
   const MIN_CLOSE_AWAY = 10;
-  if (!isNaN(Ah) && !isNaN(Al) && !isNaN(Ac)) {
+  const CLOSE_NEAR_EXTREME = 15;
+  if (!bigGapOAOR && !isNaN(Ah) && !isNaN(Al) && !isNaN(Ac)) {
     const upMove = Ah - open, downMove = open - Al;
-    if (upMove <= ER.driveThresh && downMove > upMove && downMove > 0 && (open - Ac) >= MIN_CLOSE_AWAY) {
+    const closeNearLow = (Ac - Al) <= CLOSE_NEAR_EXTREME;
+    const closeNearHigh = (Ah - Ac) <= CLOSE_NEAR_EXTREME;
+    const closerToLow = (Ah - Ac) > (Ac - Al);
+    const closerToHigh = (Ac - Al) > (Ah - Ac);
+    if (upMove <= ER.driveThresh && downMove > upMove && downMove > 0 && (open - Ac) >= MIN_CLOSE_AWAY && closeNearLow && closerToLow) {
       sub = { type:"DRIVE", dir:"down" };
-    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove > 0 && (Ac - open) >= MIN_CLOSE_AWAY) {
+    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove > 0 && (Ac - open) >= MIN_CLOSE_AWAY && closeNearHigh && closerToHigh) {
       sub = { type:"DRIVE", dir:"up" };
     }
   }
-  if (!sub && !isNaN(Ac)) {
+  if (!sub && !isNaN(Ac) && !bigGapOAOR) {
     const OTD_TEST = 10, OTD_PROBE = 25, OTD_BREAK = 20;
-    const levels = [["PDH",pdh],["PDL",pdl],["PDC",parseFloat(L.pdc)],["VAH",parseFloat(L.vah)],["VAL",parseFloat(L.val)],["POC",parseFloat(L.poc)]].filter(x=>!isNaN(x[1]));
+    const levels = [["PDH",pdh],["PDL",pdl],["PDC",parseFloat(L.pdc)],["VAH",parseFloat(L.vah)],["VAL",parseFloat(L.val)],["POC",parseFloat(L.poc)],["PSYCH",parseFloat(L.psych)]].filter(x=>!isNaN(x[1]));
+    if (L.naked) {
+      L.naked.split(',').forEach((s, idx) => {
+        const v = parseFloat(s.trim());
+        if (!isNaN(v)) levels.push(["NAKED"+(idx+1), v]);
+      });
+    }
     for (const [name, lvl] of levels) {
       if (!isNaN(Al) && !isNaN(Ah) && Math.abs(Al - lvl) <= OTD_TEST && Ac < open && (Ah - open) <= OTD_PROBE && (lvl - Ac) < OTD_BREAK) { sub = { type:"OTD", dir:"down", level:name }; break; }
       if (!isNaN(Ah) && !isNaN(Al) && Math.abs(Ah - lvl) <= OTD_TEST && Ac > open && (open - Al) <= OTD_PROBE && (Ac - lvl) < OTD_BREAK) { sub = { type:"OTD", dir:"up", level:name }; break; }
@@ -863,7 +881,7 @@ function calcOpening() {
     if (crossed >= ER.orrMinCross) orr = { dir: aDir === "down" ? "up" : "down", cross: crossed };
   }
 
-  return { base, sub, orr, waitForB: !sub, bFilled, ER };
+  return { base, sub, orr, waitForB: !sub, bFilled, ER, bigGapOAOR, gapDist };
 }
 
 function effectiveRules() {
@@ -881,12 +899,10 @@ function effectiveRules() {
 
 function suggestMomentum() {
   const o = DAY.opening;
-  const Ah = parseFloat(o.A.h), Al = parseFloat(o.A.l), vix = parseFloat(o.vix);
+  const Ah = parseFloat(o.A.h), Al = parseFloat(o.A.l);
   if (isNaN(Ah) || isNaN(Al)) return null;
   const aRange = Ah - Al;
-  if (aRange >= 50) return 'fast';
-  if (aRange <= 25 && (isNaN(vix) || vix < 13)) return 'dull';
-  return null;
+  return aRange >= 35 ? 'fast' : 'dull';
 }
 
 function getMomentum() {
@@ -1111,58 +1127,7 @@ function selectStrategy() {
     return { name: "Trend Day — VWAP anchor", entry: "HH pattern (A high, B naya high nahi, C+D dono naya high) — half-IB se PEHLE partial entry; ya standard half-IB breakout", sl: "VWAP (sirf VWAP, koi aur SL nahi)", target: "Trend ride karo, ek hi VWAP-visit expect karo, dusra visit = exit signal", note: "VWAP freeze, POC freeze expect karo. 11:30 ke baad P/B/D shape dekho confirm karne ke liye." };
   }
 
-  // 5. NORMAL VARIATION
-  if (dt === 'Normal Variation') {
-    const t1 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len).toFixed(1) : (ib.ibLow - ib.len).toFixed(1)) : "2IB";
-    const t2 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 2).toFixed(1) : (ib.ibLow - ib.len * 2).toFixed(1)) : "3IB";
-    return {
-      name: "Normal Variation — Half-IB Breakout",
-      entry: "Half-IB acceptance (CLOSE se, touch se nahi)",
-      sl: "VWAP",
-      target: "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)",
-      note: o.threeIB === 'yes' ? "3IB flag ON — agar high pe close hua, kal 3IB-Rule trigger check karna." : "",
-    };
-  }
-
-  // 6. NORMAL DAY sub-strategies
-  if (dt === 'Normal Day') {
-    if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && ib) {
-      const mid = (ib.ibHigh + ib.ibLow) / 2;
-      return {
-        name: "45-Degree Rule",
-        entry: "IB high ke paas SHORT (breakout fail hone pe) — ya IB low ke paas LONG. Filter mandatory (10-15 pts)",
-        sl: "High-cut stop-loss + filter",
-        target: "T1: 45° line / half-IB midpoint (~" + mid.toFixed(1) + ", ~" + (ib.len / 2).toFixed(0) + " pts move) · T2: VAH/VAL",
-        note: "Sirf OAIR/OAOR + LOW volume (A+B) me lagta hai. Agar Open Drive ya ORR ban raha hai, ye rule FAIL karega — mat lagao. 2 trades/din possible (top se aur bottom se).",
-      };
-    }
-    if (o.value20pct === 'yes') {
-      const targetLevel = o.value20pctSide === 'down' ? L.val : L.vah;
-      return {
-        name: "80% Rule (Acceptance inside value)",
-        entry: "Us period ke close pe jahan 20%+ previous-session value area ke andar aaya",
-        sl: "Us period ke low/high ke paas",
-        target: targetLevel ? "Previous session ka doosra VA extreme (" + targetLevel + ") — 80% probability poora value area travel karega" : "Previous session ka doosra VA extreme (VAH/VAL)",
-        note: "Poor RR — isse zyada 'confidence confirmation' tool ki tarah use karo agar pehle se position me ho (jaise Order Flow se confirm ho chuka ho).",
-      };
-    }
-    if (res && res.base === 'OAOR' && o.oaorGapFilled === 'no' && ib) {
-      const dir = res.sub && res.sub.dir === 'up' ? 'up' : (res.sub && res.sub.dir === 'down' ? 'down' : null);
-      return {
-        name: "Normal Day — OAOR Gap Unfilled (same-direction bias)",
-        entry: "IB extreme ke close se (C period ke baad) — gap ki direction me",
-        sl: "IB opposite extreme ke paar",
-        target: dir === 'down' ? "Naked levels neeche ki taraf, ya 2IB/3IB agar momentum bane" : "Naked levels upar ki taraf, ya 2IB/3IB agar momentum bane",
-        note: "Gap G/H period (~12:30) tak fill nahi hua — 70-80% continuation probability same direction me. Half-IB mandatory NAHI is case me, IB extreme ka close hi kaafi hai.",
-      };
-    }
-    if (res && res.base === 'OAOR' && o.oaorGapFilled === 'yes') {
-      return { name: "Normal Day — Wait (gap filled)", entry: "Half-IB access ka wait karo", sl: "—", target: "Gap fill ho chuka — continuation wali strong bias nahi bachi, normal half-IB process follow karo", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
-    }
-    return { name: "Normal Day — Wait", entry: "Half-IB access ka wait karo", sl: "—", target: "Breakout trade avoid karo jab tak half-IB close se access na mile", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
-  }
-
-  // 7. C-PERIOD REJECTION (day-type-independent, standalone trigger)
+  // 5. C-PERIOD REJECTION — Normal Variation/Normal Day se PEHLE check hota hai, taaki half-IB tick hote hi ye gayab na ho jaye
   if (o.cPeriodRejected === 'yes' && ib) {
     if (o.cCloseNearVwap === 'yes') {
       return {
@@ -1189,8 +1154,76 @@ function selectStrategy() {
       entry: "Rejection close ke turant baad, bluff ke ULTI direction me",
       sl: "10-15 pts filter (period ke extreme ke paar)",
       target: "T1: VWAP · T2: " + t2Text + " — Failed Auction me convert ho sakta hai",
-      note: dirNote + " Volume check karo — agar C period ka volume STRONG hai (IB se 50%+ zyada), to 'bluff' mat maano. Bluff ka signature: bada bar + koi FOLLOW-THROUGH nahi — 1-2 ghante jaanbujh kar waste karwaye jate hain.",
+      note: dirNote + " Volume check karo — agar C period ka volume STRONG hai (IB se 50%+ zyada), to 'bluff' mat maano. Bluff ka signature: bada bar + koi FOLLOW-THROUGH nahi — 1-2 ghante jaanbujh kar waste karwaye jate hain. Note: B pehle A ka High/Low paar kar chuka ho tab bhi ye bluff valid rehta hai — hide nahi hota.",
     };
+  }
+
+  // 6. NORMAL VARIATION
+  if (dt === 'Normal Variation') {
+    const t1 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len).toFixed(1) : (ib.ibLow - ib.len).toFixed(1)) : "2IB";
+    const t2 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 2).toFixed(1) : (ib.ibLow - ib.len * 2).toFixed(1)) : "3IB";
+    const vixNum2 = parseFloat(o.vix);
+    const partR = computeCheckpoint('now') || computeCheckpoint('c930') || computeCheckpoint('c920') || computeCheckpoint('c908');
+    const lowVix2 = !isNaN(vixNum2) && vixNum2 < 13;
+    const mixedPart = partR && partR.signal === 'NO CONVICTION';
+    const ignoreExtended = lowVix2 || mixedPart;
+    const targetText = ignoreExtended
+      ? "T1: VWAP/IB ke paas hi rakho. 2IB/3IB IGNORE karo — " + (lowVix2 ? "VIX<13" : "") + (lowVix2 && mixedPart ? " + " : "") + (mixedPart ? "participation mixed/NO CONVICTION" : "") + " ke karan extended target ka basis kamzor hai."
+      : "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)";
+    return {
+      name: "Normal Variation — Half-IB Breakout",
+      entry: "Half-IB acceptance (CLOSE se, touch se nahi)",
+      sl: "VWAP",
+      target: targetText,
+      note: o.threeIB === 'yes' ? "3IB flag ON — agar high pe close hua, kal 3IB-Rule trigger check karna." : "",
+    };
+  }
+
+  // 7. NORMAL DAY sub-strategies
+  if (dt === 'Normal Day') {
+    if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && ib) {
+      const mid = (ib.ibHigh + ib.ibLow) / 2;
+      return {
+        name: "45-Degree Rule",
+        entry: "IB high ke paas SHORT (breakout fail hone pe) — ya IB low ke paas LONG. Filter mandatory (10-15 pts)",
+        sl: "High-cut stop-loss + filter",
+        target: "T1: 45° line / half-IB midpoint (~" + mid.toFixed(1) + ", ~" + (ib.len / 2).toFixed(0) + " pts move) · T2: VAH/VAL",
+        note: "Sirf OAIR/OAOR + LOW volume (A+B) me lagta hai. Agar Open Drive ya ORR ban raha hai, ye rule FAIL karega — mat lagao. 2 trades/din possible (top se aur bottom se).",
+      };
+    }
+    if (o.value20pct === 'yes') {
+      const targetLevel = o.value20pctSide === 'down' ? L.val : L.vah;
+      return {
+        name: "80% Rule (Acceptance inside value)",
+        entry: "Us period ke close pe jahan 20%+ previous-session value area ke andar aaya",
+        sl: "Us period ke low/high ke paas",
+        target: targetLevel ? "Previous session ka doosra VA extreme (" + targetLevel + ") — 80% probability poora value area travel karega" : "Previous session ka doosra VA extreme (VAH/VAL)",
+        note: "Poor RR — isse zyada 'confidence confirmation' tool ki tarah use karo agar pehle se position me ho (jaise Order Flow se confirm ho chuka ho).",
+      };
+    }
+    if (res && res.base === 'OAOR' && res.bigGapOAOR) {
+      return {
+        name: "Normal Day — Big Gap OAOR (Open Accept/Reject)",
+        entry: "Abhi koi Drive/directional entry MAT lo — sirf gap ka Open Accept/Reject dekho",
+        sl: "—",
+        target: "Agar gap ACCEPT hota hai (price gap ke paar wapas nahi jaati) → gap-direction me continuation dhoondo. Agar REJECT hota hai (price gap fill karne lagti hai) → ulti taraf dekho.",
+        note: "Gap " + (res.gapDist ? res.gapDist.toFixed(0) : "bada") + " pts ka hai — itne bade gap pe Drive/OTD lagana galat hai, coach ka rule: bade gap pe sirf Open accept/reject, directional Drive nahi.",
+      };
+    }
+    if (res && res.base === 'OAOR' && o.oaorGapFilled === 'no' && ib) {
+      const dir = res.sub && res.sub.dir === 'up' ? 'up' : (res.sub && res.sub.dir === 'down' ? 'down' : null);
+      return {
+        name: "Normal Day — OAOR Gap Unfilled (same-direction bias)",
+        entry: "IB extreme ke close se (C period ke baad) — gap ki direction me",
+        sl: "IB opposite extreme ke paar",
+        target: dir === 'down' ? "Naked levels neeche ki taraf, ya 2IB/3IB agar momentum bane" : "Naked levels upar ki taraf, ya 2IB/3IB agar momentum bane",
+        note: "Gap G/H period (~12:30) tak fill nahi hua — 70-80% continuation probability same direction me. Half-IB mandatory NAHI is case me, IB extreme ka close hi kaafi hai.",
+      };
+    }
+    if (res && res.base === 'OAOR' && o.oaorGapFilled === 'yes') {
+      return { name: "Normal Day — Wait (gap filled)", entry: "Half-IB access ka wait karo", sl: "—", target: "Gap fill ho chuka — continuation wali strong bias nahi bachi, normal half-IB process follow karo", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
+    }
+    return { name: "Normal Day — Wait", entry: "Half-IB access ka wait karo", sl: "—", target: "Breakout trade avoid karo jab tak half-IB close se access na mile", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
   }
 
   return null;
