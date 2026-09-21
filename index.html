@@ -189,19 +189,20 @@
 <div class="autosave-note" id="autosaveNote">&nbsp;</div>
 
 <div class="nav">
-  <button data-section="levels">LEVELS</button>
-  <button data-section="opening">OPENING</button>
-  <button data-section="participation">PARTICIPATION</button>
-  <button data-section="orderflow">ORDER FLOW</button>
+  <button data-section="premarket">PRE-MARKET</button>
+  <button data-section="morning">MORNING</button>
+  <button data-section="midday">MIDDAY</button>
+  <button data-section="afternoon">AFTERNOON</button>
   <button data-section="summary">SUMMARY</button>
-  <button data-section="more">MORE</button>
 </div>
 
 <div class="wrap">
 
   <!-- ================= LEVELS ================= -->
-  <div id="section-levels" class="section">
-    <div class="card">
+  <!-- ================= PRE-MARKET ================= -->
+  <div id="section-premarket" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">🌙 Raat ko bharo: reference levels agle din ke liye.</div>
+<div class="card">
       <div class="card-title">REFERENCE LEVELS (raat ko bhar do)</div>
       <div class="field-row"><span class="lbl">PDH</span><input id="lv_pdh" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">PDL</span><input id="lv_pdl" inputmode="decimal"></div>
@@ -221,14 +222,15 @@
     </div>
   </div>
 
-  <!-- ================= OPENING ================= -->
-  <div id="section-opening" class="section">
-    <div class="card">
+  <!-- ================= MORNING ================= -->
+  <div id="section-morning" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">🌅 9:15–10:15: Open, A/B period, IB, Day-Type ladder shuru, aur 9:08-9:30 Participation checkpoints.</div>
+<div class="card">
       <div class="card-title">OPEN</div>
       <div class="field-row"><span class="lbl">Open price</span><input id="op_open" inputmode="decimal"></div>
     </div>
 
-    <div class="card">
+<div class="card">
       <div class="card-title">CONTEXT — VIX / MOMENTUM</div>
       <div class="field-row"><span class="lbl">India VIX</span><input id="op_vix" inputmode="decimal"></div>
       <div class="toggle-q">Momentum (A period range + VIX se khud suggest hota hai)</div>
@@ -241,7 +243,7 @@
       <div class="hint-box" style="padding:0 14px 12px">Fast momentum → test/ORR tolerance khud-ba-khud 30+ pts tak widen ho jayegi. Auto-suggestion: A-range ≥50pts = Fast, A-range ≤25pts + VIX&lt;13 = Dull. Manually bhi override kar sakte ho.</div>
     </div>
 
-    <div class="card">
+<div class="card">
       <div class="card-title">A PERIOD (9:15 – 9:45)</div>
       <div class="hlc-row">
         <div><label>HIGH</label><input id="op_Ah" inputmode="decimal"></div>
@@ -250,12 +252,12 @@
       </div>
     </div>
 
-    <div class="card">
+<div class="card">
       <div class="card-title">OPENING TYPE (auto)</div>
       <div class="result-box" id="openingResultBox">Levels + Open + A bharo</div>
     </div>
 
-    <div class="card">
+<div class="card">
       <div class="card-title">B PERIOD (9:45 – 10:15) — IB ke liye zaroori</div>
       <div class="hlc-row">
         <div><label>HIGH</label><input id="op_Bh" inputmode="decimal"></div>
@@ -264,12 +266,12 @@
       </div>
     </div>
 
-    <div class="card">
+<div class="card">
       <div class="card-title">IB & HALF-IB (auto)</div>
       <div class="result-box" id="ibResultBox">A + B dono bharo</div>
     </div>
 
-    <div class="card">
+<div class="card">
       <div class="card-title">DAY TYPE LADDER (11:00 pe, khud dekh ke batao)</div>
 
       <div class="toggle-q">1. C ke baad IB DONO SIDE touch hui?</div>
@@ -311,212 +313,7 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">PROFILE SHAPE (11:30 baad ya EOD dekh ke batao)</div>
-      <div class="toggle-q">Session ka shape kaisa bana?</div>
-      <div class="toggle-group" id="tg_profileShape">
-        <button data-val="P">P-shape</button>
-        <button data-val="B">b-shape</button>
-      </div>
-      <div class="toggle-group" id="tg_profileShape2">
-        <button data-val="D">D-shape</button>
-        <button data-val="DoubleD">Double-D</button>
-      </div>
-      <div id="q_pShapeType" style="display:none">
-        <div class="toggle-q">P-shape — fresh buying ya short covering lag raha hai?</div>
-        <div class="toggle-group" id="tg_pShapeType">
-          <button data-val="fresh">Fresh buying</button>
-          <button data-val="shortcover">Short covering</button>
-        </div>
-      </div>
-      <div id="q_doubleDLevels" style="display:none">
-        <div class="hint-box" style="padding:0 14px 8px">Dono balance zones note kar lo — agle session ke liye reference banenge.</div>
-        <div class="field-row"><span class="lbl">Balance-1 High</span><input id="op_bal1h" inputmode="decimal"></div>
-        <div class="field-row"><span class="lbl">Balance-1 Low</span><input id="op_bal1l" inputmode="decimal"></div>
-        <div class="field-row"><span class="lbl">Balance-2 High</span><input id="op_bal2h" inputmode="decimal"></div>
-        <div class="field-row"><span class="lbl">Balance-2 Low</span><input id="op_bal2l" inputmode="decimal"></div>
-      </div>
-      <div class="hint-box" style="padding:0 14px 12px">
-        P = buying tail (buyer control) · b = long liquidation (seller weak) · D = koi control nahi (balance) · Double-D = trend with 2 pauses (lower conviction, par 2 naya reference level milte hain).
-      </div>
-    </div>
-
-    <div class="card" id="oaorCard" style="display:none">
-      <div class="card-title">OAOR SPECIFIC (agar gap wala din hai)</div>
-      <div class="toggle-q">Gap G/H period (~12:30) tak fill hua?</div>
-      <div class="toggle-group" id="tg_oaorGapFilled">
-        <button data-val="yes">Haan, fill hua</button>
-        <button data-val="no">Nahi fill hua</button>
-      </div>
-      <div class="toggle-q">A period ne koi rejection tail chhodi?</div>
-      <div class="toggle-group" id="tg_aPeriodTail">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-      <div id="q_tailSide" style="display:none">
-        <div class="toggle-group" id="tg_aPeriodTailSide">
-          <button data-val="selling">Selling tail (upar)</button>
-          <button data-val="buying">Buying tail (neeche)</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" id="trendSubCard" style="display:none">
-      <div class="card-title">TREND DAY SUB-TYPE</div>
-      <div class="toggle-q">Session me VWAP kitni baar test hua?</div>
-      <div class="toggle-group" id="tg_vwapTestCount">
-        <button data-val="zero">Zero (pure OTF move)</button>
-        <button data-val="one">Ek baar</button>
-      </div>
-      <div class="hint-box" style="padding:0 14px 12px">Zero test = OTF move, sabse strong. Ek test = normal trend day, VWAP retest ~12:30-1:30 ke aas-paas expect karo (inventory adjustment window).</div>
-    </div>
-
-    <div class="card" id="nvSlCard" style="display:none">
-      <div class="card-title">NORMAL VARIATION — SL CHOICE</div>
-      <div class="toggle-q">IB length ke hisaab se SL kaunsa lena hai?</div>
-      <div class="toggle-group" id="tg_slChoice">
-        <button data-val="vwap">VWAP (full risk)</button>
-        <button data-val="ibExtreme">IB extreme (tighter)</button>
-      </div>
-      <div class="hint-box" style="padding:0 14px 12px">IB chota ho (60-100) to VWAP zyada door nahi hota, VWAP hi lo. IB bada ho (150+) to VWAP bahut door ho sakta hai — IB extreme tighter alternative hai.</div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">DAY TYPE (auto)</div>
-      <div class="result-box" id="dayTypeResultBox">Ladder complete karo upar</div>
-    </div>
-
-    <div class="card" id="flagsCard" style="display:none">
-      <div class="card-title">EXTRA FLAGS</div>
-      <div id="failedAuctionFlag" style="display:none">
-        <div class="toggle-q">Failed Auction hua (ek side break, doosri side close bahar)?</div>
-        <div class="toggle-group" id="tg_failedAuction">
-          <button data-val="yes">Haan</button>
-          <button data-val="no">Nahi</button>
-        </div>
-      </div>
-      <div id="threeIBFlag" style="display:none">
-        <div class="toggle-q">Aaj 3IB tak gaya?</div>
-        <div class="toggle-group" id="tg_threeIB">
-          <button data-val="yes">Haan</button>
-          <button data-val="no">Nahi</button>
-        </div>
-        <div id="q_threeIBFast" style="display:none">
-          <div class="toggle-q">Breakout jaldi (C/D/E) + high pe close, ya late/dur?</div>
-          <div class="toggle-group" id="tg_threeIBFast">
-            <button data-val="fast">Jaldi + High pe close</button>
-            <button data-val="late">Late ya door</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">STRATEGY SIGNALS (khud dekh ke batao)</div>
-
-      <div class="toggle-q">VWAP se kya reaction mila (jab test hua)?</div>
-      <div class="toggle-group" id="tg_vwapReaction">
-        <button data-val="hold">Hold</button>
-        <button data-val="reject">Reject</button>
-        <button data-val="accept">Accept/Freeze</button>
-      </div>
-      <div class="hint-box" style="padding:0 14px 12px">VWAP REJECT ho jaye to explicit EXIT signal hai — Normal Variation/Trend Day dono me. Hold/Accept ho to position ke saath chalte raho.</div>
-
-      <div class="toggle-q">A/B ka fast move Order Flow se GENUINE (IB/IS) tha ya FAKE (RB/RS, sentiment-manipulation)?</div>
-      <div id="ofRealitySuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
-      <div class="toggle-group" id="tg_ofReality">
-        <button data-val="genuine">Genuine (IB/IS)</button>
-        <button data-val="fake">Fake (RB/RS)</button>
-        <button data-val="not_useful">Not Useful</button>
-      </div>
-      <div class="hint-box" style="padding:0 14px 12px">Coach: "single IS/IB has no meaning into opening, but big RB/RS can manipulate sentiment. Pattern: fast move → hold hold → VWAP attempt → phir boom (asli move)." Fake ho to chase mat karo, VWAP-attempt ka wait karo.</div>
-
-      <div class="toggle-q">Participation kisi EK stock ke isolated news se distort lag rahi hai?</div>
-      <div class="toggle-group" id="tg_newsDistortion">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-      <div class="hint-box" style="padding:0 14px 12px">Agar haan, to participation ka broad BUY/SELL signal us stock ki wajah se skew ho sakta hai — genuine broad conviction na maano.</div>
-
-      <div class="toggle-q">C period rejected hua (bluff, wapas andar band hui)?</div>
-      <div class="toggle-group" id="tg_cPeriodRejected">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-      <div id="q_cBluffDir" style="display:none">
-        <div class="toggle-q">Bluff kis taraf tha?</div>
-        <div class="toggle-group" id="tg_cPeriodBluffDir">
-          <button data-val="up">Upar fake tod (asli direction NEECHE)</button>
-          <button data-val="down">Neeche fake tod (asli direction UPAR)</button>
-        </div>
-        <div class="toggle-q">C ka close VWAP ke bilkul paas hai (T1 already price pe)?</div>
-        <div class="toggle-group" id="tg_cCloseNearVwap">
-          <button data-val="yes">Haan</button>
-          <button data-val="no">Nahi</button>
-        </div>
-      </div>
-
-      <div class="toggle-q">A+B period ka volume LOW tha? (A ka volume + B ka volume JOD KE dekho, alag-alag nahi — total 1M se upar ho to "Nahi", neeche ho to "Haan")</div>
-      <div class="toggle-group" id="tg_abVolumeLow">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-
-      <div class="toggle-q">Koi period (C se aage) PREVIOUS session ke value area ke 20%+ andar close hua?</div>
-      <div class="toggle-group" id="tg_value20pct">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-      <div id="q_value20pctSide" style="display:none">
-        <div class="toggle-q">Kis taraf se andar aaya?</div>
-        <div class="toggle-group" id="tg_value20pctSide">
-          <button data-val="down">Upar se neeche aaya (VAH se)</button>
-          <button data-val="up">Neeche se upar aaya (VAL se)</button>
-        </div>
-      </div>
-
-      <div class="toggle-q">Kal violent 3IB + HIGH pe close hua tha (Normal Variation day)?</div>
-      <div class="toggle-group" id="tg_prevDay3IBHighClose">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-
-      <div class="toggle-q">Kal ka Day Type kya tha?</div>
-      <select id="sel_prevDayType" class="of-tag-select">
-        <option value="">-- Select --</option>
-        <option value="Normal">Normal</option>
-        <option value="Normal Variation">Normal Variation</option>
-        <option value="Neutral">Neutral</option>
-        <option value="Neutral Extreme">Neutral Extreme</option>
-        <option value="Trend">Trend</option>
-      </select>
-
-      <div class="toggle-q">Kal ke K/L/M period me Spike bana tha?</div>
-      <div class="toggle-group" id="tg_prevSpikeHad">
-        <button data-val="yes">Haan</button>
-        <button data-val="no">Nahi</button>
-      </div>
-      <div id="q_spikeLevels" style="display:none">
-        <div class="field-row"><span class="lbl">Spike High</span><input id="op_prevSpikeHigh" inputmode="decimal"></div>
-        <div class="field-row"><span class="lbl">Spike Low</span><input id="op_prevSpikeLow" inputmode="decimal"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">PLAYBOOK MATCH (aapke answers se lookup)</div>
-      <div class="hint-box" style="padding:0 14px 10px">Ye tool "bluff hai ya real", "kaunsa shape bana" khud nahi dekh sakta — wo sab AAPKI aankh ka kaam hai. Ye sirf aapke diye toggles ke hisaab se coach ka likha rule dikhata hai.</div>
-      <div id="finalStrategyBox"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">SUPPORTING NOTES</div>
-      <div class="strategy-list" id="strategyBoxOpening"></div>
-    </div>
-  </div>
-
-  <!-- ================= PARTICIPATION ================= -->
-  <div id="section-participation" class="section">
-    <div class="card price-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px">
+<div class="card price-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px">
       <span style="font-size:13px;color:#7C8896">Nifty price</span>
       <input id="niftyPrice" inputmode="decimal" style="background:transparent;border:none;color:#E6EDF3;font-size:16px;font-weight:700;text-align:right;width:110px;outline:none;font-family:inherit">
     </div>
@@ -550,9 +347,118 @@
     </div>
   </div>
 
-  <!-- ================= ORDER FLOW ================= -->
-  <div id="section-orderflow" class="section">
-    <div class="card">
+  <!-- ================= MIDDAY ================= -->
+  <div id="section-midday" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">☀️ Day Type confirm ~11:00 baad hota hai (ladder ke liye time chahiye), lekin Order Flow candles tag karna aur Profile Shape observe karna turant se shuru kar sakte ho — wait mat karo.</div>
+<div class="card">
+      <div class="card-title">PROFILE SHAPE (11:30 baad ya EOD dekh ke batao)</div>
+      <div class="toggle-q">Session ka shape kaisa bana?</div>
+      <div class="toggle-group" id="tg_profileShape">
+        <button data-val="P">P-shape</button>
+        <button data-val="B">b-shape</button>
+      </div>
+      <div class="toggle-group" id="tg_profileShape2">
+        <button data-val="D">D-shape</button>
+        <button data-val="DoubleD">Double-D</button>
+      </div>
+      <div id="q_pShapeType" style="display:none">
+        <div class="toggle-q">P-shape — fresh buying ya short covering lag raha hai?</div>
+        <div class="toggle-group" id="tg_pShapeType">
+          <button data-val="fresh">Fresh buying</button>
+          <button data-val="shortcover">Short covering</button>
+        </div>
+      </div>
+      <div id="q_doubleDLevels" style="display:none">
+        <div class="hint-box" style="padding:0 14px 8px">Dono balance zones note kar lo — agle session ke liye reference banenge.</div>
+        <div class="field-row"><span class="lbl">Balance-1 High</span><input id="op_bal1h" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Balance-1 Low</span><input id="op_bal1l" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Balance-2 High</span><input id="op_bal2h" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Balance-2 Low</span><input id="op_bal2l" inputmode="decimal"></div>
+        <div class="card-title" style="padding-top:6px">KEY SUPPORT/RESISTANCE ZONES (auto)</div>
+        <div class="result-box" id="doubleDZonesBox">Bal-1/Bal-2 High aur Low bharo — centers yahan auto-calculate honge</div>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">
+        P = buying tail (buyer control) · b = long liquidation (seller weak) · D = koi control nahi (balance) · Double-D = trend with 2 pauses (lower conviction, par 2 naya reference level milte hain).
+      </div>
+    </div>
+
+<div class="card" id="oaorCard" style="display:none">
+      <div class="card-title">OAOR SPECIFIC (agar gap wala din hai)</div>
+      <div class="toggle-q">Gap G/H period (~12:30) tak fill hua?</div>
+      <div class="toggle-group" id="tg_oaorGapFilled">
+        <button data-val="yes">Haan, fill hua</button>
+        <button data-val="no">Nahi fill hua</button>
+      </div>
+      <div class="toggle-q">Abhi G/H period (~12:30) ya uske baad ka time hai?</div>
+      <div class="toggle-group" id="tg_oaorTimingConfirmed">
+        <button data-val="yes">Haan, 12:30+ ho chuka</button>
+        <button data-val="no">Nahi, abhi pehle hi hai</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: gap-unfilled continuation ka 70-80% bias sirf G/H period (~12:30) ke baad confirm hota hai — C-period (10:45) ke turant baad nahi. Jab tak upar "Haan, 12:30+" na chuno, continuation strategy card nahi banega.</div>
+      <div class="toggle-q">A period ne koi rejection tail chhodi?</div>
+      <div class="toggle-group" id="tg_aPeriodTail">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_tailSide" style="display:none">
+        <div class="toggle-group" id="tg_aPeriodTailSide">
+          <button data-val="selling">Selling tail (upar)</button>
+          <button data-val="buying">Buying tail (neeche)</button>
+        </div>
+      </div>
+    </div>
+
+<div class="card" id="trendSubCard" style="display:none">
+      <div class="card-title">TREND DAY SUB-TYPE</div>
+      <div class="toggle-q">Session me VWAP kitni baar test hua?</div>
+      <div class="toggle-group" id="tg_vwapTestCount">
+        <button data-val="zero">Zero (pure OTF move)</button>
+        <button data-val="one">Ek baar</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Zero test = OTF move, sabse strong. Ek test = normal trend day, VWAP retest ~12:30-1:30 ke aas-paas expect karo (inventory adjustment window).</div>
+    </div>
+
+<div class="card" id="nvSlCard" style="display:none">
+      <div class="card-title">NORMAL VARIATION — SL CHOICE</div>
+      <div class="toggle-q">IB length ke hisaab se SL kaunsa lena hai?</div>
+      <div class="toggle-group" id="tg_slChoice">
+        <button data-val="vwap">VWAP (full risk)</button>
+        <button data-val="ibExtreme">IB extreme (tighter)</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">IB chota ho (60-100) to VWAP zyada door nahi hota, VWAP hi lo. IB bada ho (150+) to VWAP bahut door ho sakta hai — IB extreme tighter alternative hai.</div>
+    </div>
+
+<div class="card">
+      <div class="card-title">DAY TYPE (auto)</div>
+      <div class="result-box" id="dayTypeResultBox">Ladder complete karo upar</div>
+    </div>
+
+<div class="card" id="flagsCard" style="display:none">
+      <div class="card-title">EXTRA FLAGS</div>
+      <div id="failedAuctionFlag" style="display:none">
+        <div class="toggle-q">Failed Auction hua (ek side break, doosri side close bahar)?</div>
+        <div class="toggle-group" id="tg_failedAuction">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+      </div>
+      <div id="threeIBFlag" style="display:none">
+        <div class="toggle-q">Aaj 3IB tak gaya?</div>
+        <div class="toggle-group" id="tg_threeIB">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+        <div id="q_threeIBFast" style="display:none">
+          <div class="toggle-q">Breakout jaldi (C/D/E) + high pe close, ya late/dur?</div>
+          <div class="toggle-group" id="tg_threeIBFast">
+            <button data-val="fast">Jaldi + High pe close</button>
+            <button data-val="late">Late ya door</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<div class="card">
       <div class="card-title">TODAY'S PATTERNS</div>
       <div id="ofList"></div>
       <div style="padding:0 14px 14px"><button class="add-btn" id="addOfBtn">+ Add Pattern</button></div>
@@ -571,15 +477,131 @@
     </div>
   </div>
 
-  <!-- ================= SUMMARY ================= -->
-  <div id="section-summary" class="section">
-    <div id="summaryBox"></div>
+  <!-- ================= AFTERNOON ================= -->
+  <div id="section-afternoon" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">🌇 Naam sirf grouping ke liye hai — ⚠ 1 baje tak WAIT mat karo. C-period rejected (~10:45), A+B volume (~10:15), Order Flow reality (~10:15) — ye sab MORNING/MIDDAY ke saath hi bharo jaise jaise data aata hai. Playbook Match card live update hota hai, jaise hi zaroori toggles bhar jaate hain waisi hi strategy dikhne lagti hai.</div>
+<div class="card">
+      <div class="card-title">STRATEGY SIGNALS (khud dekh ke batao)</div>
+
+      <div class="toggle-q">VWAP se kya reaction mila (jab test hua)?</div>
+      <div class="toggle-group" id="tg_vwapReaction">
+        <button data-val="hold">Hold</button>
+        <button data-val="reject">Reject</button>
+        <button data-val="accept">Accept/Freeze</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">VWAP REJECT ho jaye to explicit EXIT signal hai — Normal Variation/Trend Day dono me. Hold/Accept ho to position ke saath chalte raho.</div>
+
+      <div class="toggle-q">A/B ka fast move Order Flow se GENUINE (IB/IS) tha ya FAKE (RB/RS, sentiment-manipulation)?</div>
+      <div id="ofRealitySuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
+      <div class="toggle-group" id="tg_ofReality">
+        <button data-val="genuine">Genuine (IB/IS)</button>
+        <button data-val="fake">Fake (RB/RS)</button>
+        <button data-val="not_useful">Not Useful</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: "single IS/IB has no meaning into opening, but big RB/RS can manipulate sentiment. Pattern: fast move → hold hold → VWAP attempt → phir boom (asli move)." Fake ho to chase mat karo, VWAP-attempt ka wait karo.</div>
+
+      <div class="toggle-q">Participation kisi EK stock ke isolated news se distort lag rahi hai?</div>
+      <div class="toggle-group" id="tg_newsDistortion">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Agar haan, to participation ka broad BUY/SELL signal us stock ki wajah se skew ho sakta hai — genuine broad conviction na maano.</div>
+
+      <div class="toggle-q">C period rejected hua (bluff, wapas andar band hui)?</div>
+      <div class="toggle-group" id="tg_cPeriodRejected">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_cBluffDir" style="display:none">
+        <div class="toggle-q">C-period ka volume A+B (combined) volume se 50%+ zyada tha?</div>
+        <div class="toggle-group" id="tg_cVolumeStrong">
+          <button data-val="yes">Haan, strong volume</button>
+          <button data-val="no">Nahi, normal/weak</button>
+        </div>
+        <div class="hint-box" style="padding:0 14px 12px">Agar C ka volume STRONG hai (A+B se 50%+ zyada), to ye bluff nahi — genuine breakout ho sakta hai. Coach: bluff ka signature bada bar + NO follow-through hai, strong volume follow-through ka sign hai.</div>
+        <div class="toggle-q">Bluff kis taraf tha?</div>
+        <div class="toggle-group" id="tg_cPeriodBluffDir">
+          <button data-val="up">Upar fake tod (asli direction NEECHE)</button>
+          <button data-val="down">Neeche fake tod (asli direction UPAR)</button>
+        </div>
+        <div class="toggle-q">C ka close VWAP ke bilkul paas hai (T1 already price pe)?</div>
+        <div class="toggle-group" id="tg_cCloseNearVwap">
+          <button data-val="yes">Haan</button>
+          <button data-val="no">Nahi</button>
+        </div>
+      </div>
+
+      <div class="toggle-q">A+B period ka volume LOW tha? (A ka volume + B ka volume JOD KE dekho, alag-alag nahi — total 1M se upar ho to "Nahi", neeche ho to "Haan")</div>
+      <div class="toggle-group" id="tg_abVolumeLow">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+
+      <div class="toggle-q">Koi period (C se aage) PREVIOUS session ke value area ke 20%+ andar close hua?</div>
+      <div class="toggle-group" id="tg_value20pct">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_value20pctSide" style="display:none">
+        <div class="toggle-q">Kis taraf se andar aaya?</div>
+        <div class="toggle-group" id="tg_value20pctSide">
+          <button data-val="down">Upar se neeche aaya (VAH se)</button>
+          <button data-val="up">Neeche se upar aaya (VAL se)</button>
+        </div>
+      </div>
+
+      <div class="toggle-q">Kal violent 3IB tha (Normal Variation day, extreme pe close)?</div>
+      <div class="toggle-group" id="tg_prevDay3IBHighClose">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_prevDay3IBDir" style="display:none">
+        <div class="toggle-q">Kal 3IB kis taraf bana tha?</div>
+        <div class="toggle-group" id="tg_prevDay3IBDirection">
+          <button data-val="up">Upar (Bullish, high pe close)</button>
+          <button data-val="down">Neeche (Bearish, low pe close)</button>
+        </div>
+      </div>
+
+      <div class="toggle-q">Kal ka Day Type kya tha?</div>
+      <select id="sel_prevDayType" class="of-tag-select">
+        <option value="">-- Select --</option>
+        <option value="Normal">Normal</option>
+        <option value="Normal Variation">Normal Variation</option>
+        <option value="Neutral">Neutral</option>
+        <option value="Neutral Extreme">Neutral Extreme</option>
+        <option value="Trend">Trend</option>
+      </select>
+
+      <div class="toggle-q">Kal ke K/L/M period me Spike bana tha?</div>
+      <div class="toggle-group" id="tg_prevSpikeHad">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div id="q_spikeLevels" style="display:none">
+        <div class="field-row"><span class="lbl">Spike High</span><input id="op_prevSpikeHigh" inputmode="decimal"></div>
+        <div class="field-row"><span class="lbl">Spike Low</span><input id="op_prevSpikeLow" inputmode="decimal"></div>
+      </div>
+    </div>
+
+<div class="card">
+      <div class="card-title">PLAYBOOK MATCH (aapke answers se lookup)</div>
+      <div class="hint-box" style="padding:0 14px 10px">Ye tool "bluff hai ya real", "kaunsa shape bana" khud nahi dekh sakta — wo sab AAPKI aankh ka kaam hai. Ye sirf aapke diye toggles ke hisaab se coach ka likha rule dikhata hai.</div>
+      <div id="finalStrategyBox"></div>
+    </div>
+
+<div class="card">
+      <div class="card-title">SUPPORTING NOTES</div>
+      <div class="strategy-list" id="strategyBoxOpening"></div>
+    </div>
   </div>
 
-  <!-- ================= MORE ================= -->
-  <div id="section-more" class="section">
+  <!-- ================= SUMMARY ================= -->
+  <div id="section-summary" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">🌙 EOD: poore din ka summary, aur neeche history/backup/settings.</div>
+<div id="summaryBox"></div>
 
-    <div class="field-row" style="background:#12181F;border:1px solid #232B36;border-radius:14px;margin-bottom:10px">
+<div class="field-row" style="background:#12181F;border:1px solid #232B36;border-radius:14px;margin-bottom:10px">
       <span class="lbl">Open a date</span>
       <input id="jumpDate" type="date">
     </div>
@@ -614,6 +636,7 @@
       <div class="weight-note">Coach ke rules fixed nahi hain — VIX/momentum ke hisaab se badalte hain. Yahan se adjust kar sakte ho.</div>
       <div class="field-row"><span class="lbl">Flat threshold (pts)</span><input id="rule_flat" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Drive side max (pts)</span><input id="rule_drive" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Drive MIN length (pts)</span><input id="rule_driveMin" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Test tolerance (pts)</span><input id="rule_test" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">ORR min cross (pts)</span><input id="rule_orr" inputmode="decimal"></div>
       <div class="weight-actions">
@@ -634,8 +657,9 @@
         <button class="weight-reset" id="resetWeightsBtn">Reset to Default</button>
       </div>
     </div>
-
   </div>
+
+
 
 </div>
 
@@ -671,7 +695,7 @@ const STORAGE_PREFIX = "tj_";
 const WEIGHTS_KEY = "tj_weights";
 const RULES_KEY = "tj_rules";
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DEFAULT_RULES = { flatThresh:40, driveThresh:20, testThresh:10, orrMinCross:30 };
+const DEFAULT_RULES = { flatThresh:40, driveThresh:20, testThresh:10, orrMinCross:30, driveMinLength:100 };
 
 let RULES = Object.assign({}, DEFAULT_RULES);
 function loadRules() {
@@ -713,7 +737,8 @@ function blankDay() {
       cPeriodRejected: null, cPeriodBluffDir: null, cCloseNearVwap: null, abVolumeLow: null,
       ofReality: null, newsDistortion: null,
       value20pct: null, value20pctSide: null,
-      prevDay3IBHighClose: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
+      prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
+      cVolumeStrong: null, oaorTimingConfirmed: null,
       profileShape: null, pShapeType: null,
       bal1h:"", bal1l:"", bal2h:"", bal2l:"",
       oaorGapFilled: null, aPeriodTail: null, aPeriodTailSide: null,
@@ -739,7 +764,7 @@ function formatDateKey(key) {
 /* ============================================================
    NAV
 ============================================================ */
-const SECTIONS = ["levels","opening","participation","orderflow","summary","more"];
+const SECTIONS = ["premarket","morning","midday","afternoon","summary"];
 function showSection(id) {
   SECTIONS.forEach(s => {
     document.getElementById('section-'+s).classList.toggle('active', s===id);
@@ -850,9 +875,10 @@ function calcOpening() {
     const closeNearHigh = (Ah - Ac) <= CLOSE_NEAR_EXTREME;
     const closerToLow = (Ah - Ac) > (Ac - Al);
     const closerToHigh = (Ac - Al) > (Ah - Ac);
-    if (upMove <= ER.driveThresh && downMove > upMove && downMove > 0 && (open - Ac) >= MIN_CLOSE_AWAY && closeNearLow && closerToLow) {
+    const driveMin = ER.driveMinLength || DEFAULT_RULES.driveMinLength;
+    if (upMove <= ER.driveThresh && downMove > upMove && downMove >= driveMin && (open - Ac) >= MIN_CLOSE_AWAY && closeNearLow && closerToLow) {
       sub = { type:"DRIVE", dir:"down" };
-    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove > 0 && (Ac - open) >= MIN_CLOSE_AWAY && closeNearHigh && closerToHigh) {
+    } else if (downMove <= ER.driveThresh && upMove > downMove && upMove >= driveMin && (Ac - open) >= MIN_CLOSE_AWAY && closeNearHigh && closerToHigh) {
       sub = { type:"DRIVE", dir:"up" };
     }
   }
@@ -892,6 +918,7 @@ function effectiveRules() {
       driveThresh: RULES.driveThresh,
       testThresh: Math.max(RULES.testThresh, 30),
       orrMinCross: Math.max(RULES.orrMinCross, 30),
+      driveMinLength: RULES.driveMinLength || DEFAULT_RULES.driveMinLength,
     };
   }
   return RULES;
@@ -1048,6 +1075,10 @@ function renderOpening() {
   renderToggleGroup('tg_value20pct', DAY.opening.value20pct);
   renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
   renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
+  renderToggleGroup('tg_prevDay3IBDirection', DAY.opening.prevDay3IBDirection);
+  document.getElementById('q_prevDay3IBDir').style.display = (DAY.opening.prevDay3IBHighClose === 'yes') ? 'block' : 'none';
+  renderToggleGroup('tg_cVolumeStrong', DAY.opening.cVolumeStrong);
+  renderToggleGroup('tg_oaorTimingConfirmed', DAY.opening.oaorTimingConfirmed);
   document.getElementById('sel_prevDayType').value = DAY.opening.prevDayType || "";
   renderToggleGroup('tg_prevSpikeHad', DAY.opening.prevSpikeHad);
   document.getElementById('op_prevSpikeHigh').value = DAY.opening.prevSpikeHigh;
@@ -1064,6 +1095,7 @@ function renderOpening() {
   document.getElementById('op_bal1l').value = DAY.opening.bal1l;
   document.getElementById('op_bal2h').value = DAY.opening.bal2h;
   document.getElementById('op_bal2l').value = DAY.opening.bal2l;
+  renderDoubleDZones();
 
   document.getElementById('oaorCard').style.display = (res && res.base === 'OAOR') ? 'block' : 'none';
   renderToggleGroup('tg_oaorGapFilled', DAY.opening.oaorGapFilled);
@@ -1091,15 +1123,34 @@ function selectStrategy() {
   const res = calcOpening();
   const ib = calcIB();
 
-  // 1. 3IB RULE — kal violent 3IB + high close, aaj Normal Variation
+  // 1. 3IB RULE — kal violent 3IB, aaj Normal Variation. [P1 Bug#2 FIX: direction ab hardcoded nahi, prevDay3IBDirection se aata hai]
   if (o.prevDay3IBHighClose === 'yes' && dt === 'Normal Variation' && ib) {
     const half = ib.len / 2;
+    if (!o.prevDay3IBDirection) {
+      return {
+        name: "3IB Rule — Direction Missing",
+        entry: "Pehle upar 'Kal 3IB kis taraf bana tha?' toggle bharo",
+        sl: "—",
+        target: "Direction confirm kiye bina entry side (long/short) decide nahi ho sakta",
+        note: "Kal ka 3IB bullish (high pe close) tha ya bearish (low pe close) — ye batana zaroori hai warna counter-trade ki direction galat lag sakti hai.",
+      };
+    }
+    if (o.prevDay3IBDirection === 'down') {
+      return {
+        name: "3IB Rule — Counter-trade (LONG)",
+        entry: "Naye IB low − half-IB filter ke paar (~" + (ib.ibLow - half).toFixed(1) + ") — ULTI direction (LONG) lo",
+        sl: "~" + ib.len.toFixed(0) + " pts defined risk (IB length ke barabar)",
+        target: "Naye din ka apna 2IB (" + (ib.ibLow + ib.len).toFixed(1) + ") phir 3IB (" + (ib.ibLow + ib.len * 2).toFixed(1) + "), ulti direction",
+        note: "Kal ka move BEARISH (low pe close) tha — laggards jo short mein phanse hain unhe target banate hain, isliye LONG counter-trade. Sirf aaj Normal Variation ban tabhi lagta hai. RR 1:10+ possible, rare setup. Trend Day/Neutral Extreme pe NAHI.",
+      };
+    }
+    // dir === 'up'
     return {
-      name: "3IB Rule — Counter-trade",
-      entry: "Naye IB high + half-IB filter ke paar (~" + (ib.ibHigh + half).toFixed(1) + ") — ULTI direction (short) lo",
+      name: "3IB Rule — Counter-trade (SHORT)",
+      entry: "Naye IB high + half-IB filter ke paar (~" + (ib.ibHigh + half).toFixed(1) + ") — ULTI direction (SHORT) lo",
       sl: "~" + ib.len.toFixed(0) + " pts defined risk (IB length ke barabar)",
       target: "Naye din ka apna 2IB (" + (ib.ibHigh - ib.len).toFixed(1) + ") phir 3IB (" + (ib.ibHigh - ib.len * 2).toFixed(1) + "), ulti direction",
-      note: "Sirf kal violent 3IB + high pe close + aaj Normal Variation ban tabhi lagta hai. RR 1:10+ possible, rare setup. Trend Day/Neutral Extreme pe NAHI. Options: ATM/ITM, weekly/OTM avoid.",
+      note: "Kal ka move BULLISH (high pe close) tha — laggards jo long mein phanse hain unhe target banate hain, isliye SHORT counter-trade. Sirf aaj Normal Variation ban tabhi lagta hai. RR 1:10+ possible, rare setup. Trend Day/Neutral Extreme pe NAHI. Options: ATM/ITM, weekly/OTM avoid.",
     };
   }
 
@@ -1117,18 +1168,52 @@ function selectStrategy() {
     }
   }
 
-  // 3. FAILED AUCTION
-  if (dt && dt.startsWith('Neutral') && o.failedAuction === 'yes') {
-    return { name: "Failed Auction — Revisit counter-trade", entry: "Closing price pe, ya agle session flat-open + pullback pe", sl: "Fail point ke paas", target: "Revisit jahan PEHLA break hua (~75% chance, 5-6 session me)", note: "Concept hai, poor RR — carry-forward mat karo. Neutral CENTER ke liye best fit (dono taraf fail, beech me close)." };
-  }
-
-  // 4. TREND DAY
+  // 3. TREND DAY — [P1 Bug#3 FIX: institutional-opening gate] [P1 Bug#4 FIX: VWAP-reject invalidation]
   if (dt === 'Trend Day') {
+    const hasInstitutionalOpen = !!(res && (res.sub || res.orr));
+    if (!hasInstitutionalOpen) {
+      return {
+        name: "⚠ Trend Day INVALID — No institutional opening",
+        entry: "Koi Trend Day trade MAT LO",
+        sl: "—",
+        target: "Day type dobara verify karo — ye Normal Day ya Normal Variation ho sakta hai",
+        note: "Coach: Trend Day banne ke liye Open Drive ya kam se kam ORR institutional opening chahiye hota hai — OAIR ya flat OAOR se trend day nahi banta. Aapki Opening me koi Drive/OTD/ORR confirm nahi hua, isliye ye Trend Day classification galat hai — Opening tab me dobara check karo.",
+      };
+    }
+    if (o.vwapReaction === 'reject') {
+      return {
+        name: "⚠ Trend Day — VWAP REJECTED (Exit)",
+        entry: "Koi nayi entry MAT LO",
+        sl: "—",
+        target: "Agar position khuli hai to TURANT exit karo",
+        note: "VWAP freeze/hold hi Trend Day thesis ko zinda rakhta hai. VWAP reject hona EXPLICIT EXIT signal hai — trend day thesis toot chuki hai. Wait mat karo, dusra confirmation mat dhoondo.",
+      };
+    }
     return { name: "Trend Day — VWAP anchor", entry: "HH pattern (A high, B naya high nahi, C+D dono naya high) — half-IB se PEHLE partial entry; ya standard half-IB breakout", sl: "VWAP (sirf VWAP, koi aur SL nahi)", target: "Trend ride karo, ek hi VWAP-visit expect karo, dusra visit = exit signal", note: "VWAP freeze, POC freeze expect karo. 11:30 ke baad P/B/D shape dekho confirm karne ke liye." };
   }
 
-  // 5. C-PERIOD REJECTION — Normal Variation/Normal Day se PEHLE check hota hai, taaki half-IB tick hote hi ye gayab na ho jaye
+  // 4. P-SHAPE SHORT-COVERING "BOT FLIP" — [P2 Bug#7 FIX: naya block, pehle se missing tha]
+  if (o.profileShape === 'P' && o.pShapeType === 'shortcover' && o.vwapReaction === 'reject') {
+    return {
+      name: "Bot Flip — Short Covering Reversal (SHORT)",
+      entry: "VWAP retest reject hone ke turant baad SHORT lo",
+      sl: "VWAP (thoda upar)",
+      target: "Poora P-shape move wapas — price 'bot' ke shape ko peeche se collapse karta hai, poori rally reverse ho sakti hai",
+      note: "Coach: short-covering se bani P-shape mein agar VWAP acceptance FAIL/reject ho jaye to 'bot flip' hota hai — price poori tarah neeche collapse ho jati hai. Ye 20-30% ke aas-paas hota hai, holy grail nahi, lekin jab bane to explosive hota hai.",
+    };
+  }
+
+  // 5. C-PERIOD REJECTION — [P2 Bug#6 FIX: strong-volume filter block karta hai bluff read]
   if (o.cPeriodRejected === 'yes' && ib) {
+    if (o.cVolumeStrong === 'yes') {
+      return {
+        name: "C-Period Rejection — Genuine Breakout Warning",
+        entry: "'Bluff' ke ulta trade MAT LO — C ka volume STRONG hai (A+B se 50%+ zyada)",
+        sl: "—",
+        target: "Ye genuine breakout ho sakta hai, C-bluff nahi. Original breakout direction ke saath process karo, C-rejection strategy avoid karo.",
+        note: "Coach: agar C-period mein strong volume aaye (A+B volume se 50%+ zyada), to wo bluff nahi balki genuine breakout hota hai. Is candle ko 'fake' maan kar counter-trade lena galat hoga.",
+      };
+    }
     if (o.cCloseNearVwap === 'yes') {
       return {
         name: "C-Period Rejection — Skip (T1 already at price)",
@@ -1154,7 +1239,7 @@ function selectStrategy() {
       entry: "Rejection close ke turant baad, bluff ke ULTI direction me",
       sl: "10-15 pts filter (period ke extreme ke paar)",
       target: "T1: VWAP · T2: " + t2Text + " — Failed Auction me convert ho sakta hai",
-      note: dirNote + " Volume check karo — agar C period ka volume STRONG hai (IB se 50%+ zyada), to 'bluff' mat maano. Bluff ka signature: bada bar + koi FOLLOW-THROUGH nahi — 1-2 ghante jaanbujh kar waste karwaye jate hain. Note: B pehle A ka High/Low paar kar chuka ho tab bhi ye bluff valid rehta hai — hide nahi hota.",
+      note: dirNote + " Bluff ka signature: bada bar + koi FOLLOW-THROUGH nahi — 1-2 ghante jaanbujh kar waste karwaye jate hain. Note: B pehle A ka High/Low paar kar chuka ho tab bhi ye bluff valid rehta hai — hide nahi hota.",
     };
   }
 
@@ -1170,35 +1255,52 @@ function selectStrategy() {
     const targetText = ignoreExtended
       ? "T1: VWAP/IB ke paas hi rakho. 2IB/3IB IGNORE karo — " + (lowVix2 ? "VIX<13" : "") + (lowVix2 && mixedPart ? " + " : "") + (mixedPart ? "participation mixed/NO CONVICTION" : "") + " ke karan extended target ka basis kamzor hai."
       : "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)";
+    let ddNote = "";
+    if (o.profileShape === 'DoubleD' && o.bal1h && o.bal1l) {
+      const c1 = (parseFloat(o.bal1h) + parseFloat(o.bal1l)) / 2;
+      ddNote = " Double-D balance-1 center: " + (isNaN(c1) ? "–" : c1.toFixed(1)) + (o.bal2h && o.bal2l ? (", balance-2 center: " + (((parseFloat(o.bal2h)+parseFloat(o.bal2l))/2).toFixed(1))) : "") + " — ye levels aaj key reference support/resistance hain.";
+    }
     return {
       name: "Normal Variation — Half-IB Breakout",
       entry: "Half-IB acceptance (CLOSE se, touch se nahi)",
       sl: "VWAP",
       target: targetText,
-      note: o.threeIB === 'yes' ? "3IB flag ON — agar high pe close hua, kal 3IB-Rule trigger check karna." : "",
+      note: (o.threeIB === 'yes' ? "3IB flag ON — agar high pe close hua, kal 3IB-Rule trigger check karna." : "") + ddNote,
     };
   }
 
   // 7. NORMAL DAY sub-strategies
   if (dt === 'Normal Day') {
-    if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && ib) {
+    const vixNum3 = parseFloat(o.vix);
+    const lowVix3 = !isNaN(vixNum3) && vixNum3 < 13;
+    // [P2 Bug#9 FIX: 45-degree rule ab VIX<13 bhi check karta hai, sirf abVolumeLow nahi]
+    if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && lowVix3 && ib) {
       const mid = (ib.ibHigh + ib.ibLow) / 2;
       return {
         name: "45-Degree Rule",
         entry: "IB high ke paas SHORT (breakout fail hone pe) — ya IB low ke paas LONG. Filter mandatory (10-15 pts)",
         sl: "High-cut stop-loss + filter",
         target: "T1: 45° line / half-IB midpoint (~" + mid.toFixed(1) + ", ~" + (ib.len / 2).toFixed(0) + " pts move) · T2: VAH/VAL",
-        note: "Sirf OAIR/OAOR + LOW volume (A+B) me lagta hai. Agar Open Drive ya ORR ban raha hai, ye rule FAIL karega — mat lagao. 2 trades/din possible (top se aur bottom se).",
+        note: "Sirf OAIR/OAOR + LOW VIX (<13) + LOW volume (A+B) me lagta hai. Agar Open Drive ya ORR ban raha hai, ye rule FAIL karega — mat lagao. 2 trades/din possible (top se aur bottom se).",
+      };
+    }
+    if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && !lowVix3 && ib) {
+      return {
+        name: "45-Degree Rule — VIX Filter Fail",
+        entry: "45° rule ka setup dikh raha hai par VIX ≥13 hai — mat lagao",
+        sl: "—",
+        target: "Half-IB access ka normal wait karo",
+        note: "Coach: 45-degree rule sirf LOW VIX (<13) me kaam karta hai. VIX zyada hone par ranges wider ho sakte hain, ye rule fail karega.",
       };
     }
     if (o.value20pct === 'yes') {
       const targetLevel = o.value20pctSide === 'down' ? L.val : L.vah;
       return {
-        name: "80% Rule (Acceptance inside value)",
-        entry: "Us period ke close pe jahan 20%+ previous-session value area ke andar aaya",
-        sl: "Us period ke low/high ke paas",
+        name: "80% Rule — Confidence Confirmation (NOT a fresh entry)",
+        entry: "⚠ Fresh aggressive entry MAT LO. Agar PEHLE SE position me ho, ye sirf confidence confirm karta hai ki target tak travel ho sakta hai.",
+        sl: "Agar phir bhi lena hai to us period ke low/high ke paas, bahut tight",
         target: targetLevel ? "Previous session ka doosra VA extreme (" + targetLevel + ") — 80% probability poora value area travel karega" : "Previous session ka doosra VA extreme (VAH/VAL)",
-        note: "Poor RR — isse zyada 'confidence confirmation' tool ki tarah use karo agar pehle se position me ho (jaise Order Flow se confirm ho chuka ho).",
+        note: "Poor RR — coach explicitly kehte hain ye fresh trade ke liye nahi hai, balki ek 'confidence confirmation / trailing-SL tool' hai jab already position me ho (jaise Order Flow se pehle hi confirm ho chuka ho).",
       };
     }
     if (res && res.base === 'OAOR' && res.bigGapOAOR) {
@@ -1210,11 +1312,21 @@ function selectStrategy() {
         note: "Gap " + (res.gapDist ? res.gapDist.toFixed(0) : "bada") + " pts ka hai — itne bade gap pe Drive/OTD lagana galat hai, coach ka rule: bade gap pe sirf Open accept/reject, directional Drive nahi.",
       };
     }
+    // [P2 Bug#5 FIX: G/H period (~12:30) timing gate mandatory — C-period ke turant baad nahi]
     if (res && res.base === 'OAOR' && o.oaorGapFilled === 'no' && ib) {
+      if (o.oaorTimingConfirmed !== 'yes') {
+        return {
+          name: "Normal Day — OAOR Gap Unfilled (wait for G/H period)",
+          entry: "Abhi entry MAT LO",
+          sl: "—",
+          target: "G/H period (~12:30) tak wait karo. Agar tab bhi gap fill nahi hua, tabhi continuation bias confirm hoga.",
+          note: "Coach: gap-unfilled continuation ka 70-80% bias sirf G/H period (~12:30) ke baad confirm hota hai, C-period (10:45) ke turant baad nahi. Upar 'Abhi G/H period ya uske baad ka time hai?' toggle 'Haan' karo jab waqt ho jaye.",
+        };
+      }
       const dir = res.sub && res.sub.dir === 'up' ? 'up' : (res.sub && res.sub.dir === 'down' ? 'down' : null);
       return {
         name: "Normal Day — OAOR Gap Unfilled (same-direction bias)",
-        entry: "IB extreme ke close se (C period ke baad) — gap ki direction me",
+        entry: "IB extreme ke close se — gap ki direction me",
         sl: "IB opposite extreme ke paar",
         target: dir === 'down' ? "Naked levels neeche ki taraf, ya 2IB/3IB agar momentum bane" : "Naked levels upar ki taraf, ya 2IB/3IB agar momentum bane",
         note: "Gap G/H period (~12:30) tak fill nahi hua — 70-80% continuation probability same direction me. Half-IB mandatory NAHI is case me, IB extreme ka close hi kaafi hai.",
@@ -1224,6 +1336,17 @@ function selectStrategy() {
       return { name: "Normal Day — Wait (gap filled)", entry: "Half-IB access ka wait karo", sl: "—", target: "Gap fill ho chuka — continuation wali strong bias nahi bachi, normal half-IB process follow karo", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
     }
     return { name: "Normal Day — Wait", entry: "Half-IB access ka wait karo", sl: "—", target: "Breakout trade avoid karo jab tak half-IB close se access na mile", note: "Volume/pattern dekho — 45° ya 80% rule ke flags upar bhar do agar match kare." };
+  }
+
+  // 8. FAILED AUCTION — [P3 Bug#1 FIX: ab last-resort contextual flag hai, active priority strategy nahi]
+  if (dt && dt.startsWith('Neutral') && o.failedAuction === 'yes') {
+    return {
+      name: "Failed Auction — Context Flag (not an active trade signal)",
+      entry: "Ye ek CONTEXT flag hai, fresh aggressive entry ka basis nahi. Agar lena hi hai: closing price pe, ya agle session flat-open + pullback pe, chhoti size.",
+      sl: "Fail point ke paas",
+      target: "Revisit jahan PEHLA break hua (~70-75% chance, 5-6 session me) — ya, agar bada move tha, 2× failed-auction-range ka target (Ray Barros ka 4th scenario)",
+      note: "Ray Barros: concept hai, poor RR — carry-forward mat karo, strategy mat maano. Neutral CENTER ke liye best fit (dono taraf fail, beech me close). ~30% miss rate bhi hai.",
+    };
   }
 
   return null;
@@ -1244,6 +1367,23 @@ function renderFinalStrategy() {
       <div class="frow"><div class="flabel">TARGET</div><div class="fval">${s.target}</div></div>
       ${s.note ? '<div class="fnote">' + s.note + '</div>' : ''}
     </div>`;
+}
+
+function renderDoubleDZones() {
+  const box = document.getElementById('doubleDZonesBox');
+  if (!box) return;
+  const o = DAY.opening;
+  const b1h = parseFloat(o.bal1h), b1l = parseFloat(o.bal1l), b2h = parseFloat(o.bal2h), b2l = parseFloat(o.bal2l);
+  const rows = [];
+  if (!isNaN(b1h) && !isNaN(b1l)) {
+    rows.push('<div class="row"><span class="muted">Balance-1 Center (Support/Resistance)</span><b>' + ((b1h + b1l) / 2).toFixed(1) + '</b></div>');
+    rows.push('<div class="row"><span class="muted">Balance-1 Range</span><b>' + b1l.toFixed(1) + ' – ' + b1h.toFixed(1) + '</b></div>');
+  }
+  if (!isNaN(b2h) && !isNaN(b2l)) {
+    rows.push('<div class="row"><span class="muted">Balance-2 Center (Support/Resistance)</span><b>' + ((b2h + b2l) / 2).toFixed(1) + '</b></div>');
+    rows.push('<div class="row"><span class="muted">Balance-2 Range</span><b>' + b2l.toFixed(1) + ' – ' + b2h.toFixed(1) + '</b></div>');
+  }
+  box.innerHTML = rows.length ? rows.join('') : 'Bal-1/Bal-2 High aur Low bharo — centers yahan auto-calculate honge';
 }
 
 function renderToggleGroup(id, val) {
@@ -1273,7 +1413,13 @@ function strategyHTML(dayType, opening, o) {
       P: "P-shape — buying tail, buyer control. " + (o.pShapeType === 'shortcover' ? "Short covering lagta hai — buyer weak, scalp-range zyada likely, ~2:15-2:45 (K/L) me late-breakout attempt dekho, order flow se confirm karo." : o.pShapeType === 'fresh' ? "Fresh buying lagta hai — zyada bharosemand, continuation ki taraf jhukav." : "Fresh ya short-cover, abhi confirm nahi — order flow dekho."),
       B: "b-shape — long liquidation (seller weak hai, ye fresh selling nahi hai). Range-bound resolve hone ki zyada chance.",
       D: "D-shape — koi control nahi, fully balanced. VWAP center/POC ke paas milega.",
-      DoubleD: "Double-D shape — trend hi hai, par 2 pause liye, isliye lower-conviction. Dono balance zones (Bal-1, Bal-2) agle session ke naye reference level hain — save kar lo.",
+      DoubleD: "Double-D shape — trend hi hai, par 2 pause liye, isliye lower-conviction. Dono balance zones (Bal-1, Bal-2) agle session ke naye reference level hain — save kar lo." + (function(){
+        const b1h=parseFloat(o.bal1h), b1l=parseFloat(o.bal1l), b2h=parseFloat(o.bal2h), b2l=parseFloat(o.bal2l);
+        let s = "";
+        if (!isNaN(b1h) && !isNaN(b1l)) s += " Balance-1 center: " + ((b1h+b1l)/2).toFixed(1) + " (H " + b1h.toFixed(1) + " / L " + b1l.toFixed(1) + ").";
+        if (!isNaN(b2h) && !isNaN(b2l)) s += " Balance-2 center: " + ((b2h+b2l)/2).toFixed(1) + " (H " + b2h.toFixed(1) + " / L " + b2l.toFixed(1) + ").";
+        return s || " Bal-1/Bal-2 High/Low upar bhar do to center auto-calculate ho jayega.";
+      })(),
     };
     lines.push(shapeText[o.profileShape] || "");
   }
@@ -1365,6 +1511,9 @@ wireToggle('tg_newsDistortion', { get:()=>DAY.opening.newsDistortion, set:(v)=>D
 wireToggle('tg_value20pct', { get:()=>DAY.opening.value20pct, set:(v)=>DAY.opening.value20pct=v });
 wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>DAY.opening.value20pctSide=v });
 wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
+wireToggle('tg_prevDay3IBDirection', { get:()=>DAY.opening.prevDay3IBDirection, set:(v)=>DAY.opening.prevDay3IBDirection=v });
+wireToggle('tg_cVolumeStrong', { get:()=>DAY.opening.cVolumeStrong, set:(v)=>DAY.opening.cVolumeStrong=v });
+wireToggle('tg_oaorTimingConfirmed', { get:()=>DAY.opening.oaorTimingConfirmed, set:(v)=>DAY.opening.oaorTimingConfirmed=v });
 wireToggle('tg_prevSpikeHad', { get:()=>DAY.opening.prevSpikeHad, set:(v)=>DAY.opening.prevSpikeHad=v });
 document.getElementById('sel_prevDayType').onchange = (e) => { DAY.opening.prevDayType = e.target.value || null; scheduleAutoSave(); renderOpening(); };
 
@@ -1609,16 +1758,22 @@ function renderOF() {
 }
 
 function computeOfRealityFromEntries() {
-  const aEntry = DAY.orderflow.find(e => e.period === 'A' && e.tag);
-  const bEntry = DAY.orderflow.find(e => e.period === 'B' && e.tag);
-  if (!aEntry && !bEntry) return null;
-  if (!aEntry || !bEntry) return 'not_useful';
+  // P3 Bug#2 FIX: aggregate ALL A+B period candles (A1,A2,B1,B2...), not just the first found per period.
+  // Coach's rule (Orderflow part 3) is sequence/combination based, not single-candle based.
+  const aEntries = DAY.orderflow.filter(e => e.period === 'A' && e.tag);
+  const bEntries = DAY.orderflow.filter(e => e.period === 'B' && e.tag);
+  const all = aEntries.concat(bEntries);
+  if (all.length === 0) return null;
+  if (aEntries.length === 0 || bEntries.length === 0) return 'not_useful'; // need at least one tagged candle from EACH period
   const realTags = ['IS', 'IB'];
   const fakeTags = ['RB', 'RS'];
-  const aReal = realTags.includes(aEntry.tag), bReal = realTags.includes(bEntry.tag);
-  const aFake = fakeTags.includes(aEntry.tag), bFake = fakeTags.includes(bEntry.tag);
-  if (aReal && bReal) return 'genuine';
-  if (aFake && bFake) return 'fake';
+  const realCount = all.filter(e => realTags.includes(e.tag)).length;
+  const fakeCount = all.filter(e => fakeTags.includes(e.tag)).length;
+  // majority rule across all tagged A+B candles combined
+  if (realCount > 0 && fakeCount === 0) return 'genuine';
+  if (fakeCount > 0 && realCount === 0) return 'fake';
+  if (realCount > fakeCount) return 'genuine';
+  if (fakeCount > realCount) return 'fake';
   return 'not_useful';
 }
 
@@ -1795,6 +1950,7 @@ document.getElementById('rulesToggle').onclick = function() {
   if (!open) {
     document.getElementById('rule_flat').value = RULES.flatThresh;
     document.getElementById('rule_drive').value = RULES.driveThresh;
+    document.getElementById('rule_driveMin').value = RULES.driveMinLength;
     document.getElementById('rule_test').value = RULES.testThresh;
     document.getElementById('rule_orr').value = RULES.orrMinCross;
   }
@@ -1802,6 +1958,7 @@ document.getElementById('rulesToggle').onclick = function() {
 document.getElementById('saveRulesBtn').onclick = () => {
   RULES.flatThresh = parseFloat(document.getElementById('rule_flat').value) || DEFAULT_RULES.flatThresh;
   RULES.driveThresh = parseFloat(document.getElementById('rule_drive').value) || DEFAULT_RULES.driveThresh;
+  RULES.driveMinLength = parseFloat(document.getElementById('rule_driveMin').value) || DEFAULT_RULES.driveMinLength;
   RULES.testThresh = parseFloat(document.getElementById('rule_test').value) || DEFAULT_RULES.testThresh;
   RULES.orrMinCross = parseFloat(document.getElementById('rule_orr').value) || DEFAULT_RULES.orrMinCross;
   try { localStorage.setItem(RULES_KEY, JSON.stringify(RULES)); } catch(e) {}
@@ -1813,6 +1970,7 @@ document.getElementById('resetRulesBtn').onclick = () => {
   try { localStorage.removeItem(RULES_KEY); } catch(e) {}
   document.getElementById('rule_flat').value = RULES.flatThresh;
   document.getElementById('rule_drive').value = RULES.driveThresh;
+  document.getElementById('rule_driveMin').value = RULES.driveMinLength;
   document.getElementById('rule_test').value = RULES.testThresh;
   document.getElementById('rule_orr').value = RULES.orrMinCross;
   renderOpening();
@@ -1870,7 +2028,7 @@ function renderEverything() {
   renderOfTally();
 }
 
-showSection('levels');
+showSection('premarket');
 loadDay(todayKey());
 renderHistory();
 </script>
