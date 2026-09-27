@@ -264,6 +264,13 @@
     </div>
 
 <div class="card">
+      <div class="card-title">STRIKE SELECTOR (auto)</div>
+      <div class="field-row"><span class="lbl">Distance from ATM (pts)</span><input id="op_strikeDist" inputmode="decimal" placeholder="300"></div>
+      <div class="result-box" id="strikeResultBox">Open price bharo</div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: sirf 100-multiple strikes lo (23100, 23200...), 50-multiple avoid karo (23050, 23150...) — unme premium/volume kam hota hai. Distance ATM se coach ne kabhi 300 kabhi 250 bola transcript me — 300 default hai, tune kar sakte ho. Price 100pts opposite jaye to strike 100pts shift karne ka coach-rule hai (live Nifty price Participation tab se liya jata hai).</div>
+    </div>
+
+<div class="card">
       <div class="card-title">OPENING TICK ACCEPTANCE</div>
       <div class="toggle-q">A period ne kaisa behave kiya?</div>
       <div id="tickAcceptanceSuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
@@ -790,6 +797,7 @@ function blankDay() {
       // [NEW FEATURE 2: Opening Tick Acceptance — this session]
       tickAcceptance: null, // 'accepted' | 'rejected'
       vwapTestCount: null, slChoice: null, vwapReaction: null,
+      strikeDist: "",
     },
     participation: blankParticipation(),
     orderflow: [],
@@ -1012,6 +1020,31 @@ function getOfReality() {
   return computeOfRealityFromEntries();
 }
 
+function calcStrikeSelector() {
+  const open = parseFloat(DAY.opening.open);
+  if (isNaN(open)) return null;
+  const roundTo = 100;
+  const dist = parseFloat(DAY.opening.strikeDist) || 300;
+  const atm = Math.round(open / roundTo) * roundTo;
+  const ceStrike = Math.round((atm + dist) / roundTo) * roundTo;
+  const peStrike = Math.round((atm - dist) / roundTo) * roundTo;
+  const rangeUp = open * 1.01;
+  const rangeDown = open * 0.99;
+
+  const live = parseFloat(DAY.niftyPrice);
+  let shiftNote = null;
+  if (!isNaN(live)) {
+    const fellAgainstCE = open - live;
+    const roseAgainstPE = live - open;
+    if (fellAgainstCE >= 100) {
+      shiftNote = "Price " + fellAgainstCE.toFixed(0) + " pts neeche gaya (open se) — coach-rule: 100pts opposite move pe strike 100pts shift karo. Naya CE strike consider karo: " + (ceStrike - 100);
+    } else if (roseAgainstPE >= 100) {
+      shiftNote = "Price " + roseAgainstPE.toFixed(0) + " pts upar gaya (open se) — coach-rule: 100pts opposite move pe strike 100pts shift karo. Naya PE strike consider karo: " + (peStrike + 100);
+    }
+  }
+  return { atm, ceStrike, peStrike, rangeUp, rangeDown, roundTo, dist, shiftNote };
+}
+
 function calcIB() {
   const A = DAY.opening.A, B = DAY.opening.B;
   const Ah=parseFloat(A.h), Al=parseFloat(A.l), Bh=parseFloat(B.h), Bl=parseFloat(B.l);
@@ -1119,6 +1152,19 @@ function renderOpening() {
       '<div class="row"><span class="muted">IB Length</span><b>' + ib.len.toFixed(1) + ' pts (' + ib.cat + ')</b></div>' +
       '<div class="row"><span class="muted">Half-IB Upper</span><b>' + ib.halfUpper.toFixed(1) + '</b></div>' +
       '<div class="row"><span class="muted">Half-IB Lower</span><b>' + ib.halfLower.toFixed(1) + '</b></div>';
+  }
+
+  document.getElementById('op_strikeDist').value = DAY.opening.strikeDist;
+  const strike = calcStrikeSelector();
+  const strikeBox = document.getElementById('strikeResultBox');
+  if (!strike) { strikeBox.textContent = "Open price bharo"; }
+  else {
+    strikeBox.innerHTML =
+      '<div class="row"><span class="muted">ATM (rounded to 100)</span><b>' + strike.atm + '</b></div>' +
+      '<div class="row"><span class="muted">CE Strike</span><b>' + strike.ceStrike + '</b></div>' +
+      '<div class="row"><span class="muted">PE Strike</span><b>' + strike.peStrike + '</b></div>' +
+      '<div class="row"><span class="muted">1% range</span><b>' + strike.rangeDown.toFixed(0) + ' – ' + strike.rangeUp.toFixed(0) + '</b></div>' +
+      (strike.shiftNote ? '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">⚠ ' + strike.shiftNote + '</div>' : '');
   }
 
   const dt = calcDayType();
@@ -1654,6 +1700,7 @@ function strategyHTML(dayType, opening, o) {
 ['open','vix'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
 });
+document.getElementById('op_strikeDist').oninput = (e) => { DAY.opening.strikeDist = e.target.value; scheduleAutoSave(); renderOpening(); };
 ['Ah','Al','Ac','Bh','Bl','Bc'].forEach(id => {
   document.getElementById('op_'+id).oninput = (e) => {
     const period = id[0] === 'A' ? 'A' : 'B';
@@ -1849,7 +1896,7 @@ function renderDrift() {
   const el = document.getElementById('driftVal'); el.textContent = label; el.style.color = color;
 }
 
-document.getElementById('niftyPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; renderResult(); renderCompare(); renderDrift(); scheduleAutoSave(); };
+document.getElementById('niftyPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; renderResult(); renderCompare(); renderDrift(); renderOpening(); scheduleAutoSave(); };
 
 /* ============================================================
    ORDER FLOW
@@ -2218,3 +2265,4 @@ renderHistory();
 
 </body>
 </html>
+i
