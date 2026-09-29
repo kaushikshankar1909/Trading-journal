@@ -193,6 +193,7 @@
   <button id="goTodayBtn" style="display:none">Go to Today</button>
 </div>
 <div class="autosave-note" id="autosaveNote">&nbsp;</div>
+<div class="autosave-note" id="syncStatus">&nbsp;</div>
 
 <div class="nav">
   <button data-section="premarket">PRE-MARKET</button>
@@ -267,7 +268,7 @@
       <div class="card-title">STRIKE SELECTOR (auto)</div>
       <div class="field-row"><span class="lbl">Distance from ATM (pts)</span><input id="op_strikeDist" inputmode="decimal" placeholder="300"></div>
       <div class="result-box" id="strikeResultBox">Open price bharo</div>
-      <div class="hint-box" style="padding:0 14px 12px">Coach: sirf 100-multiple strikes lo (23100, 23200...), 50-multiple avoid karo (23050, 23150...) — unme premium/volume kam hota hai. Distance ATM se coach ne kabhi 300 kabhi 250 bola transcript me — 300 default hai, tune kar sakte ho. Price 100pts opposite jaye to strike 100pts shift karne ka coach-rule hai (live Nifty price Participation tab se liya jata hai).</div>
+      <div class="hint-box" style="padding:0 14px 12px"><b>[DERIVED — not a verified coach rule]</b> NotebookLM se confirm hua: transcript mein "300-point CE/PE strike" aur "OTM avoid karo" rule ka reconciliation coach ne explicitly explain nahi kiya (contradiction unresolved chhod diya gaya). Isliye app safe default leta hai: <b>ATM ko "Recommended Trade Strike"</b> banaya hai (OTM-avoidance rule follow karta hai), CE/PE ko sirf <b>"Reference/Tracking"</b> maano — coach ke rule ke mutabik ye poore hafte order-flow observe karne ke liye 2 fixed strikes hain, trade karne ke liye nahi. Sirf 100-multiple strikes lo (23100, 23200...), 50-multiple avoid karo. Price 100pts opposite jaye to strike 100pts shift karo (live Nifty price Participation tab se).</div>
     </div>
 
 <div class="card">
@@ -648,6 +649,11 @@
   <!-- ================= SUMMARY ================= -->
   <div id="section-summary" class="section">
     <div class="hint-box" style="padding:12px 4px 14px">🌙 EOD: poore din ka summary, aur neeche history/backup/settings.</div>
+<div class="card">
+      <div class="card-title">CURRENT / LIVE PRICE</div>
+      <div class="field-row"><span class="lbl">Nifty current price</span><input id="summaryCurrentPrice" inputmode="decimal" placeholder="e.g. 24512"></div>
+      <div class="hint-box" style="padding:0 14px 12px">Ye value Participation tab ke "Nifty price" field ke saath sync hai (same data). Yahan bharo taaki jab aap ye Summary NotebookLM/Claude ko analysis ke liye paste karo, current price bhi saath jaaye — entry/target/SL sahi se nikal sake.</div>
+    </div>
 <div id="summaryBox"></div>
 
 <div class="field-row" style="background:#12181F;border:1px solid #232B36;border-radius:14px;margin-bottom:10px">
@@ -776,7 +782,7 @@ function blankParticipation() {
 }
 function blankDay() {
   return {
-    niftyPrice: "24000",
+    niftyPrice: "",
     levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", psych:"", naked:"" },
     opening: {
       open:"", vix:"", momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
@@ -832,6 +838,67 @@ document.querySelectorAll('.nav button').forEach(b => {
 });
 
 /* ============================================================
+   CLOUD STORAGE (Claude db/user capabilities, with localStorage fallback)
+============================================================ */
+let dbCap = null, userCap = null, uid = null, usingDb = false;
+
+async function initStorage(){
+  try{
+    if(!(window.claude && window.claude.use)) return;
+    dbCap = await window.claude.use('db');
+    userCap = await window.claude.use('user');
+    if(!dbCap || !userCap) return;
+    uid = await userCap.id();
+    usingDb = !!uid;
+  }catch(e){ console.error('cloud init failed', e); usingDb = false; }
+  renderSyncStatus();
+}
+
+function renderSyncStatus(){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = usingDb ? '☁️ Synced to your Claude account' : '⚠️ Local only (this device/browser)';
+  el.style.color = usingDb ? '#3DDC84' : '#E8A93E';
+}
+
+// One document per calendar day, under this viewer's private subtree.
+// "data/users/<uid>/profile" = 4 segments = a document; ".collection('days')"
+// under it = 5 segments = a collection, so each day is doc(dateKey).
+function daysCollection(){
+  return dbCap.doc('data/users/'+uid+'/profile').collection('days');
+}
+
+async function cloudSaveDay(key, dayObj){
+  if(!usingDb) return false;
+  try{
+    await daysCollection().doc(key).set(dayObj);
+    return true;
+  }catch(e){ console.error('cloud save failed', e); usingDb = false; renderSyncStatus(); return false; }
+}
+
+async function cloudLoadDay(key){
+  if(!usingDb) return null;
+  try{
+    const snap = await daysCollection().doc(key).get();
+    return snap.exists ? snap.data() : null;
+  }catch(e){ console.error('cloud load failed', e); return null; }
+}
+
+async function cloudListDays(){
+  if(!usingDb) return [];
+  try{
+    const snap = await daysCollection().get();
+    return snap.docs.map(d => ({ key: d.id, saved: d.data() })).sort((a,b) => b.key.localeCompare(a.key));
+  }catch(e){ console.error('cloud list failed', e); return []; }
+}
+
+async function cloudDeleteDay(key){
+  if(!usingDb) return false;
+  try{ await daysCollection().doc(key).delete(); return true; }
+  catch(e){ console.error('cloud delete failed', e); return false; }
+}
+
+/* ============================================================
    AUTOSAVE
 ============================================================ */
 let autoSaveTimer = null;
@@ -840,31 +907,38 @@ function scheduleAutoSave() {
   autoSaveTimer = setTimeout(() => { saveDay(true); }, 500);
 }
 
-function saveDay(silent) {
+async function saveDay(silent) {
   try {
     localStorage.setItem(STORAGE_PREFIX + dateKey, JSON.stringify(DAY));
   } catch (e) {
-    if (!silent) alert('Save failed — storage blocked ho sakta hai.');
+    if (!silent) alert('Local save failed — storage blocked ho sakta hai.');
     return;
   }
+  if (usingDb) await cloudSaveDay(dateKey, DAY);
   const now = new Date();
   document.getElementById('autosaveNote').textContent =
-    'Auto-saved ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+    (usingDb ? 'Synced ' : 'Auto-saved ') + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+  renderSyncStatus();
   if (!silent) {
     const btn = document.getElementById('saveBtn');
     btn.textContent = 'Saved ✓'; btn.classList.add('saved');
     setTimeout(() => { btn.textContent = 'Save now'; btn.classList.remove('saved'); }, 1800);
   }
-  renderHistory();
+  await renderHistory();
 }
 
-function loadDay(key) {
+async function loadDay(key) {
   dateKey = key;
   let saved = null;
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + key);
-    if (raw) saved = JSON.parse(raw);
-  } catch (e) { saved = null; }
+  if (usingDb) {
+    saved = await cloudLoadDay(key);
+  }
+  if (!saved) {
+    try {
+      const raw = localStorage.getItem(STORAGE_PREFIX + key);
+      if (raw) saved = JSON.parse(raw);
+    } catch (e) { saved = null; }
+  }
   DAY = saved ? Object.assign(blankDay(), saved, {
     levels: Object.assign(blankDay().levels, saved.levels || {}),
     opening: Object.assign(blankDay().opening, saved.opening || {}),
@@ -1160,9 +1234,9 @@ function renderOpening() {
   if (!strike) { strikeBox.textContent = "Open price bharo"; }
   else {
     strikeBox.innerHTML =
-      '<div class="row"><span class="muted">ATM (rounded to 100)</span><b>' + strike.atm + '</b></div>' +
-      '<div class="row"><span class="muted">CE Strike</span><b>' + strike.ceStrike + '</b></div>' +
-      '<div class="row"><span class="muted">PE Strike</span><b>' + strike.peStrike + '</b></div>' +
+      '<div class="row"><span class="muted">ATM = Recommended Trade Strike (BUY)</span><b style="color:#3DDC84">' + strike.atm + '</b></div>' +
+      '<div class="row"><span class="muted">CE Reference (tracking only)</span><b>' + strike.ceStrike + '</b></div>' +
+      '<div class="row"><span class="muted">PE Reference (tracking only)</span><b>' + strike.peStrike + '</b></div>' +
       '<div class="row"><span class="muted">1% range</span><b>' + strike.rangeDown.toFixed(0) + ' – ' + strike.rangeUp.toFixed(0) + '</b></div>' +
       (strike.shiftNote ? '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">⚠ ' + strike.shiftNote + '</div>' : '');
   }
@@ -1896,7 +1970,8 @@ function renderDrift() {
   const el = document.getElementById('driftVal'); el.textContent = label; el.style.color = color;
 }
 
-document.getElementById('niftyPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; renderResult(); renderCompare(); renderDrift(); renderOpening(); scheduleAutoSave(); };
+document.getElementById('niftyPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; document.getElementById('summaryCurrentPrice').value = e.target.value; renderResult(); renderCompare(); renderDrift(); renderOpening(); scheduleAutoSave(); };
+document.getElementById('summaryCurrentPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; document.getElementById('niftyPrice').value = e.target.value; renderResult(); renderCompare(); renderDrift(); renderOpening(); renderSummary(); scheduleAutoSave(); };
 
 /* ============================================================
    ORDER FLOW
@@ -2040,6 +2115,10 @@ function renderSummary() {
 
   box.innerHTML = `
     <div class="card">
+      <div class="card-title">CURRENT PRICE</div>
+      <div class="result-box"><span class="big">${DAY.niftyPrice ? DAY.niftyPrice : 'Not entered yet'}</span></div>
+    </div>
+    <div class="card">
       <div class="card-title">OPENING</div>
       <div class="result-box">${res ? openingLabel(res).replace('\\n','<br><span class="muted">')+'</span>' : 'Incomplete'}</div>
     </div>
@@ -2079,7 +2158,11 @@ function renderDayBanner() {
   else { pill.textContent=doneCount+'/3 checkpoints'; pill.style.color=COL.amber; pill.style.background=COL.amber+'22'; }
 }
 
-function getAllSavedDays() {
+async function getAllSavedDays() {
+  if (usingDb) {
+    const cloudDays = await cloudListDays();
+    if (cloudDays.length) return cloudDays;
+  }
   const days = [];
   for (let i=0; i<localStorage.length; i++) {
     const k = localStorage.key(i);
@@ -2092,9 +2175,9 @@ function getAllSavedDays() {
   return days;
 }
 
-function renderHistory() {
+async function renderHistory() {
   const box = document.getElementById('historyList');
-  const days = getAllSavedDays();
+  const days = await getAllSavedDays();
   if (days.length === 0) { box.innerHTML = '<div class="history-empty">Koi saved day nahi abhi.</div>'; return; }
   box.innerHTML = "";
   days.forEach(({key, saved}) => {
@@ -2110,7 +2193,15 @@ function renderHistory() {
       </div>`;
     const delBtn = document.createElement('button');
     delBtn.className = 'hdel'; delBtn.textContent = '✕';
-    delBtn.onclick = (ev) => { ev.stopPropagation(); if (confirm('Delete '+formatDateKey(key)+'?')) { localStorage.removeItem(STORAGE_PREFIX+key); if (dateKey===key) loadDay(todayKey()); renderHistory(); } };
+    delBtn.onclick = async (ev) => {
+      ev.stopPropagation();
+      if (confirm('Delete '+formatDateKey(key)+'?')) {
+        localStorage.removeItem(STORAGE_PREFIX+key);
+        if (usingDb) await cloudDeleteDay(key);
+        if (dateKey===key) await loadDay(todayKey());
+        await renderHistory();
+      }
+    };
     row.querySelector('div[style]').appendChild(delBtn);
     row.onclick = () => loadDay(key);
     box.appendChild(row);
@@ -2123,7 +2214,7 @@ document.getElementById('jumpDateBtn').onclick = () => {
 };
 document.getElementById('goTodayBtn').onclick = () => loadDay(todayKey());
 document.getElementById('saveBtn').onclick = () => saveDay(false);
-document.getElementById('resetBtn').onclick = function() {
+document.getElementById('resetBtn').onclick = async function() {
   if (!this.dataset.confirm) {
     this.dataset.confirm = "1"; this.textContent = 'Tap again to erase';
     this.classList.add('confirm');
@@ -2132,8 +2223,9 @@ document.getElementById('resetBtn').onclick = function() {
   }
   DAY = blankDay();
   localStorage.removeItem(STORAGE_PREFIX + dateKey);
+  if (usingDb) await cloudDeleteDay(dateKey);
   this.dataset.confirm = ""; this.textContent = 'Erase this day'; this.classList.remove('confirm');
-  renderEverything(); renderHistory();
+  renderEverything(); await renderHistory();
 };
 
 /* ============================================================
@@ -2246,6 +2338,7 @@ document.getElementById('resetWeightsBtn').onclick = () => {
 ============================================================ */
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
+  document.getElementById('summaryCurrentPrice').value = DAY.niftyPrice;
   renderDayBanner();
   renderLevels();
   renderOpening();
@@ -2258,11 +2351,13 @@ function renderEverything() {
   renderOfTally();
 }
 
-showSection('premarket');
-loadDay(todayKey());
-renderHistory();
+(async function boot(){
+  await initStorage();
+  showSection('premarket');
+  await loadDay(todayKey());
+  await renderHistory();
+})();
 </script>
 
 </body>
 </html>
-i
