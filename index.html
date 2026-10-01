@@ -407,6 +407,20 @@
       </div>
     </div>
 
+<div class="card">
+      <div class="card-title">FIBONACCI EXTENSION / MOMENTUM TARGET CALCULATOR</div>
+      <div class="toggle-q">HH/LL pattern confirm hua hai? (extension se pehle zaroori — coach ka rule)</div>
+      <div class="toggle-group" id="tg_fibHHLLConfirmed">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div class="field-row"><span class="lbl">Swing Low (P1)</span><input id="op_fibP1" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Swing High (P2)</span><input id="op_fibP2" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Pullback Low (P3)</span><input id="op_fibP3" inputmode="decimal"></div>
+      <div class="result-box" id="fibResultBox">P1, P2, P3 teeno bharo</div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: pehle Higher-High ya Lower-Low pattern confirm karo, tabhi extension trust karo. Step-by-step references use karo (jaise 200 ke baad 270), directly bada target mat socho. 61.8 ko akela golden-ratio maan ke blindly trust mat karo — ye bhi fail hota hai. 3 extensions ke baad dead-end zone maano (momentum exhaust hone ka risk).</div>
+    </div>
+
 <div class="card" id="oaorCard" style="display:none">
       <div class="card-title">OAOR SPECIFIC (agar gap wala din hai)</div>
       <div class="toggle-q">Gap G/H period (~12:30) tak fill hua?</div>
@@ -804,6 +818,7 @@ function blankDay() {
       tickAcceptance: null, // 'accepted' | 'rejected'
       vwapTestCount: null, slChoice: null, vwapReaction: null,
       strikeDist: "",
+      fibP1: "", fibP2: "", fibP3: "", fibHHLLConfirmed: null,
     },
     participation: blankParticipation(),
     orderflow: [],
@@ -1094,6 +1109,30 @@ function getOfReality() {
   return computeOfRealityFromEntries();
 }
 
+function calcFibExtension() {
+  const p1 = parseFloat(DAY.opening.fibP1);
+  const p2 = parseFloat(DAY.opening.fibP2);
+  const p3 = parseFloat(DAY.opening.fibP3);
+  if (isNaN(p1) || isNaN(p2) || isNaN(p3)) return null;
+  const range = p2 - p1;
+  const dir = range >= 0 ? "upside" : "downside";
+  const ratios = [0.618, 1.0, 1.618, 2.618, 3.618, 4.236];
+  const labels = ["61.8%", "100%", "161.8%", "261.8%", "361.8%", "423.6%"];
+  const levels = ratios.map((r, i) => ({ label: labels[i], value: p3 + range * r }));
+  const mids = [];
+  for (let i = 0; i < levels.length - 1; i++) {
+    mids.push({ label: levels[i].label + "–" + levels[i+1].label + " mid", value: (levels[i].value + levels[i+1].value) / 2 });
+  }
+  const deadEndLevel = levels[3].value; // 261.8% = 3rd extension counting 100/161.8/261.8
+  const live = parseFloat(DAY.niftyPrice);
+  let deadEndNote = null;
+  if (!isNaN(live)) {
+    const reached = dir === "upside" ? live >= deadEndLevel : live <= deadEndLevel;
+    if (reached) deadEndNote = "Price ne 3rd extension (261.8%, " + deadEndLevel.toFixed(1) + ") cross/reach kar liya hai — coach ka 'dead-end zone' rule: yahan se aage momentum exhaust hone ka high risk, fresh entry mein extra caution.";
+  }
+  return { dir, levels, mids, deadEndNote, hhllConfirmed: DAY.opening.fibHHLLConfirmed };
+}
+
 function calcStrikeSelector() {
   const open = parseFloat(DAY.opening.open);
   if (isNaN(open)) return null;
@@ -1239,6 +1278,32 @@ function renderOpening() {
       '<div class="row"><span class="muted">PE Reference (tracking only)</span><b>' + strike.peStrike + '</b></div>' +
       '<div class="row"><span class="muted">1% range</span><b>' + strike.rangeDown.toFixed(0) + ' – ' + strike.rangeUp.toFixed(0) + '</b></div>' +
       (strike.shiftNote ? '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">⚠ ' + strike.shiftNote + '</div>' : '');
+  }
+
+  document.getElementById('op_fibP1').value = DAY.opening.fibP1;
+  document.getElementById('op_fibP2').value = DAY.opening.fibP2;
+  document.getElementById('op_fibP3').value = DAY.opening.fibP3;
+  renderToggleGroup('tg_fibHHLLConfirmed', DAY.opening.fibHHLLConfirmed);
+  const fib = calcFibExtension();
+  const fibBox = document.getElementById('fibResultBox');
+  if (!fib) { fibBox.textContent = "P1, P2, P3 teeno bharo"; }
+  else {
+    let html = '';
+    if (fib.hhllConfirmed !== 'yes') {
+      html += '<div class="muted" style="margin-bottom:8px">⚠ HH/LL pattern confirm nahi hai — coach ka rule: in extensions ko abhi sirf hint maano, trust mat karo jab tak pattern confirm na ho.</div>';
+    }
+    html += '<div class="row"><span class="muted">Direction</span><b>' + fib.dir + '</b></div>';
+    fib.levels.forEach(l => {
+      html += '<div class="row"><span class="muted">' + l.label + '</span><b>' + l.value.toFixed(1) + '</b></div>';
+    });
+    html += '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">50%-in-between references:</div>';
+    fib.mids.forEach(m => {
+      html += '<div class="row"><span class="muted">' + m.label + '</span><b>' + m.value.toFixed(1) + '</b></div>';
+    });
+    if (fib.deadEndNote) {
+      html += '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">⚠ ' + fib.deadEndNote + '</div>';
+    }
+    fibBox.innerHTML = html;
   }
 
   const dt = calcDayType();
@@ -1775,6 +1840,9 @@ function strategyHTML(dayType, opening, o) {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
 });
 document.getElementById('op_strikeDist').oninput = (e) => { DAY.opening.strikeDist = e.target.value; scheduleAutoSave(); renderOpening(); };
+['fibP1','fibP2','fibP3'].forEach(k => {
+  document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
+});
 ['Ah','Al','Ac','Bh','Bl','Bc'].forEach(id => {
   document.getElementById('op_'+id).oninput = (e) => {
     const period = id[0] === 'A' ? 'A' : 'B';
@@ -1830,6 +1898,7 @@ wireToggle('tg_aPeriodTailSide', { get:()=>DAY.opening.aPeriodTailSide, set:(v)=
 wireToggle('tg_vwapTestCount', { get:()=>DAY.opening.vwapTestCount, set:(v)=>DAY.opening.vwapTestCount=v });
 wireToggle('tg_vwapReaction', { get:()=>DAY.opening.vwapReaction, set:(v)=>DAY.opening.vwapReaction=v });
 wireToggle('tg_slChoice', { get:()=>DAY.opening.slChoice, set:(v)=>DAY.opening.slChoice=v });
+wireToggle('tg_fibHHLLConfirmed', { get:()=>DAY.opening.fibHHLLConfirmed, set:(v)=>DAY.opening.fibHHLLConfirmed=v });
 
 ['bal1h','bal1l','bal2h','bal2l'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
