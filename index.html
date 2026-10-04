@@ -418,7 +418,7 @@
       <div class="field-row"><span class="lbl">Swing High (P2)</span><input id="op_fibP2" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Pullback Low (P3)</span><input id="op_fibP3" inputmode="decimal"></div>
       <div class="result-box" id="fibResultBox">P1, P2, P3 teeno bharo</div>
-      <div class="hint-box" style="padding:0 14px 12px">Coach: sirf pullback dikhne se extension mat bana lo — tab tak wait karo jab tak price PEHLE wale swing high ko ACTUALLY BREAK na kare (naya high confirm ho jaye). Tabhi P2 mark karo. Koi fixed clock-time nahi hai is rule ke liye (condition-based hai, time-based nahi) — jab bhi din mein ye genuinely bane, tabhi fill karo. Step-by-step references use karo (jaise 200 ke baad 270), directly bada target mat socho. 61.8 ko akela golden-ratio maan ke blindly trust mat karo — ye bhi fail hota hai. 3 extensions ke baad dead-end zone maano (momentum exhaust hone ka risk).</div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: sirf pullback dikhne se extension mat bana lo — tab tak wait karo jab tak price PEHLE wale swing high ko ACTUALLY BREAK na kare (naya high confirm ho jaye). Tabhi P2 mark karo. Koi fixed clock-time nahi hai is rule ke liye (condition-based hai, time-based nahi) — jab bhi din mein ye genuinely bane, tabhi fill karo. Step-by-step references use karo (jaise 200 ke baad 270), directly bada target mat socho. 61.8 ko akela golden-ratio maan ke blindly trust mat karo — ye bhi fail hota hai. 3 extensions ke baad dead-end zone maano (momentum exhaust hone ka risk). <b>Momentum Strategy Step 1 (coach, 2 Oct direct answer):</b> extension ko sirf tabhi follow karo jab price previous-session Value Area (VAH/VAL, LEVELS tab) ke upar/neeche ho — C period mein bana ho ya D mein, period-letter se farak nahi padta, filter sirf VA-position se hota hai.</div>
     </div>
 
 <div class="card" id="oaorCard" style="display:none">
@@ -1130,7 +1130,16 @@ function calcFibExtension() {
     const reached = dir === "upside" ? live >= deadEndLevel : live <= deadEndLevel;
     if (reached) deadEndNote = "Price ne 3rd extension (261.8%, " + deadEndLevel.toFixed(1) + ") cross/reach kar liya hai — coach ka 'dead-end zone' rule: yahan se aage momentum exhaust hone ka high risk, fresh entry mein extra caution.";
   }
-  return { dir, levels, mids, deadEndNote, hhllConfirmed: DAY.opening.fibHHLLConfirmed };
+  // Coach's verbatim (2 Oct 2026): Momentum Strategy Step 1 — price pichle session ke Value Area
+  // ke upar/neeche honi chahiye, tabhi extension ko follow karo (period-letter C/D se farak nahi padta).
+  const vah = parseFloat(DAY.levels.vah);
+  const val = parseFloat(DAY.levels.val);
+  let gating = null;
+  if (!isNaN(vah) && !isNaN(val)) {
+    if (dir === "upside") gating = { satisfied: p2 > vah, ref: vah, refLabel: "Previous Session VAH" };
+    else gating = { satisfied: p2 < val, ref: val, refLabel: "Previous Session VAL" };
+  }
+  return { dir, levels, mids, deadEndNote, hhllConfirmed: DAY.opening.fibHHLLConfirmed, gating, p2 };
 }
 
 function calcStrikeSelector() {
@@ -1291,6 +1300,13 @@ function renderOpening() {
     let html = '';
     if (fib.hhllConfirmed !== 'yes') {
       html += '<div class="muted" style="margin-bottom:8px">⚠ HH/LL pattern confirm nahi hai — coach ka rule: in extensions ko abhi sirf hint maano, trust mat karo jab tak pattern confirm na ho.</div>';
+    }
+    if (fib.gating === null) {
+      html += '<div class="muted" style="margin-bottom:8px">⚠ LEVELS tab mein Previous Session VAH/VAL bharo — Momentum Strategy Step 1 (coach, 2 Oct): extension follow karne se pehle check karna hai price previous-session Value Area ke upar/neeche hai ya nahi.</div>';
+    } else if (!fib.gating.satisfied) {
+      html += '<div class="muted" style="margin-bottom:8px;color:#E8A93E">⚠ Gating FAIL: P2 (' + fib.p2 + ') ' + fib.gating.refLabel + ' (' + fib.gating.ref.toFixed(1) + ') ke ' + (fib.dir === 'upside' ? 'upar NAHI hai' : 'neeche NAHI hai') + ' — coach ka Step-1 rule: is case mein extension ko trust mat karo.</div>';
+    } else {
+      html += '<div class="muted" style="margin-bottom:8px;color:#3DDC84">✓ Gating PASS: price ' + fib.gating.refLabel + ' (' + fib.gating.ref.toFixed(1) + ') ke ' + (fib.dir === 'upside' ? 'upar hai' : 'neeche hai') + ' — Momentum Strategy Step-1 satisfy, extension follow kar sakte ho (chahe C period mein bana ho ya D mein, period-letter se farak nahi padta).</div>';
     }
     html += '<div class="row"><span class="muted">Direction</span><b>' + fib.dir + '</b></div>';
     fib.levels.forEach(l => {
