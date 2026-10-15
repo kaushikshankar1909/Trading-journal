@@ -539,6 +539,24 @@
     </div>
 
 <div class="card">
+      <div class="card-title">TRAIL CHECKLIST (TSL management, after entry)</div>
+      <div class="toggle-q">Position direction</div>
+      <div class="toggle-group" id="tg_trailDirection">
+        <button data-val="long">Long</button>
+        <button data-val="short">Short</button>
+      </div>
+      <div class="field-row"><span class="lbl">Live VWAP</span><input id="op_trailVwap" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Filter (pts, default 15)</span><input id="op_trailFilter" inputmode="decimal" placeholder="15"></div>
+      <div class="toggle-q">T1 / Half-IB hit, partial book kiya?</div>
+      <div class="toggle-group" id="tg_trailPartialBooked">
+        <button data-val="yes">Haan</button>
+        <button data-val="no">Abhi nahi</button>
+      </div>
+      <div class="result-box" id="trailResultBox">Direction + VWAP bharo</div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: TSL 3 triggers pe move hota hai — (1) partial-book hote hi VWAP/Cost pe, (2) naya HH/LL bante hi scale karo, (3) 2:40 PM ke baad tight/close. Points mein nahi, option-premium ke % move mein socho jahan tak ho sake.</div>
+    </div>
+
+<div class="card">
       <div class="card-title">STRATEGY SIGNALS (khud dekh ke batao)</div>
 
       <div class="toggle-q">VWAP se kya reaction mila (jab test hua)?</div>
@@ -822,6 +840,7 @@ function blankDay() {
       vwapTestCount: null, slChoice: null, vwapReaction: null,
       strikeDist: "",
       fibP1: "", fibP2: "", fibP3: "", fibHHLLConfirmed: null,
+      trailDirection: null, trailVwap: "", trailFilter: "", trailPartialBooked: null,
     },
     participation: blankParticipation(),
     orderflow: [],
@@ -1112,6 +1131,37 @@ function getOfReality() {
   return computeOfRealityFromEntries();
 }
 
+function calcTrailChecklist() {
+  const dir = DAY.opening.trailDirection;
+  const vwap = parseFloat(DAY.opening.trailVwap);
+  const filter = parseFloat(DAY.opening.trailFilter) || 15;
+  if (!dir || isNaN(vwap)) return null;
+  const tsl = dir === 'long' ? (vwap - filter) : (vwap + filter);
+  const dt = calcDayType();
+  let dayNote;
+  if (dt === 'Trend Day') {
+    dayNote = "Trend Day: VWAP freeze expect karo — pehle 1 ghante mein retest ho to yahin TSL lagao, uske baad wide space do, EOD tak ride karo.";
+  } else if (dt === 'Normal Variation') {
+    dayNote = "Normal Variation: VWAP float karta rahega — tight TSL rakho, VWAP retest/break ho to exit lo.";
+  } else if (dt) {
+    dayNote = dt + " — VWAP-based TSL abhi bhi default reference hai, is day-type ke liye coach ka specific trail-pattern transcript mein clearly alag nahi bataya.";
+  } else {
+    dayNote = "Day Type abhi determine nahi hua — MORNING tab mein Day Type Ladder complete karo pehle.";
+  }
+  let cutoffNote = null;
+  try {
+    const now = new Date();
+    const h = now.getHours(), m = now.getMinutes();
+    const mins = h * 60 + m;
+    if (mins >= 14*60+40) cutoffNote = "⚠ 2:40 PM cross ho chuka hai — coach ka rule: fresh trade nahi, agar position khuli hai to TSL tight karo ya close karo.";
+    else if (mins >= 14*60+25) cutoffNote = "⚠ 2:40 PM paas hai (15 min se kam) — TSL tighten karne ki taiyaari karo.";
+  } catch(e) {}
+  const partialNote = DAY.opening.trailPartialBooked === 'yes'
+    ? "✓ Partial book ho chuka — runner quantity ka SL TURANT VWAP/Cost (" + vwap.toFixed(1) + ") par shift karo, risk-free karo."
+    : (DAY.opening.trailPartialBooked === 'no' ? "Abhi partial nahi hua — T1/Half-IB hit hote hi turant partial book + SL shift karna yaad rakhna." : null);
+  return { tsl, dayNote, cutoffNote, partialNote, dir };
+}
+
 function calcFibExtension() {
   const p1 = parseFloat(DAY.opening.fibP1);
   const p2 = parseFloat(DAY.opening.fibP2);
@@ -1290,6 +1340,21 @@ function renderOpening() {
       '<div class="row"><span class="muted">PE Reference (tracking only)</span><b>' + strike.peStrike + '</b></div>' +
       '<div class="row"><span class="muted">1% range</span><b>' + strike.rangeDown.toFixed(0) + ' – ' + strike.rangeUp.toFixed(0) + '</b></div>' +
       (strike.shiftNote ? '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">⚠ ' + strike.shiftNote + '</div>' : '');
+  }
+
+  renderToggleGroup('tg_trailDirection', DAY.opening.trailDirection);
+  document.getElementById('op_trailVwap').value = DAY.opening.trailVwap;
+  document.getElementById('op_trailFilter').value = DAY.opening.trailFilter;
+  renderToggleGroup('tg_trailPartialBooked', DAY.opening.trailPartialBooked);
+  const trail = calcTrailChecklist();
+  const trailBox = document.getElementById('trailResultBox');
+  if (!trail) { trailBox.textContent = "Direction + VWAP bharo"; }
+  else {
+    let th = '<div class="row"><span class="muted">TSL level (VWAP ' + (trail.dir === 'long' ? '−' : '+') + ' filter)</span><b style="color:#3DDC84">' + trail.tsl.toFixed(1) + '</b></div>';
+    th += '<div class="muted" style="margin-top:8px">' + trail.dayNote + '</div>';
+    if (trail.cutoffNote) th += '<div class="muted" style="margin-top:8px;color:#E8A93E">' + trail.cutoffNote + '</div>';
+    if (trail.partialNote) th += '<div class="muted" style="margin-top:8px">' + trail.partialNote + '</div>';
+    trailBox.innerHTML = th;
   }
 
   document.getElementById('op_fibP1').value = DAY.opening.fibP1;
@@ -1926,6 +1991,11 @@ wireToggle('tg_vwapTestCount', { get:()=>DAY.opening.vwapTestCount, set:(v)=>DAY
 wireToggle('tg_vwapReaction', { get:()=>DAY.opening.vwapReaction, set:(v)=>DAY.opening.vwapReaction=v });
 wireToggle('tg_slChoice', { get:()=>DAY.opening.slChoice, set:(v)=>DAY.opening.slChoice=v });
 wireToggle('tg_fibHHLLConfirmed', { get:()=>DAY.opening.fibHHLLConfirmed, set:(v)=>DAY.opening.fibHHLLConfirmed=v });
+wireToggle('tg_trailDirection', { get:()=>DAY.opening.trailDirection, set:(v)=>DAY.opening.trailDirection=v });
+wireToggle('tg_trailPartialBooked', { get:()=>DAY.opening.trailPartialBooked, set:(v)=>DAY.opening.trailPartialBooked=v });
+['trailVwap','trailFilter'].forEach(k => {
+  document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
+});
 
 ['bal1h','bal1l','bal2h','bal2l'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
@@ -2147,7 +2217,12 @@ function renderOF() {
       let lines = [];
       // Delta-color-match check (coach, Orderflow part 3): candle-color aur dominant-delta-side
       // match karein to genuine (IB/IS), mismatch RS/RB (fake/responsive) ko support karta hai.
-      const deltaSide = (!isNaN(du) && !isNaN(dd)) ? (du >= dd ? 'green' : 'red') : null;
+      // [Fix] Pehle dono fields filled hone ki zaroorat thi — ab ek hi field bhara ho (jo normal
+      // usage hai: positive delta ho to sirf DELTA+ bharo, negative ho to sirf DELTA- bharo) to
+      // bhi chalega, blank field ko 0 maana jaata hai.
+      const duVal = isNaN(du) ? 0 : du;
+      const ddVal = isNaN(dd) ? 0 : dd;
+      const deltaSide = (duVal > 0 || ddVal > 0) ? (duVal >= ddVal ? 'green' : 'red') : null;
       const deltaMatches = deltaSide ? (deltaSide === entry.color) : null;
       if (zone) {
         const auto = suggestTag(entry.color, zone);
