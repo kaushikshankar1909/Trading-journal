@@ -513,7 +513,10 @@
     <div class="hint-box">
       Position % = (POC − Low) ÷ (High − Low) × 100. 0-25% Bottom, 25-75% Center, 75-100% Top.<br>
       RED+Bottom = RB (nakli) · RED+Center = IS (asli) · GREEN+Top = RS (nakli) · GREEN+Center = IB (asli)<br>
-      Filter: candle 50+ pts, delta 50K+ (LLT 75-100K+) warna "not useful".<br>
+      <b>Delta-match check (naya):</b> Genuine (IB/IS) ke liye delta candle-color se MATCH hona chahiye (green candle→green delta). Mismatch ho to genuineness weak padti hai, RS/RB (fake) ka chance badhta hai. Coach: "delta should be green like price gone up but here red delta" — ye mismatch hi fake-pattern ka signature hai.<br>
+      <b>Delta filter (ab auto-enforce hota hai):</b> Dominant delta 75K+ chahiye (coach LLT benchmark), kam ho to auto-suggest "Not useful" dikhega chahe pattern-shape match kare.<br>
+      <b>Imbalance boxes (alag concept, RB/IS/RS/IB se related nahi):</b> Agar chart pe consecutive diagonal yellow boxes dikhein, unki ginti "CONSECUTIVE IMBALANCE BOXES" field mein daalo — 3+ ho to confirmed institutional-drive, 1-2 ko ignore karo.<br>
+      <b>"1 lakh POC volume" (alag concept — ye candle-tag filter nahi hai):</b> Ye chart ki "extended volume POC" setting hai (yellow reference lines) jo key S/R levels highlight karti hai — agar "Exhaustion (POC extreme)" tag use kar rahe ho, apne chart pe check kar lo ki wahi POC us 1-lakh-highlighted level ke paas hai ya nahi, journal mein alag number nahi daalna.<br>
       Combination chahiye — RB+IB, IB+IB, RS+IS, IS+IS, RS+RB. Single pattern kaafi nahi.
     </div>
   </div>
@@ -1552,12 +1555,20 @@ function selectStrategyBase() {
     const t2 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 2).toFixed(1) : (ib.ibLow - ib.len * 2).toFixed(1)) : "3IB";
     const vixNum2 = parseFloat(o.vix);
     const partR = computeCheckpoint('now') || computeCheckpoint('c930') || computeCheckpoint('c920') || computeCheckpoint('c908');
-    const lowVix2 = !isNaN(vixNum2) && vixNum2 < 13;
+    const lowVix2 = !isNaN(vixNum2) && vixNum2 < 12; // [Fix, coach-verified: PDF says <12, not <13]
     const mixedPart = partR && partR.signal === 'NO CONVICTION';
-    const ignoreExtended = lowVix2 || mixedPart;
-    const targetText = ignoreExtended
-      ? "T1: VWAP/IB ke paas hi rakho. 2IB/3IB IGNORE karo — " + (lowVix2 ? "VIX<13" : "") + (lowVix2 && mixedPart ? " + " : "") + (mixedPart ? "participation mixed/NO CONVICTION" : "") + " ke karan extended target ka basis kamzor hai."
-      : "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)";
+    let targetText;
+    if (lowVix2 && ib) {
+      // Coach's LOW VIX RULE (verbatim, VIX<12 COMPULSORY): theoretical target ko 80% use karo,
+      // exact level mat do ZONE do, T1 zone pe 50-70% partial exit karo.
+      const t1ZoneLow = o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 0.75).toFixed(1) : (ib.ibLow - ib.len * 0.75).toFixed(1);
+      const t1ZoneHigh = o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 0.85).toFixed(1) : (ib.ibLow - ib.len * 0.85).toFixed(1);
+      targetText = "⚠ LOW VIX (<12) RULE: exact level mat do — T1 ZONE " + t1ZoneLow + "–" + t1ZoneHigh + " (theoretical 2IB ka 80%, " + t1 + " tak full wait mat karo). Zone touch hote hi 50-70% partial exit karo, baaki trail. Full/3IB target ka greed mat karo, momentum weak hota hai Low VIX mein." + (mixedPart ? " (Participation bhi NO CONVICTION hai — extra caution.)" : "");
+    } else if (mixedPart) {
+      targetText = "T1: VWAP/IB ke paas hi rakho. 2IB/3IB IGNORE karo — participation mixed/NO CONVICTION ke karan extended target ka basis kamzor hai.";
+    } else {
+      targetText = "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)";
+    }
     // [BUG#3 FIX (this session): Double-D balance-center injection moved OUT of here — now handled globally by
     // the selectStrategy() wrapper below, for ANY day type, and injected into the TARGET box (not just a note).]
     return {
@@ -1572,8 +1583,8 @@ function selectStrategyBase() {
   // 7. NORMAL DAY sub-strategies
   if (dt === 'Normal Day') {
     const vixNum3 = parseFloat(o.vix);
-    const lowVix3 = !isNaN(vixNum3) && vixNum3 < 13;
-    // [P2 Bug#9 FIX: 45-degree rule ab VIX<13 bhi check karta hai, sirf abVolumeLow nahi]
+    const lowVix3 = !isNaN(vixNum3) && vixNum3 < 12; // [Fix, coach-verified: PDF says <12, not <13]
+    // [P2 Bug#9 FIX: 45-degree rule ab VIX<12 bhi check karta hai, sirf abVolumeLow nahi]
     // [BUG#2 FIX (this session): Participation signal BUY (7+/12 stocks green) ho to 45-Degree SHORT side override/cancel karo — not explicitly a coach quote, mirrors the same participation-check pattern coach already uses in Normal Variation's mixedPart/ignoreExtended check.]
     if (res && (res.base === 'OAIR' || res.base === 'OAOR') && !res.sub && !res.orr && o.abVolumeLow === 'yes' && lowVix3 && ib) {
       const mid = (ib.ibHigh + ib.ibLow) / 2;
@@ -1778,8 +1789,8 @@ function renderToggleGroup(id, val) {
 function strategyHTML(dayType, opening, o) {
   const lines = [];
   const vixNum = parseFloat(o.vix);
-  if (!isNaN(vixNum) && vixNum < 13) {
-    lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ") — light size rakho. T1 VWAP/IB ke paas hi rakho, 2IB/3IB expect mat karo. VWAP ulti taraf CLOSE ho jaye to turant nikal jao.");
+  if (!isNaN(vixNum) && vixNum < 12) { // [Fix, coach-verified: PDF says <12, not <13]
+    lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ", coach rule VIX<12) — light size rakho. Exact target mat do, 80%-compressed ZONE do (2IB ka 80%), 50-70% partial exit T1-zone pe. VWAP ulti taraf CLOSE ho jaye to turant nikal jao.");
   }
   if (o.prevDayType === 'Neutral Extreme') {
     lines.push("Kal Neutral Extreme. Aaj opposite bounce / counter-NE soch sakte ho. Early light entry allowed, confirmation nahi. IB/half-IB ke bina full size mat lo.");
@@ -2104,6 +2115,9 @@ function renderOF() {
         <div><label>DELTA +</label><input class="fdu" value="${entry.du}"></div>
         <div><label>DELTA −</label><input class="fdd" value="${entry.dd}"></div>
       </div>
+      <div class="of-grid3" style="grid-template-columns: 1fr">
+        <div><label>CONSECUTIVE IMBALANCE BOXES (agar dikhe)</label><input class="fbc" value="${entry.boxCount}" placeholder="e.g. 3"></div>
+      </div>
       <div class="of-auto"></div>
       <select class="of-tag-select">
         <option value="">-- Tag confirm karo --</option>
@@ -2115,6 +2129,7 @@ function renderOF() {
         <option ${entry.tag==='Exhaustion-end'?'selected':''}>Exhaustion (end zeros)</option>
         <option ${entry.tag==='Exhaustion-POC'?'selected':''}>Exhaustion (POC extreme)</option>
         <option ${entry.tag==='Continuation-mid'?'selected':''}>Continuation (mid zeros)</option>
+        <option ${entry.tag==='Imbalance-confirmed'?'selected':''}>Imbalance (3+ boxes, confirmed)</option>
         <option ${entry.tag==='Not-useful'?'selected':''}>Not useful</option>
       </select>
       <textarea class="of-note" placeholder="note...">${entry.note||''}</textarea>
@@ -2123,11 +2138,45 @@ function renderOF() {
     const autoBox = div.querySelector('.of-auto');
     function refreshAuto() {
       const h = parseFloat(entry.h), l = parseFloat(entry.l), poc = parseFloat(entry.poc);
+      const du = parseFloat(entry.du), dd = parseFloat(entry.dd);
+      const boxCount = parseFloat(entry.boxCount);
       const pct = ofPosition(h,l,poc);
       const zone = ofZone(pct);
-      const auto = suggestTag(entry.color, zone);
+      const dominantDelta = Math.max(isNaN(du)?0:du, isNaN(dd)?0:dd);
+      const DELTA_MIN = 75000; // Coach (Orderflow part1): LLT benchmark ab 75K-100K+, 50K purana/kam hai
+      let lines = [];
+      // Delta-color-match check (coach, Orderflow part 3): candle-color aur dominant-delta-side
+      // match karein to genuine (IB/IS), mismatch RS/RB (fake/responsive) ko support karta hai.
+      const deltaSide = (!isNaN(du) && !isNaN(dd)) ? (du >= dd ? 'green' : 'red') : null;
+      const deltaMatches = deltaSide ? (deltaSide === entry.color) : null;
+      if (zone) {
+        const auto = suggestTag(entry.color, zone);
+        const isGenuineZone = (zone === 'CENTER'); // IB/IS are center-zone patterns
+        if (!isNaN(dominantDelta) && dominantDelta > 0 && dominantDelta < DELTA_MIN) {
+          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') — pattern shape matches "' + auto + '" lekin delta sirf ' + (dominantDelta/1000).toFixed(0) + 'K hai (75K+ chahiye, coach LLT benchmark) → suggest: Not useful (delta kam)');
+        } else {
+          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') → suggest: ' + auto + (dominantDelta >= DELTA_MIN ? ' (delta ' + (dominantDelta/1000).toFixed(0) + 'K, LLT confirm)' : ''));
+        }
+        if (deltaMatches !== null) {
+          if (isGenuineZone && deltaMatches) {
+            lines.push('✓ Delta (' + deltaSide + ') candle-color (' + entry.color + ') se MATCH karta hai — genuine (' + auto + ') ke liye strong confirmation.');
+          } else if (isGenuineZone && !deltaMatches) {
+            lines.push('⚠ Delta (' + deltaSide + ') candle-color (' + entry.color + ') se MISMATCH hai — coach: "delta should be green like price gone up but here red delta, we have folded" — ' + auto + ' ki genuineness weak ho jaati hai, RS/RB (fake) hone ka chance.');
+          } else if (!isGenuineZone && !deltaMatches) {
+            lines.push('✓ Delta (' + deltaSide + ') candle-color se MISMATCH/weak hai — ' + auto + ' (responsive/fake pattern) ke signature se consistent hai.');
+          } else if (!isGenuineZone && deltaMatches) {
+            lines.push('⚠ Delta (' + deltaSide + ') candle-color se strongly MATCH karta hai — ' + auto + ' expect tha par delta itna strong confirm kyu kar raha hai, dobara check karo.');
+          }
+        }
+      } else {
+        lines.push('H/L/POC bharo → auto suggestion');
+      }
+      if (!isNaN(boxCount) && boxCount > 0) {
+        if (boxCount >= 3) lines.push('✓ ' + boxCount + ' consecutive boxes — coach ka 3-box minimum satisfy, institutional-drive confirm maan sakte ho.');
+        else lines.push('⚠ Sirf ' + boxCount + ' box(es) — coach ka rule: minimum 3 consecutive boxes chahiye, isse kam ko ignore karo (coach: we do not consider such a big imbalance of 2 boxes).');
+      }
+      autoBox.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
       autoBox.style.color = zone ? COL.cyan : COL.sub;
-      autoBox.textContent = pct != null ? 'POC @ ' + pct.toFixed(0) + '% (' + zone + ') → suggest: ' + auto : 'H/L/POC bharo → auto suggestion';
     }
     refreshAuto();
 
@@ -2141,6 +2190,7 @@ function renderOF() {
     div.querySelector('.fp').oninput = (e) => { entry.poc = e.target.value; refreshAuto(); scheduleAutoSave(); };
     div.querySelector('.fdu').oninput = (e) => { entry.du = e.target.value; scheduleAutoSave(); };
     div.querySelector('.fdd').oninput = (e) => { entry.dd = e.target.value; scheduleAutoSave(); };
+    div.querySelector('.fbc').oninput = (e) => { entry.boxCount = e.target.value; refreshAuto(); scheduleAutoSave(); };
     div.querySelector('.of-tag-select').onchange = (e) => { entry.tag = e.target.value; renderOfTally(); scheduleAutoSave(); renderOpening(); };
     div.querySelector('.of-note').oninput = (e) => { entry.note = e.target.value; scheduleAutoSave(); };
     box.appendChild(div);
@@ -2169,7 +2219,7 @@ function computeOfRealityFromEntries() {
 
 function renderOfTally() {
   const box = document.getElementById('ofTally');
-  const tags = ["RB","IS","RS","IB","Absorption","Exhaustion-end","Exhaustion-POC","Continuation-mid","Not-useful"];
+  const tags = ["RB","IS","RS","IB","Absorption","Exhaustion-end","Exhaustion-POC","Continuation-mid","Imbalance-confirmed","Not-useful"];
   const counts = {};
   tags.forEach(t => counts[t] = 0);
   DAY.orderflow.forEach(e => { if (e.tag && counts[e.tag] !== undefined) counts[e.tag]++; });
@@ -2177,7 +2227,7 @@ function renderOfTally() {
 }
 
 document.getElementById('addOfBtn').onclick = () => {
-  DAY.orderflow.push({ time:"", period:"", color:"red", h:"", l:"", poc:"", du:"", dd:"", tag:"", note:"" });
+  DAY.orderflow.push({ time:"", period:"", color:"red", h:"", l:"", poc:"", du:"", dd:"", boxCount:"", tag:"", note:"" });
   renderOF(); renderOfTally(); scheduleAutoSave();
 };
 
