@@ -2191,16 +2191,16 @@ function renderOF() {
       <div class="of-auto"></div>
       <select class="of-tag-select">
         <option value="">-- Tag confirm karo --</option>
-        <option ${entry.tag==='RB'?'selected':''}>RB</option>
-        <option ${entry.tag==='IS'?'selected':''}>IS</option>
-        <option ${entry.tag==='RS'?'selected':''}>RS</option>
-        <option ${entry.tag==='IB'?'selected':''}>IB</option>
-        <option ${entry.tag==='Absorption'?'selected':''}>Absorption</option>
-        <option ${entry.tag==='Exhaustion-end'?'selected':''}>Exhaustion (end zeros)</option>
-        <option ${entry.tag==='Exhaustion-POC'?'selected':''}>Exhaustion (POC extreme)</option>
-        <option ${entry.tag==='Continuation-mid'?'selected':''}>Continuation (mid zeros)</option>
-        <option ${entry.tag==='Imbalance-confirmed'?'selected':''}>Imbalance (3+ boxes, confirmed)</option>
-        <option ${entry.tag==='Not-useful'?'selected':''}>Not useful</option>
+        <option value="RB" ${entry.tag==='RB'?'selected':''}>RB</option>
+        <option value="IS" ${entry.tag==='IS'?'selected':''}>IS</option>
+        <option value="RS" ${entry.tag==='RS'?'selected':''}>RS</option>
+        <option value="IB" ${entry.tag==='IB'?'selected':''}>IB</option>
+        <option value="Absorption" ${entry.tag==='Absorption'?'selected':''}>Absorption</option>
+        <option value="Exhaustion-end" ${entry.tag==='Exhaustion-end'?'selected':''}>Exhaustion (end zeros)</option>
+        <option value="Exhaustion-POC" ${entry.tag==='Exhaustion-POC'?'selected':''}>Exhaustion (POC extreme)</option>
+        <option value="Continuation-mid" ${entry.tag==='Continuation-mid'?'selected':''}>Continuation (mid zeros)</option>
+        <option value="Imbalance-confirmed" ${entry.tag==='Imbalance-confirmed'?'selected':''}>Imbalance (3+ boxes, confirmed)</option>
+        <option value="Not-useful" ${entry.tag==='Not-useful'?'selected':''}>Not useful</option>
       </select>
       <textarea class="of-note" placeholder="note...">${entry.note||''}</textarea>
     `;
