@@ -184,7 +184,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.1 (OF Delta Fix)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -222,8 +222,11 @@
         <span class="lbl">Naked POC / other levels / notes</span>
         <textarea id="lv_naked" placeholder="e.g. purana POC 24080, ya koi aur naked level"></textarea>
       </div>
+      <div class="field-row"><span class="lbl">Poor High (agar bana ho)</span><input id="lv_poorHigh" inputmode="decimal" placeholder="optional"></div>
+      <div class="field-row"><span class="lbl">Poor Low (agar bana ho)</span><input id="lv_poorLow" inputmode="decimal" placeholder="optional"></div>
     </div>
     <div class="hint-box">
+      Poor High/Low: jab price IB high/low pe excess-attempt kare, 2 baar chhoti distance (~20-25 pts) fail ho, proper tail na bane — "unfinished business" hai, future sessions me magnet ki tarah revisit hoti hai (sirf tab bharo jab genuinely dikhe, roz nahi).<br>
       Ye 6 levels raat ko hi bhar do. Kal subah sirf OPENING tab me jaake Open aur A period ka H/L/C daalna hai —
       opening type, Drive/OTD/ORR, IB, half-IB, sab yahi se auto calculate ho jayega.
     </div>
@@ -262,6 +265,12 @@
 <div class="card">
       <div class="card-title">OPENING TYPE (auto)</div>
       <div class="result-box" id="openingResultBox">Levels + Open + A bharo</div>
+    </div>
+
+<div class="card" id="openDriveHalfCard" style="display:none">
+      <div class="card-title">OPEN DRIVE — 50% MIDPOINT (auto)</div>
+      <div class="result-box" id="openDriveHalfBox"></div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach: Open Drive (ya badi imbalance move) hone par uska 50% Fibonacci midpoint mark karo — wahi primary retest/pullback reference banta hai.</div>
     </div>
 
 <div class="card">
@@ -474,6 +483,13 @@
       <div class="result-box" id="dayTypeResultBox">Ladder complete karo upar</div>
     </div>
 
+<div class="card">
+      <div class="card-title">POSITION SIZING CALCULATOR</div>
+      <div class="field-row"><span class="lbl">Normal/full lot size</span><input id="op_baseLotSize" inputmode="decimal" placeholder="e.g. 10"></div>
+      <div class="result-box" id="sizingResultBox">Base lot size bharo</div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach ke multipliers: Normal Day/ORR-opening me IB ke andar size kam karo. High VIX (20-26+) me ~60% cut (40→12-15 lots jaisa). Friday ko normal size ka 50% hi khelo. Day-type pata chalte hi (11:00-11:30) sabse accurate suggestion milegi, lekin VIX/Friday/Opening-type wala adjustment pehle se dikhega.</div>
+    </div>
+
 <div class="card" id="flagsCard" style="display:none">
       <div class="card-title">EXTRA FLAGS</div>
       <div id="failedAuctionFlag" style="display:none">
@@ -554,6 +570,17 @@
       </div>
       <div class="result-box" id="trailResultBox">Direction + VWAP bharo</div>
       <div class="hint-box" style="padding:0 14px 12px">Coach: TSL 3 triggers pe move hota hai — (1) partial-book hote hi VWAP/Cost pe, (2) naya HH/LL bante hi scale karo, (3) 2:40 PM ke baad tight/close. Points mein nahi, option-premium ke % move mein socho jahan tak ho sake.</div>
+    </div>
+
+<div class="card">
+      <div class="card-title">MIDDAY TAIL (G/H/I period, agar bana ho)</div>
+      <div class="field-row"><span class="lbl">Period (G/H/I...)</span><input id="op_middayTailPeriod" placeholder="e.g. H" style="width:80px"></div>
+      <div class="toggle-q">Side</div>
+      <div class="toggle-group" id="tg_middayTailSide">
+        <button data-val="selling">Selling tail</button>
+        <button data-val="buying">Buying tail</button>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">Coach ka farak: <b>A-period tail</b> (opening, 9:15-9:45) = institutional control, strong — jab tak negate na ho uske against trade mat lo. <b>Midday tail</b> (G/H/I, yahan) = weak, usually agle 1-3 sessions mein REPAIR/fill ho jaati hai — isko utna strong-support/resistance mat maano jitna A-period tail ko maante ho.</div>
     </div>
 
 <div class="card">
@@ -818,7 +845,7 @@ function blankParticipation() {
 function blankDay() {
   return {
     niftyPrice: "",
-    levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", psych:"", naked:"" },
+    levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", psych:"", naked:"", poorHigh:"", poorLow:"" },
     opening: {
       open:"", vix:"", momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
       ibTouchedBothSides: null, closeInsideIB: null,
@@ -841,6 +868,8 @@ function blankDay() {
       strikeDist: "",
       fibP1: "", fibP2: "", fibP3: "", fibHHLLConfirmed: null,
       trailDirection: null, trailVwap: "", trailFilter: "", trailPartialBooked: null,
+      baseLotSize: "",
+      middayTailPeriod: "", middayTailSide: null,
     },
     participation: blankParticipation(),
     orderflow: [],
@@ -1001,11 +1030,15 @@ function renderLevels() {
   document.getElementById('lv_poc').value = DAY.levels.poc;
   document.getElementById('lv_psych').value = DAY.levels.psych;
   document.getElementById('lv_naked').value = DAY.levels.naked;
+  document.getElementById('lv_poorHigh').value = DAY.levels.poorHigh;
+  document.getElementById('lv_poorLow').value = DAY.levels.poorLow;
 }
 ['pdh','pdl','pdc','vah','val'].forEach(k => bindLevelField('lv_'+k, k));
 document.getElementById('lv_poc').oninput = (e) => { DAY.levels.poc = e.target.value; scheduleAutoSave(); renderOpening(); };
 document.getElementById('lv_psych').oninput = (e) => { DAY.levels.psych = e.target.value; scheduleAutoSave(); };
 document.getElementById('lv_naked').oninput = (e) => { DAY.levels.naked = e.target.value; scheduleAutoSave(); };
+document.getElementById('lv_poorHigh').oninput = (e) => { DAY.levels.poorHigh = e.target.value; scheduleAutoSave(); };
+document.getElementById('lv_poorLow').oninput = (e) => { DAY.levels.poorLow = e.target.value; scheduleAutoSave(); };
 
 /* ============================================================
    OPENING TYPE CALC
@@ -1129,6 +1162,44 @@ function getTickAcceptance() {
 function getOfReality() {
   if (DAY.opening.ofReality === 'genuine' || DAY.opening.ofReality === 'fake' || DAY.opening.ofReality === 'not_useful') return DAY.opening.ofReality;
   return computeOfRealityFromEntries();
+}
+
+function calcPositionSizing() {
+  const base = parseFloat(DAY.opening.baseLotSize);
+  if (isNaN(base) || base <= 0) return null;
+  let multiplier = 1.0;
+  const reasons = [];
+
+  // Friday check — use the actual trading-day date (dateKey), not browser's live date,
+  // so this works correctly even when reviewing/backfilling a past day.
+  try {
+    const d = new Date(dateKey + 'T00:00:00');
+    if (!isNaN(d.getTime()) && d.getDay() === 5) {
+      multiplier *= 0.5;
+      reasons.push("Friday — size 50% (half) karo (coach rule, Psychology 1.5)");
+    }
+  } catch(e) {}
+
+  const vixNum = parseFloat(DAY.opening.vix);
+  if (!isNaN(vixNum) && vixNum >= 20) {
+    multiplier *= 0.4;
+    reasons.push("High VIX (" + vixNum.toFixed(1) + ", 20+) — ~60% size cut (coach: 40 lots → 12-15 lots jaisa)");
+  }
+
+  const res = calcOpening();
+  if (res && res.orr) {
+    multiplier *= 0.7;
+    reasons.push("ORR opening — chhoti-magnitude move expected, size halki rakho");
+  }
+
+  const dt = calcDayType();
+  if (dt === 'Normal Day') {
+    multiplier *= 0.5;
+    reasons.push("Normal Day — IB ke andar range-bound chop expected, size kam rakho");
+  }
+
+  const recommended = base * multiplier;
+  return { base, multiplier, recommended, reasons, dt };
 }
 
 function calcTrailChecklist() {
@@ -1317,6 +1388,20 @@ function renderOpening() {
       debugLine;
   }
 
+  const isDriveOpen = res && res.sub && res.sub.type === 'DRIVE';
+  const driveCard = document.getElementById('openDriveHalfCard');
+  const Ah2 = parseFloat(DAY.opening.A.h), Al2 = parseFloat(DAY.opening.A.l);
+  if (isDriveOpen && !isNaN(Ah2) && !isNaN(Al2)) {
+    driveCard.style.display = 'block';
+    const half = (Ah2 + Al2) / 2;
+    document.getElementById('openDriveHalfBox').innerHTML =
+      '<div class="row"><span class="muted">A-period High</span><b>' + Ah2.toFixed(1) + '</b></div>' +
+      '<div class="row"><span class="muted">A-period Low</span><b>' + Al2.toFixed(1) + '</b></div>' +
+      '<div class="row"><span class="muted">50% Midpoint (reference)</span><b style="color:#3DDC84">' + half.toFixed(1) + '</b></div>';
+  } else {
+    driveCard.style.display = 'none';
+  }
+
   const ib = calcIB();
   const ibBox = document.getElementById('ibResultBox');
   if (!ib) { ibBox.textContent = "A + B dono bharo"; }
@@ -1393,6 +1478,24 @@ function renderOpening() {
   const dt = calcDayType();
   const dtBox = document.getElementById('dayTypeResultBox');
   dtBox.innerHTML = dt ? '<div class="big">' + dt + '</div>' : 'Ladder complete karo upar';
+
+  document.getElementById('op_baseLotSize').value = DAY.opening.baseLotSize;
+  document.getElementById('op_middayTailPeriod').value = DAY.opening.middayTailPeriod;
+  renderToggleGroup('tg_middayTailSide', DAY.opening.middayTailSide);
+  const sizing = calcPositionSizing();
+  const sizingBox = document.getElementById('sizingResultBox');
+  if (!sizing) { sizingBox.textContent = "Base lot size bharo"; }
+  else {
+    let sh = '<div class="row"><span class="muted">Base lot</span><b>' + sizing.base + '</b></div>';
+    sh += '<div class="row"><span class="muted">Recommended lot</span><b style="color:#3DDC84">' + sizing.recommended.toFixed(1) + '</b></div>';
+    if (sizing.reasons.length === 0) {
+      sh += '<div class="muted" style="margin-top:8px">Abhi koi size-reduction factor active nahi — full base size le sakte ho (jab tak day-type/VIX/opening confirm nahi ho jaata).</div>';
+    } else {
+      sh += '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">Reduction factors (compound hote hain):</div>';
+      sizing.reasons.forEach(r => { sh += '<div class="muted">• ' + r + '</div>'; });
+    }
+    sizingBox.innerHTML = sh;
+  }
 
   document.getElementById('flagsCard').style.display = dt ? 'block' : 'none';
   document.getElementById('failedAuctionFlag').style.display = (dt && dt.startsWith('Neutral')) ? 'block' : 'none';
@@ -1996,6 +2099,9 @@ wireToggle('tg_trailPartialBooked', { get:()=>DAY.opening.trailPartialBooked, se
 ['trailVwap','trailFilter'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
 });
+document.getElementById('op_baseLotSize').oninput = (e) => { DAY.opening.baseLotSize = e.target.value; scheduleAutoSave(); renderOpening(); };
+document.getElementById('op_middayTailPeriod').oninput = (e) => { DAY.opening.middayTailPeriod = e.target.value; scheduleAutoSave(); };
+wireToggle('tg_middayTailSide', { get:()=>DAY.opening.middayTailSide, set:(v)=>DAY.opening.middayTailSide=v });
 
 ['bal1h','bal1l','bal2h','bal2l'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
@@ -2212,27 +2318,31 @@ function renderOF() {
       const boxCount = parseFloat(entry.boxCount);
       const pct = ofPosition(h,l,poc);
       const zone = ofZone(pct);
-      const dominantDelta = Math.max(isNaN(du)?0:du, isNaN(dd)?0:dd);
       const DELTA_MIN = 75000; // Coach (Orderflow part1): LLT benchmark ab 75K-100K+, 50K purana/kam hai
       let lines = [];
-      // Delta-color-match check (coach, Orderflow part 3): candle-color aur dominant-delta-side
-      // match karein to genuine (IB/IS), mismatch RS/RB (fake/responsive) ko support karta hai.
-      // [Fix] Pehle dono fields filled hone ki zaroorat thi — ab ek hi field bhara ho (jo normal
-      // usage hai: positive delta ho to sirf DELTA+ bharo, negative ho to sirf DELTA- bharo) to
-      // bhi chalega, blank field ko 0 maana jaata hai.
+
+      // FIX: Explicitly check if Delta was entered (blank should NOT suggest pattern)
+      const hasDelta = !isNaN(du) || !isNaN(dd);
       const duVal = isNaN(du) ? 0 : du;
       const ddVal = isNaN(dd) ? 0 : dd;
-      const deltaSide = (duVal > 0 || ddVal > 0) ? (duVal >= ddVal ? 'green' : 'red') : null;
+      const dominantDelta = Math.max(duVal, ddVal);
+      const deltaSide = hasDelta ? (duVal >= ddVal ? 'green' : 'red') : null;
       const deltaMatches = deltaSide ? (deltaSide === entry.color) : null;
+
       if (zone) {
         const auto = suggestTag(entry.color, zone);
         const isGenuineZone = (zone === 'CENTER'); // IB/IS are center-zone patterns
-        if (!isNaN(dominantDelta) && dominantDelta > 0 && dominantDelta < DELTA_MIN) {
-          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') — pattern shape matches "' + auto + '" lekin delta sirf ' + (dominantDelta/1000).toFixed(0) + 'K hai (75K+ chahiye, coach LLT benchmark) → suggest: Not useful (delta kam)');
+
+        // FIX: Require Delta before suggesting any pattern
+        if (!hasDelta) {
+          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') → Delta (+ / −) bharo pattern suggest karne ke liye');
+        } else if (dominantDelta < DELTA_MIN) {
+          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') — shape matches "' + auto + '" lekin delta sirf ' + (dominantDelta/1000).toFixed(0) + 'K hai (75K+ chahiye, coach LLT) → suggest: Not useful (delta kam)');
         } else {
-          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') → suggest: ' + auto + (dominantDelta >= DELTA_MIN ? ' (delta ' + (dominantDelta/1000).toFixed(0) + 'K, LLT confirm)' : ''));
+          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') → suggest: ' + auto + ' (delta ' + (dominantDelta/1000).toFixed(0) + 'K, LLT confirm)');
         }
-        if (deltaMatches !== null) {
+
+        if (hasDelta && deltaMatches !== null) {
           if (isGenuineZone && deltaMatches) {
             lines.push('✓ Delta (' + deltaSide + ') candle-color (' + entry.color + ') se MATCH karta hai — genuine (' + auto + ') ke liye strong confirmation.');
           } else if (isGenuineZone && !deltaMatches) {
