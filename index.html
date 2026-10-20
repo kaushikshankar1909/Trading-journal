@@ -184,7 +184,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.1 (OF Delta Fix)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.2 (IV Skew)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -243,6 +243,15 @@
 <div class="card">
       <div class="card-title">CONTEXT — VIX / MOMENTUM</div>
       <div class="field-row"><span class="lbl">India VIX</span><input id="op_vix" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Call IV (ATM)</span><input id="op_callIV" inputmode="decimal" placeholder="optional"></div>
+      <div class="field-row"><span class="lbl">Put IV (ATM)</span><input id="op_putIV" inputmode="decimal" placeholder="optional"></div>
+      <div class="toggle-q">Dono IV high + freeze (na girti, na badhti — news/war)?</div>
+      <div class="toggle-group" id="tg_ivFrozen">
+        <button data-val="yes">Haan, freeze</button>
+        <button data-val="no">Nahi</button>
+      </div>
+      <div class="result-box" id="ivResultBox">Call IV + Put IV bharo (option chain se)</div>
+      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach context — user-supplied, verbatim verify baaki]</b> Call IV vs Put IV me 3-5 pts gap = skew: counter-pullback par higher-IV side ka premium fast erode hota hai. Dono IV high + freeze (VIX&gt;20 / war news) = day-trading option buyers ke trap hone ke chances zyada, scalp ya swing shift karna sahi. Ye sirf CONTEXT warning hai — 5-signal count me nahi gini jaati.</div>
       <div class="toggle-q">Momentum (A period range + VIX se khud suggest hota hai)</div>
       <div id="momentumSuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
       <div class="toggle-group" id="tg_momentum">
@@ -847,7 +856,7 @@ function blankDay() {
     niftyPrice: "",
     levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", psych:"", naked:"", poorHigh:"", poorLow:"" },
     opening: {
-      open:"", vix:"", momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
+      open:"", vix:"", callIV:"", putIV:"", ivFrozen:null, momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
       ibTouchedBothSides: null, closeInsideIB: null,
       halfIbAccess: null, halfIbSide: null, vwapFrozenHHLL: null,
       failedAuction: null, threeIB: null, threeIBFast: null,
@@ -1266,6 +1275,66 @@ function calcFibExtension() {
   return { dir, levels, mids, deadEndNote, hhllConfirmed: DAY.opening.fibHHLLConfirmed, gating, p2 };
 }
 
+/* ============================================================
+   [v15.2] OPTION IV SKEW & DELTA-DECAY WARNING
+   Thresholds yahan editable hain (Coach context ke hisaab se):
+   IV_SKEW_MIN = 3 pts gap se skew warning, IV_SKEW_STRONG = 5 pts se STRONG,
+   IV_HIGH = 20 (dono IV ya India VIX isse upar = "high").
+============================================================ */
+const IV_SKEW_MIN = 3, IV_SKEW_STRONG = 5, IV_HIGH = 20;
+function calcIVSkew() {
+  const o = DAY.opening;
+  const c = parseFloat(o.callIV), p = parseFloat(o.putIV), vix = parseFloat(o.vix);
+  const haveBoth = !isNaN(c) && !isNaN(p);
+  const r = { haveBoth, c, p, gap:null, higherSide:null, skew:false, strong:false,
+              bothHigh:false, vixHigh: !isNaN(vix) && vix >= IV_HIGH,
+              frozen: o.ivFrozen === 'yes', trap:false, caution:false };
+  if (haveBoth) {
+    r.gap = Math.round(Math.abs(c - p) * 10) / 10;
+    r.higherSide = c > p ? 'CE (Call)' : (p > c ? 'PE (Put)' : null);
+    r.skew = r.gap >= IV_SKEW_MIN;
+    r.strong = r.gap >= IV_SKEW_STRONG;
+    r.bothHigh = c >= IV_HIGH && p >= IV_HIGH;
+  }
+  const highCtx = r.bothHigh || r.vixHigh;
+  r.trap = highCtx && r.frozen;
+  r.caution = highCtx && !r.frozen;
+  return r;
+}
+function ivWarningLines(r) {
+  const out = [];
+  if (r.skew) {
+    out.push("⚠ IV SKEW: Call IV " + r.c.toFixed(1) + " vs Put IV " + r.p.toFixed(1) + " → gap " + r.gap.toFixed(1) + " pts" + (r.strong ? " (STRONG)" : "") +
+      ". Higher-IV side = " + r.higherSide + ". Counter-pullback par us side ka premium fast erode hoga — us option me pullback pe entry/hold karne se bacho, premium-erosion ka dhyan rakho.");
+  }
+  if (r.trap) {
+    out.push("⛔ BUYER-TRAP RISK: IV high" + (r.vixHigh ? " (VIX " + IV_HIGH + "+)" : "") + " + freeze. Day-trading option buyers ke trap hone ke chances zyada. Scalping (quick partial) ya swing-shift sahi; normal intraday hold avoid, size kam rakho.");
+  } else if (r.caution) {
+    out.push("⚠ IV HIGH (" + (r.bothHigh ? "dono sides " + IV_HIGH + "+" : "VIX " + IV_HIGH + "+") + "): agar IV freeze dikhe (na girti, na badhti) to toggle 'Haan' karo — tab buyer-trap warning lagegi.");
+  }
+  return out;
+}
+function renderIV() {
+  const o = DAY.opening;
+  const ci = document.getElementById('op_callIV'), pi = document.getElementById('op_putIV');
+  if (ci && document.activeElement !== ci) ci.value = o.callIV;
+  if (pi && document.activeElement !== pi) pi.value = o.putIV;
+  renderToggleGroup('tg_ivFrozen', o.ivFrozen);
+  const box = document.getElementById('ivResultBox');
+  if (!box) return;
+  const r = calcIVSkew();
+  if (!r.haveBoth && !r.vixHigh) { box.innerHTML = 'Call IV + Put IV bharo (option chain se)'; return; }
+  let h = '';
+  if (r.haveBoth) {
+    h += '<div class="row"><span class="muted">Call IV / Put IV</span><b>' + r.c.toFixed(1) + ' / ' + r.p.toFixed(1) + '</b></div>' +
+         '<div class="row"><span class="muted">Skew gap</span><b>' + r.gap.toFixed(1) + ' pts' + (r.higherSide ? ' · higher: ' + r.higherSide : '') + '</b></div>';
+  }
+  const w = ivWarningLines(r);
+  if (w.length) h += '<div style="margin-top:8px;color:#F5A524">' + w.join('<br><br>') + '</div>';
+  else h += '<div style="margin-top:8px;color:#3DDC84">Koi IV skew / buyer-trap warning nahi (gap &lt; ' + IV_SKEW_MIN + ' pts, IV high nahi).</div>';
+  box.innerHTML = h;
+}
+
 function calcStrikeSelector() {
   const open = parseFloat(DAY.opening.open);
   if (isNaN(open)) return null;
@@ -1353,6 +1422,7 @@ function renderOpening() {
   document.getElementById('op_Bh').value = DAY.opening.B.h;
   document.getElementById('op_Bl').value = DAY.opening.B.l;
   document.getElementById('op_Bc').value = DAY.opening.B.c;
+  renderIV();
   renderToggleGroup('tg_momentum', getMomentum());
   renderToggleGroup('tg_tickAcceptance', getTickAcceptance());
   const tickSuggested = suggestTickAcceptance();
@@ -1970,6 +2040,7 @@ function strategyHTML(dayType, opening, o) {
   if (o.newsDistortion === 'yes') lines.push("Participation ka broad signal kisi EK stock ke isolated news se distort ho sakta hai — genuine broad conviction mat maano, individual stock news check kar lo.");
   if (o.momentum === 'fast') lines.push("Context: FAST momentum — levels ke test ki tolerance wider maano (30+ pts bhi chalega), sirf points pe mat atko.");
   else if (o.momentum === 'dull') lines.push("Context: DULL/low-liquidity — price idhar-udhar jump kar sakti hai orders fill karne ke liye. Tolerance mixed rahega, chhota move bhi ignore mat karo.");
+  ivWarningLines(calcIVSkew()).forEach(l => lines.push(l));
   if (o.profileShape) {
     const shapeText = {
       P: "P-shape — buying tail, buyer control. " + (o.pShapeType === 'shortcover' ? "Short covering lagta hai — buyer weak, scalp-range zyada likely, ~2:15-2:45 (K/L) me late-breakout attempt dekho, order flow se confirm karo." : o.pShapeType === 'fresh' ? "Fresh buying lagta hai — zyada bharosemand, continuation ki taraf jhukav." : "Fresh ya short-cover, abhi confirm nahi — order flow dekho."),
@@ -2034,6 +2105,10 @@ function strategyHTML(dayType, opening, o) {
 ['open','vix'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
 });
+['callIV','putIV'].forEach(k => {
+  document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
+});
+wireToggle('tg_ivFrozen', { get:()=>DAY.opening.ivFrozen, set:(v)=>DAY.opening.ivFrozen=v });
 document.getElementById('op_strikeDist').oninput = (e) => { DAY.opening.strikeDist = e.target.value; scheduleAutoSave(); renderOpening(); };
 ['fibP1','fibP2','fibP3'].forEach(k => {
   document.getElementById('op_'+k).oninput = (e) => { DAY.opening[k] = e.target.value; scheduleAutoSave(); renderOpening(); };
