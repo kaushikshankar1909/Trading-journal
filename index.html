@@ -179,12 +179,21 @@
 
   .backup-box textarea { min-height:100px; font-size:11px; }
   .backup-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding:0 14px 14px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; padding:0 14px 12px; }
+  .chip { border:1px solid #232B36; background:#0E141A; color:#7C8896; border-radius:16px; padding:7px 10px; font-size:11px; font-weight:700; font-family:inherit; }
+  .chip.on { border-color:#F2545B; color:#F2545B; background:#2A1416; }
+  .tr-item { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; padding:10px 14px; border-top:1px solid #1B232C; font-size:12px; line-height:1.6; }
+  .tr-item .x { background:none; border:none; color:#7C8896; font-size:16px; padding:0 4px; }
+  .ins-h { font-size:11px; color:#7C8896; letter-spacing:1px; font-weight:700; padding:12px 14px 4px; }
+  .ins-r { display:flex; justify-content:space-between; gap:8px; padding:3px 14px; font-size:12px; }
+  .ins-r.low { color:#7C8896; }
+  .pos { color:#3DDC84; } .neg { color:#F2545B; } .amb { color:#F5A524; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.6 (Combo #6 verified)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v16 (Trade Log + Insights)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -200,6 +209,7 @@
   <button data-section="morning">MORNING</button>
   <button data-section="midday">MIDDAY</button>
   <button data-section="afternoon">AFTERNOON</button>
+  <button data-section="trades">TRADES</button>
   <button data-section="summary">SUMMARY</button>
 </div>
 
@@ -703,6 +713,7 @@
         <div class="big-num">– / 5</div>
         <div class="sub">Half-IB Side toggle (Day Type Ladder, MORNING) bharo pehle</div>
       </div>
+      <div class="result-box" id="patternWarnBox" style="margin-top:8px">Pattern warning: Trade log bharo (TRADES tab)</div>
       <div class="hint-box" style="padding:0 14px 12px">Signals: Opening Type, Half-IB Break, VA Access, Tick Acceptance, Time Confirmation. Coach ka rule: "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." — ye ek holy-grail count nahi hai, sirf ek synthesis tool hai jo already-filled toggles se count karta hai.</div>
     </div>
 
@@ -716,6 +727,39 @@
       <div class="card-title">SUPPORTING NOTES</div>
       <div class="strategy-list" id="strategyBoxOpening"></div>
     </div>
+  </div>
+
+  <!-- ================= TRADES ================= -->
+  <div id="section-trades" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">📒 Har trade ke baad 30 sec me log karo. Us waqt ka context (signals, day type, VIX, tier...) apne aap judta hai. Neeche Insights me aapke repeat patterns dikhte hain.</div>
+    <div class="card">
+      <div class="card-title">PATTERN WARNING (aaj ke context ke hisaab se)</div>
+      <div class="result-box" id="patternWarnBox2">–</div>
+    </div>
+    <div class="card">
+      <div class="card-title">NAYA TRADE</div>
+      <div class="toggle-q">Direction</div>
+      <div class="toggle-group" id="tg_tDir"><button data-val="up">CE / Bullish</button><button data-val="down">PE / Bearish</button></div>
+      <div class="field-row"><span class="lbl">Entry time (HH:MM)</span><input id="t_time" inputmode="numeric" placeholder="11:42"></div>
+      <div class="field-row"><span class="lbl">Strike</span><input id="t_strike" inputmode="numeric" placeholder="22900"></div>
+      <div class="field-row"><span class="lbl">Entry premium</span><input id="t_entry" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">SL premium</span><input id="t_sl" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Exit premium</span><input id="t_exit" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Lots</span><input id="t_lots" inputmode="decimal"></div>
+      <div class="hint-box" id="tradeLotHint" style="padding:0 14px 10px"></div>
+      <div class="field-row"><span class="lbl">P&amp;L ₹ (loss me -)</span><input id="t_pnl" inputmode="text" placeholder="-1200 ya 3.5k"></div>
+      <div class="toggle-q">Exit kaise hua</div>
+      <div style="padding:0 14px 10px"><select id="t_reason" class="of-tag-select"><option value="">-- chuno --</option><option>T1</option><option>Trail</option><option>SL hit</option><option>Time cutoff</option><option>Panic exit</option><option>Other</option></select></div>
+      <div class="toggle-q">Plan follow kiya?</div>
+      <div class="toggle-group" id="tg_tPlan"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">Mistakes (jo hui wo tap karo)</div>
+      <div class="chips" id="t_mist"></div>
+      <div style="padding:0 14px 10px"><textarea id="t_note" placeholder="note..." style="width:100%;min-height:60px;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:13px;padding:8px;font-family:inherit;outline:none"></textarea></div>
+      <div class="hint-box" id="tradeFormMsg" style="padding:0 14px 8px"></div>
+      <button class="weight-save" id="addTradeBtn" style="width:calc(100% - 28px);margin:0 14px 14px">+ Trade add karo</button>
+    </div>
+    <div class="card"><div class="card-title">AAJ KE TRADES</div><div id="todayTrades"></div></div>
+    <div class="card"><div class="card-title">INSIGHTS (saare saved din)</div><div id="insightsBox"></div></div>
   </div>
 
   <!-- ================= SUMMARY ================= -->
@@ -854,6 +898,7 @@ function blankParticipation() {
 }
 function blankDay() {
   return {
+    trades: [],
     niftyPrice: "",
     levels: { pdh:"", pdl:"", pdc:"", vah:"", val:"", poc:"", psych:"", naked:"", poorHigh:"", poorLow:"" },
     opening: {
@@ -901,13 +946,14 @@ function formatDateKey(key) {
 /* ============================================================
    NAV
 ============================================================ */
-const SECTIONS = ["premarket","morning","midday","afternoon","summary"];
+const SECTIONS = ["premarket","morning","midday","afternoon","trades","summary"];
 function showSection(id) {
   SECTIONS.forEach(s => {
     document.getElementById('section-'+s).classList.toggle('active', s===id);
   });
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
   if (id === 'summary') renderSummary();
+  if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
 }
 document.querySelectorAll('.nav button').forEach(b => {
   b.onclick = () => showSection(b.dataset.section);
@@ -1020,6 +1066,7 @@ async function loadDay(key) {
     opening: Object.assign(blankDay().opening, saved.opening || {}),
     participation: saved.participation || blankParticipation(),
     orderflow: saved.orderflow || [],
+    trades: Array.isArray(saved.trades) ? saved.trades : [],
   }) : blankDay();
   activeCP = "c908";
   renderEverything();
@@ -2784,6 +2831,272 @@ document.getElementById('resetWeightsBtn').onclick = () => {
 /* ============================================================
    MASTER RENDER + INIT
 ============================================================ */
+/* ============================================================
+   TRADE LOG + INSIGHTS + PATTERN WARNING (v16)
+   Trades usi din ke DAY object me (DAY.trades) — backup/restore code ko chhuna nahi pada.
+============================================================ */
+const MISTAKES = [
+  {id:'nosig',label:'Bina signal entry'},{id:'chase',label:'Chase kiya'},{id:'oversize',label:'Size zyada'},
+  {id:'slmove',label:'SL hataya/khiska'},{id:'revenge',label:'Revenge trade'},{id:'pbmiss',label:'Pullback ke chakkar me miss'},
+  {id:'late',label:'2:40 ke baad entry'},{id:'overthink',label:'Trade me over-analysis'},{id:'earlyexit',label:'Early exit (fear/greed)'}
+];
+const MIN_SAMPLE = 5;      // itne trades se kam = "kam sample", bharosa mat karo
+const WARN_WINRATE = 0.35; // is se kam win% + negative ₹ = warning
+let TF = { dir:null, plan:null, mist:[] };
+let TRADES_CACHE = [];
+
+function parseMoney(v) {
+  let s = String(v == null ? '' : v).toLowerCase().replace(/[₹,\s]/g, '');
+  if (!s) return NaN;
+  let m = 1;
+  if (/k$/.test(s)) { m = 1000; s = s.slice(0, -1); }
+  const n = parseFloat(s);
+  return isNaN(n) ? NaN : n * m;
+}
+function toMin(t) { const m = /^(\d{1,2})[:.](\d{2})$/.exec(String(t || '').trim()); return m ? (+m[1]) * 60 + (+m[2]) : NaN; }
+function fmtR(n) { return (n < 0 ? '−' : '+') + '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); }
+function vixBucket(v) { return isNaN(v) ? null : (v < 12 ? 'VIX <12' : (v < 20 ? 'VIX 12-20' : 'VIX 20+')); }
+function timeBucket(t) {
+  const m = toMin(t); if (isNaN(m)) return null;
+  if (m < 11 * 60 + 30) return '11:30 se pehle';
+  if (m < 12 * 60 + 30) return '11:30-12:30';
+  if (m < 14 * 60 + 40) return '12:30-2:40';
+  return '2:40 ke baad';
+}
+
+function tradeContext() {
+  const o = DAY.opening, c = {};
+  try { const d = new Date(dateKey + 'T00:00:00'); c.friday = d.getDay() === 5; } catch (e) {}
+  try { const s = computeSignalsCount(); c.signals = s ? s.count : null; c.bias = s ? s.bias : null; } catch (e) {}
+  try { const r = calcOpening(); c.opening = r ? (r.base + (r.sub ? '+' + r.sub.type : '') + (r.orr ? '+ORR' : '')) : null; } catch (e) {}
+  try { c.dayType = calcDayType(); } catch (e) {}
+  c.vixB = vixBucket(parseFloat(o.vix));
+  try { const ib = calcIB(); c.ibCat = ib ? ib.cat : null; } catch (e) {}
+  c.shape = o.profileShape || null; c.news = o.newsDistortion || null;
+  try { const f = detectOfCombos().found; c.ofCombo = f.length ? f[f.length - 1].n : null; } catch (e) {}
+  try { const iv = calcIVSkew(); c.ivSkew = !!iv.skew; c.ivTrap = !!iv.trap; } catch (e) {}
+  try { const z = calcPositionSizing(); c.tier = z ? z.tier : null; c.recLots = z ? z.recommended : null; } catch (e) {}
+  return c;
+}
+
+const DIMS = [
+  { id:'sig',  label:'Signals',    fn: t => t.ctx && t.ctx.signals != null ? (t.ctx.signals >= 3 ? '3+/5' : (t.ctx.signals === 2 ? '2/5' : '0-1/5')) : null },
+  { id:'day',  label:'Day type',   fn: t => t.ctx && t.ctx.dayType },
+  { id:'open', label:'Opening',    fn: t => t.ctx && t.ctx.opening },
+  { id:'vix',  label:'VIX',        fn: t => t.ctx && t.ctx.vixB },
+  { id:'fri',  label:'Din',        fn: t => t.ctx ? (t.ctx.friday ? 'Friday' : 'Baaki din') : null },
+  { id:'ib',   label:'IB size',    fn: t => t.ctx && t.ctx.ibCat },
+  { id:'time', label:'Entry time', fn: t => timeBucket(t.time) },
+  { id:'exit', label:'Exit reason',fn: t => t.exitReason || null },
+  { id:'plan', label:'Plan',       fn: t => t.plan === 'yes' ? 'Plan follow' : (t.plan === 'no' ? 'Plan toda' : null) },
+  { id:'size', label:'Size',       fn: t => t.over === true ? 'Size > tier' : (t.over === false ? 'Size tier ke andar' : null) }
+];
+
+function groupStats(trs, keyFn) {
+  const g = {};
+  trs.forEach(t => {
+    const k = keyFn(t); if (k == null || k === '') return;
+    const o = g[k] || (g[k] = { k, n:0, w:0, pnl:0 });
+    o.n++; if (t.pnl > 0) o.w++; o.pnl += t.pnl;
+  });
+  return Object.values(g);
+}
+
+// Pure: saare trades se insights nikalo (test-friendly)
+function computeInsights(all) {
+  const trs = all.filter(t => typeof t.pnl === 'number' && !isNaN(t.pnl));
+  const out = { n: trs.length, dims: {}, mist: [], leaks: [], overall: null, behaviour: [] };
+  if (!trs.length) return out;
+  const wins = trs.filter(t => t.pnl > 0), loss = trs.filter(t => t.pnl < 0);
+  const sum = a => a.reduce((s, t) => s + t.pnl, 0);
+  const sorted = trs.slice().sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  let streak = 0, maxStreak = 0;
+  sorted.forEach(t => { if (t.pnl < 0) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0; });
+  out.overall = {
+    n: trs.length, winPct: Math.round(100 * wins.length / trs.length), total: sum(trs),
+    avgWin: wins.length ? sum(wins) / wins.length : 0, avgLoss: loss.length ? sum(loss) / loss.length : 0,
+    expect: sum(trs) / trs.length, maxStreak
+  };
+  DIMS.forEach(d => { out.dims[d.id] = groupStats(trs, d.fn).sort((a, b) => b.n - a.n); });
+  MISTAKES.forEach(m => {
+    const sub = trs.filter(t => (t.mistakes || []).indexOf(m.id) >= 0);
+    if (sub.length) out.mist.push({ k: m.label, n: sub.length, w: sub.filter(t => t.pnl > 0).length, pnl: sum(sub) });
+  });
+  out.mist.sort((a, b) => a.pnl - b.pnl);
+  // SL/loss ke baad behaviour (same din, entry-time based)
+  const byDay = {};
+  sorted.forEach(t => (byDay[t.date] = byDay[t.date] || []).push(t));
+  const quick = [], bigger = [];
+  Object.values(byDay).forEach(arr => {
+    for (let i = 1; i < arr.length; i++) {
+      if (!(arr[i - 1].pnl < 0)) continue;
+      const gap = toMin(arr[i].time) - toMin(arr[i - 1].time);
+      if (!isNaN(gap) && gap <= 15) quick.push(arr[i]);
+      if (arr[i].lots > arr[i - 1].lots) bigger.push(arr[i]);
+    }
+  });
+  const bs = (label, a) => { if (a.length) out.behaviour.push({ k: label, n: a.length, w: a.filter(t => t.pnl > 0).length, pnl: sum(a) }); };
+  bs('Loss ke 15 min ke andar agla trade', quick);
+  bs('Loss ke baad size badhayi', bigger);
+  // Top leaks: negative-₹ groups, n>=3 (mistakes n>=2)
+  const cand = [];
+  DIMS.forEach(d => out.dims[d.id].forEach(g => { if (g.n >= 3 && g.n < trs.length && g.pnl < 0 && g.pnl / g.n < out.overall.expect) cand.push({ label: d.label + ': ' + g.k, n: g.n, w: g.w, pnl: g.pnl }); }));
+  out.mist.forEach(m => { if (m.n >= 2 && m.pnl < 0) cand.push({ label: 'Mistake: ' + m.k, n: m.n, w: m.w, pnl: m.pnl }); });
+  out.behaviour.forEach(m => { if (m.n >= 2 && m.pnl < 0) cand.push({ label: m.k, n: m.n, w: m.w, pnl: m.pnl }); });
+  out.leaks = cand.sort((a, b) => a.pnl - b.pnl).slice(0, 3);
+  return out;
+}
+
+// Pure: aaj ke context ko history se match karke warning lines
+function computeWarnings(all, ctx) {
+  const trs = all.filter(t => typeof t.pnl === 'number' && !isNaN(t.pnl));
+  const lines = [];
+  const overallAvg = trs.length ? trs.reduce((s, t) => s + t.pnl, 0) / trs.length : 0;
+  if (trs.length < MIN_SAMPLE) return { lines, text: 'Trade log me ' + MIN_SAMPLE + '+ trades hone ke baad yahan pattern warning aayegi (abhi ' + trs.length + ').' };
+  const pseudo = { ctx };
+  const check = (label, pred) => {
+    const sub = trs.filter(pred);
+    if (sub.length < MIN_SAMPLE || sub.length >= trs.length) return;
+    const w = sub.filter(t => t.pnl > 0).length, p = sub.reduce((s, t) => s + t.pnl, 0);
+    if (w / sub.length <= WARN_WINRATE && p < 0 && p / sub.length < overallAvg) lines.push({ bad: true, p: p, t: '⚠ ' + label + ': ' + sub.length + ' trades me sirf ' + w + ' jeete, total ' + fmtR(p) });
+    else if (w / sub.length >= 0.6 && p > 0) lines.push({ bad: false, t: '✓ ' + label + ': ' + sub.length + ' me ' + w + ' jeete, total ' + fmtR(p) });
+  };
+  ['sig','day','open','vix','fri','ib'].forEach(id => {
+    const d = DIMS.filter(x => x.id === id)[0], val = d.fn(pseudo);
+    if (val != null) check(d.label + ' = ' + val, t => d.fn(t) === val);
+  });
+  const sg = DIMS[0].fn(pseudo), dy = DIMS[1].fn(pseudo);
+  if (sg != null && dy != null) check('Signals ' + sg + ' + ' + dy, t => DIMS[0].fn(t) === sg && DIMS[1].fn(t) === dy);
+  const bad = lines.filter(l => l.bad).sort((a, b) => a.p - b.p).slice(0, 3), good = lines.filter(l => !l.bad).slice(0, 1);
+  const show = bad.concat(good);
+  return { lines: show, text: show.length ? '' : 'Aaj ke context ka koi purana losing ya winning pattern (n>=' + MIN_SAMPLE + ') nahi mila. Normal process follow karo.' };
+}
+
+async function refreshTradesCache() {
+  const days = await getAllSavedDays();
+  const flat = [];
+  const seen = {};
+  days.forEach(d => {
+    seen[d.key] = true;
+    const arr = d.key === dateKey ? DAY.trades : (d.saved && d.saved.trades);
+    (Array.isArray(arr) ? arr : []).forEach(t => flat.push(Object.assign({ date: d.key }, t)));
+  });
+  if (!seen[dateKey]) (DAY.trades || []).forEach(t => flat.push(Object.assign({ date: dateKey }, t)));
+  TRADES_CACHE = flat;
+}
+
+function renderPatternWarn() {
+  const w = computeWarnings(TRADES_CACHE, tradeContext());
+  let h;
+  if (w.text) h = '<span class="muted">' + w.text + '</span>';
+  else h = w.lines.map(l => '<div class="' + (l.bad ? 'neg' : 'pos') + '" style="margin-bottom:6px">' + l.t + '</div>').join('');
+  ['patternWarnBox', 'patternWarnBox2'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = h; });
+}
+// signals count render hone par warning bhi refresh ho
+const _origRenderSignalsCount = renderSignalsCount;
+renderSignalsCount = function () { _origRenderSignalsCount(); try { renderPatternWarn(); } catch (e) {} };
+
+function renderTradeForm() {
+  renderToggleGroup('tg_tDir', TF.dir); renderToggleGroup('tg_tPlan', TF.plan);
+  const box = document.getElementById('t_mist');
+  box.innerHTML = MISTAKES.map(m => '<button class="chip' + (TF.mist.indexOf(m.id) >= 0 ? ' on' : '') + '" data-id="' + m.id + '">' + m.label + '</button>').join('');
+  box.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    const i = TF.mist.indexOf(b.dataset.id);
+    if (i >= 0) TF.mist.splice(i, 1); else TF.mist.push(b.dataset.id);
+    renderTradeForm();
+  });
+  const tm = document.getElementById('t_time');
+  if (!tm.value) { const n = new Date(); tm.value = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); }
+  updateLotHint();
+}
+function updateLotHint() {
+  const el = document.getElementById('tradeLotHint'); if (!el) return;
+  const lots = parseFloat(document.getElementById('t_lots').value);
+  let z = null; try { z = calcPositionSizing(); } catch (e) {}
+  if (!z) { el.innerHTML = 'Size check ke liye MORNING me Base lot size bharo.'; return; }
+  const rec = Math.round(z.recommended * 100) / 100;
+  let h = 'Aaj ka tier: ' + z.tier + '% = ' + rec + ' lots.';
+  if (!isNaN(lots) && lots > z.recommended + 0.0001) h += ' <span class="neg">Tum ' + lots + ' le rahe ho — tier se zyada.</span>';
+  el.innerHTML = h;
+}
+['t_lots'].forEach(id => document.getElementById(id).oninput = updateLotHint);
+wireTradeToggle('tg_tDir', 'dir'); wireTradeToggle('tg_tPlan', 'plan');
+function wireTradeToggle(id, key) {
+  document.getElementById(id).querySelectorAll('button').forEach(b => b.onclick = () => { TF[key] = (TF[key] === b.dataset.val ? null : b.dataset.val); renderToggleGroup(id, TF[key]); });
+}
+
+document.getElementById('addTradeBtn').onclick = async () => {
+  const msg = document.getElementById('tradeFormMsg');
+  const pnl = parseMoney(document.getElementById('t_pnl').value);
+  if (!TF.dir) { msg.innerHTML = '<span class="neg">Direction chuno (CE/PE).</span>'; return; }
+  if (isNaN(pnl)) { msg.innerHTML = '<span class="neg">P&L ₹ bharo (loss ho to -1200 jaisa).</span>'; return; }
+  const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
+  const entry = num('t_entry'), sl = num('t_sl'), ex = num('t_exit'), lots = num('t_lots');
+  const ctx = tradeContext();
+  const trade = {
+    id: Date.now(), time: document.getElementById('t_time').value.trim(), dir: TF.dir,
+    strike: document.getElementById('t_strike').value.trim(), entry, sl, exit: ex, lots, pnl,
+    exitReason: document.getElementById('t_reason').value, plan: TF.plan, mistakes: TF.mist.slice(),
+    note: document.getElementById('t_note').value.trim(), ctx,
+    r: (entry != null && sl != null && ex != null && entry > sl) ? Math.round(100 * (ex - entry) / (entry - sl)) / 100 : null,
+    over: (lots != null && ctx.recLots != null) ? lots > ctx.recLots + 0.0001 : null
+  };
+  DAY.trades = (DAY.trades || []).concat([trade]);
+  await saveDay(true);
+  ['t_strike','t_entry','t_sl','t_exit','t_lots','t_pnl','t_note','t_time'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('t_reason').value = '';
+  TF = { dir:null, plan:null, mist:[] };
+  msg.innerHTML = '<span class="pos">Trade add ho gaya ✓</span>';
+  await refreshTradesCache(); renderTradeSection();
+};
+
+function renderTodayTrades() {
+  const box = document.getElementById('todayTrades');
+  const trs = DAY.trades || [];
+  if (!trs.length) { box.innerHTML = '<div class="hint-box" style="padding:0 14px 12px">Aaj koi trade log nahi.</div>'; return; }
+  box.innerHTML = trs.map(t => {
+    const ms = (t.mistakes || []).map(id => (MISTAKES.filter(m => m.id === id)[0] || {}).label).filter(Boolean).join(', ');
+    return '<div class="tr-item"><div><b>' + (t.time || '--:--') + '</b> · ' + (t.dir === 'up' ? 'CE' : 'PE') + (t.strike ? ' ' + t.strike : '') +
+      ' · <b class="' + (t.pnl >= 0 ? 'pos' : 'neg') + '">' + fmtR(t.pnl) + '</b>' + (t.r != null ? ' · ' + t.r + 'R' : '') +
+      (t.exitReason ? ' · ' + t.exitReason : '') + (t.plan ? (t.plan === 'yes' ? ' · plan ✓' : ' · <span class="neg">plan ✗</span>') : '') +
+      (t.over ? ' · <span class="neg">size > tier</span>' : '') +
+      (t.ctx && t.ctx.signals != null ? '<br><span class="muted">' + t.ctx.signals + '/5 · ' + (t.ctx.dayType || '?') + (t.ctx.opening ? ' · ' + t.ctx.opening : '') + '</span>' : '') +
+      (ms ? '<br><span class="amb">' + ms + '</span>' : '') + (t.note ? '<br><span class="muted">' + t.note + '</span>' : '') + '</div>' +
+      '<button class="x" data-id="' + t.id + '">×</button></div>';
+  }).join('');
+  box.querySelectorAll('.x').forEach(b => b.onclick = async () => {
+    if (!confirm('Ye trade delete karna hai?')) return;
+    DAY.trades = DAY.trades.filter(t => String(t.id) !== b.dataset.id);
+    await saveDay(true); await refreshTradesCache(); renderTradeSection();
+  });
+}
+
+function insRows(arr, minN) {
+  return arr.map(g => {
+    const wp = Math.round(100 * g.w / g.n), low = g.n < (minN || MIN_SAMPLE);
+    return '<div class="ins-r' + (low ? ' low' : '') + '"><span>' + g.k + ' (n=' + g.n + (low ? ', kam sample' : '') + ')</span><b class="' + (g.pnl < 0 ? 'neg' : 'pos') + '">' + wp + '% · ' + fmtR(g.pnl) + '</b></div>';
+  }).join('');
+}
+function renderInsights() {
+  const box = document.getElementById('insightsBox');
+  const I = computeInsights(TRADES_CACHE);
+  if (!I.n) { box.innerHTML = '<div class="hint-box" style="padding:0 14px 14px">Abhi koi trade nahi. Upar log karo — 20-30 trades ke baad patterns bharose layak hote hain.</div>'; return; }
+  const o = I.overall;
+  let h = '<div class="result-box"><div class="row"><span class="muted">Trades / Win%</span><b>' + o.n + ' / ' + o.winPct + '%</b></div>' +
+    '<div class="row"><span class="muted">Total</span><b class="' + (o.total < 0 ? 'neg' : 'pos') + '">' + fmtR(o.total) + '</b></div>' +
+    '<div class="row"><span class="muted">Avg win / Avg loss</span><b>' + fmtR(o.avgWin) + ' / ' + fmtR(o.avgLoss) + '</b></div>' +
+    '<div class="row"><span class="muted">Expectancy / trade</span><b class="' + (o.expect < 0 ? 'neg' : 'pos') + '">' + fmtR(o.expect) + '</b></div>' +
+    '<div class="row"><span class="muted">Max losing streak</span><b>' + o.maxStreak + '</b></div>' +
+    (o.n < 20 ? '<div class="muted" style="margin-top:6px">⚠ ' + o.n + ' trades = kam sample. Patterns suggestion hain, pakka sach nahi.</div>' : '') + '</div>';
+  h += '<div class="ins-h">TOP LEAKS (jahan sabse zyada paisa gaya)</div>';
+  h += I.leaks.length ? I.leaks.map((l, i) => '<div class="ins-r"><span class="neg">#' + (i + 1) + ' ' + l.label + ' (n=' + l.n + ')</span><b class="neg">' + Math.round(100 * l.w / l.n) + '% · ' + fmtR(l.pnl) + '</b></div>').join('') : '<div class="ins-r low">Abhi koi clear leak nahi (n>=3 negative group nahi).</div>';
+  if (I.mist.length) h += '<div class="ins-h">MISTAKES KA COST</div>' + insRows(I.mist, 2);
+  if (I.behaviour.length) h += '<div class="ins-h">SL/LOSS KE BAAD BEHAVIOUR</div>' + insRows(I.behaviour, 2);
+  DIMS.forEach(d => { if (I.dims[d.id].length) h += '<div class="ins-h">' + d.label.toUpperCase() + '</div>' + insRows(I.dims[d.id]); });
+  box.innerHTML = h;
+}
+function renderTradeSection() { renderTradeForm(); renderTodayTrades(); renderInsights(); try { renderPatternWarn(); } catch (e) {} }
+
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
   document.getElementById('summaryCurrentPrice').value = DAY.niftyPrice;
@@ -2797,6 +3110,7 @@ function renderEverything() {
   renderDrift();
   renderOF();
   renderOfTally();
+  try { renderTradeSection(); refreshTradesCache().then(() => { try { renderTradeSection(); } catch (e) {} }); } catch (e) {}
 }
 
 (async function boot(){
