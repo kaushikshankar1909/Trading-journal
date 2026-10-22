@@ -184,7 +184,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.5 (Coach Q&A merge)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.6 (Combo #6 verified)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -2324,6 +2324,7 @@ function ofPosition(h,l,poc) {
   if ([h,l,poc].some(isNaN) || h<=l) return null;
   return ((poc-l)/(h-l))*100;
 }
+// [DERIVED] 25/75 zone % — Coach ka '18-20' ek muhavra tha (approx match), % zone nahi; exact zone % Coach ne nahi diya.
 function ofZone(pct) { if (pct==null) return null; if (pct<=25) return "BOTTOM"; if (pct>=75) return "TOP"; return "CENTER"; }
 function suggestTag(color, zone) {
   if (!zone) return "–";
@@ -2493,19 +2494,17 @@ function computeOfRealityFromEntries() {
 }
 
 /* ORDER FLOW COMBINATIONS (#1-#6) — sequence based (Coach: single activity kaafi nahi).
-   Coach verified: #1 RB+IB, #2 IB+IB, #5 RS+RB (Orderflow part 3) + Q&A: "Opposite of RB+IB = RS+IS, opposite of IB+IB = IS+IS,
-   aise baaki opposite honge" => #3 RS+IS, #4 IS+IS verified.
-   #6: Coach ne naam nahi diya. "Baaki opposite" ke hisaab se #5 ka mirror = RB+RS (INFERRED — confirm baaki).
-   IB<->IS flip Coach ke 6 me nahi hai — sirf apni caution. */
+   Verified: #1 RB+IB, #2 IB+IB, #5 RS+RB (Orderflow part 3); Coach Q&A "opposite" rule => #3 RS+IS, #4 IS+IS;
+   #6 IB+IS (Orderflow part 4: ek hi session me IB aur IS dono bane = big players fighting, previous position exit, no clear direction). */
 const OF_COMBOS = {
-  'RB>IB': { n:1, ok:true,  name:'RB + IB', msg:'Short exit + candle close ke baad fresh LONG consider karo (short-term trend-change).' },
-  'IB>IB': { n:2, ok:true,  name:'IB + IB', msg:'Institutional bullish drive — confidence-building (beech me 2-3 doji chalega).' },
-  'RS>IS': { n:3, ok:true,  name:'RS + IS', msg:'Long exit + SHORT trend reversal (#1 ka opposite, Coach verified).' },
-  'IS>IS': { n:4, ok:true,  name:'IS + IS', msg:'Institutional bearish drive (#2 ka opposite, Coach verified).' },
-  'RS>RB': { n:5, ok:true,  name:'RS + RB', msg:'Heavy conflict / chop — "big players fighting". Exit karo, naya trade mat lo.' },
-  'RB>RS': { n:6, ok:false, name:'RB + RS', msg:'#5 ka mirror — dono responsive, conflict/chop. Exit karo, naya trade mat lo. [#6 naam INFERRED — Coach confirm baaki]' },
-  'IB>IS': { n:null, ok:false, name:'IB + IS', msg:'Buy→sell flip — Coach ke 6 combos me nahi; volatility caution, naya trade avoid.' },
-  'IS>IB': { n:null, ok:false, name:'IS + IB', msg:'Sell→buy flip — Coach ke 6 combos me nahi; volatility caution, naya trade avoid.' }
+  'RB>IB': { n:1, ok:true, name:'RB + IB', msg:'Short exit + candle close ke baad fresh LONG consider karo (short-term trend-change).' },
+  'IB>IB': { n:2, ok:true, name:'IB + IB', msg:'Institutional bullish drive — confidence-building (beech me 2-3 doji chalega).' },
+  'RS>IS': { n:3, ok:true, name:'RS + IS', msg:'Long exit + SHORT trend reversal (#1 ka opposite, Coach verified).' },
+  'IS>IS': { n:4, ok:true, name:'IS + IS', msg:'Institutional bearish drive (#2 ka opposite, Coach verified).' },
+  'RS>RB': { n:5, ok:true, name:'RS + RB', msg:'Heavy conflict / chop — "big players fighting". Exit karo, naya trade mat lo.' },
+  'RB>RS': { n:5, ok:true, name:'RS + RB', msg:'Heavy conflict / chop (dono responsive). Exit karo, naya trade mat lo.' },
+  'IB>IS': { n:6, ok:true, name:'IB + IS', msg:'Dono initiative (buy + sell) — big players fighting, confusion, no clear direction. Previous position EXIT karo.' },
+  'IS>IB': { n:6, ok:true, name:'IB + IS', msg:'Dono initiative (sell + buy) — big players fighting, confusion, no clear direction. Previous position EXIT karo.' }
 };
 function comboLabel(c) { return c.n ? ('#' + c.n + ' ' + c.name) : ('Unlisted ' + c.name); }
 function detectOfCombos() {
