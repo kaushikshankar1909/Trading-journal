@@ -184,7 +184,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.2 (IV Skew)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v15.5 (Coach Q&A merge)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -245,13 +245,13 @@
       <div class="field-row"><span class="lbl">India VIX</span><input id="op_vix" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Call IV (ATM)</span><input id="op_callIV" inputmode="decimal" placeholder="optional"></div>
       <div class="field-row"><span class="lbl">Put IV (ATM)</span><input id="op_putIV" inputmode="decimal" placeholder="optional"></div>
-      <div class="toggle-q">Dono IV high + freeze (na girti, na badhti — news/war)?</div>
+      <div class="toggle-q">Dono IV 20-22 ke aas-paas freeze (kai sessions se atki, news/war)?</div>
       <div class="toggle-group" id="tg_ivFrozen">
         <button data-val="yes">Haan, freeze</button>
         <button data-val="no">Nahi</button>
       </div>
       <div class="result-box" id="ivResultBox">Call IV + Put IV bharo (option chain se)</div>
-      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach context — user-supplied, verbatim verify baaki]</b> Call IV vs Put IV me 3-5 pts gap = skew: counter-pullback par higher-IV side ka premium fast erode hota hai. Dono IV high + freeze (VIX&gt;20 / war news) = day-trading option buyers ke trap hone ke chances zyada, scalp ya swing shift karna sahi. Ye sirf CONTEXT warning hai — 5-signal count me nahi gini jaati.</div>
+      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach — Option trading 4]</b> Call/Put IV me 3-4 pts gap (jaise 10-12 vs 15-17): jis side premium high, us side erosion ke chances. Dono IV 20-22 ke aas-paas stagnant (4-5 sessions tak) = premium erosion, writers control. Dono IV 40+ = volatility extreme, options trading avoid. Ye CONTEXT warning hai — 5-signal count me nahi gini jaati.</div>
       <div class="toggle-q">Momentum (A period range + VIX se khud suggest hota hai)</div>
       <div id="momentumSuggestLine" style="padding:0 14px 8px;font-size:11px;color:#7C8896"></div>
       <div class="toggle-group" id="tg_momentum">
@@ -496,7 +496,7 @@
       <div class="card-title">POSITION SIZING CALCULATOR</div>
       <div class="field-row"><span class="lbl">Normal/full lot size</span><input id="op_baseLotSize" inputmode="decimal" placeholder="e.g. 10"></div>
       <div class="result-box" id="sizingResultBox">Base lot size bharo</div>
-      <div class="hint-box" style="padding:0 14px 12px">Coach ke multipliers: Normal Day/ORR-opening me IB ke andar size kam karo. High VIX (20-26+) me ~60% cut (40→12-15 lots jaisa). Friday ko normal size ka 50% hi khelo. Day-type pata chalte hi (11:00-11:30) sabse accurate suggestion milegi, lekin VIX/Friday/Opening-type wala adjustment pehle se dikhega.</div>
+      <div class="hint-box" style="padding:0 14px 12px">Sizing tiers 100 / 75 / 50 / 25% [Coach Q&A verified scale]. Friday = 50% se shuru [Coach verbatim]. High VIX / ORR / Normal Day me har ek 1 tier neeche [mapping DERIVED]. Multiply nahi hota, floor 25%. Day-type pata chalte hi (11:00-11:30) sabse accurate suggestion milegi, lekin VIX/Friday/Opening-type wala adjustment pehle se dikhega.</div>
     </div>
 
 <div class="card" id="flagsCard" style="display:none">
@@ -533,6 +533,7 @@
     <div class="card">
       <div class="card-title">TALLY</div>
       <div class="of-tally" id="ofTally"></div>
+      <div class="result-box" id="ofComboBox" style="margin-top:10px">Combination: kam se kam 2 tagged candle (RB/IB/IS/RS) chahiye</div>
     </div>
 
     <div class="hint-box">
@@ -1173,42 +1174,34 @@ function getOfReality() {
   return computeOfRealityFromEntries();
 }
 
+/* [v15.4] TARGET ZONE: Coach — exact mathematical level mat do, ZONE do. Width editable (Coach ke examples 10-20 pts wide). */
+const TARGET_ZONE_HALF = 10;
+function tz(n) { return (n - TARGET_ZONE_HALF).toFixed(0) + '–' + (n + TARGET_ZONE_HALF).toFixed(0) + ' Zone'; }
+
 function calcPositionSizing() {
+  // Coach Q&A: sizing 25%-50%-75%-100% tiers (VERIFIED scale). Friday 50% = Coach verbatim (Psychology 1.5).
+  // Kaun sa factor kitna tier girata hai (VIX/ORR/Normal Day = 1 tier each) = DERIVED mapping.
   const base = parseFloat(DAY.opening.baseLotSize);
   if (isNaN(base) || base <= 0) return null;
-  let multiplier = 1.0;
   const reasons = [];
-
-  // Friday check — use the actual trading-day date (dateKey), not browser's live date,
-  // so this works correctly even when reviewing/backfilling a past day.
+  let tier = 100;
   try {
     const d = new Date(dateKey + 'T00:00:00');
     if (!isNaN(d.getTime()) && d.getDay() === 5) {
-      multiplier *= 0.5;
-      reasons.push("Friday — size 50% (half) karo (coach rule, Psychology 1.5)");
+      tier = 50;
+      reasons.push("Friday — start 50% [Coach verbatim, Psychology 1.5]. Pehla trade successful ho to doosra mat lo.");
     }
   } catch(e) {}
-
+  let cautions = 0;
   const vixNum = parseFloat(DAY.opening.vix);
-  if (!isNaN(vixNum) && vixNum >= 20) {
-    multiplier *= 0.4;
-    reasons.push("High VIX (" + vixNum.toFixed(1) + ", 20+) — ~60% size cut (coach: 40 lots → 12-15 lots jaisa)");
-  }
-
+  if (!isNaN(vixNum) && vixNum >= 20) { cautions++; reasons.push("High VIX (" + vixNum.toFixed(1) + ", 20+) — 1 tier neeche [DERIVED; Coach: kam quantity]"); }
   const res = calcOpening();
-  if (res && res.orr) {
-    multiplier *= 0.7;
-    reasons.push("ORR opening — chhoti-magnitude move expected, size halki rakho");
-  }
-
+  if (res && res.orr) { cautions++; reasons.push("ORR opening — 1 tier neeche [Coach: small position sizing; % DERIVED]"); }
   const dt = calcDayType();
-  if (dt === 'Normal Day') {
-    multiplier *= 0.5;
-    reasons.push("Normal Day — IB ke andar range-bound chop expected, size kam rakho");
-  }
-
-  const recommended = base * multiplier;
-  return { base, multiplier, recommended, reasons, dt };
+  if (dt === 'Normal Day') { cautions++; reasons.push("Normal Day / IB ke andar — 1 tier neeche [Coach: play light; % DERIVED]"); }
+  tier = Math.max(25, tier - 25 * cautions);
+  const multiplier = tier / 100;
+  return { base, multiplier, tier, recommended: base * multiplier, reasons, dt };
 }
 
 function calcTrailChecklist() {
@@ -1281,13 +1274,13 @@ function calcFibExtension() {
    IV_SKEW_MIN = 3 pts gap se skew warning, IV_SKEW_STRONG = 5 pts se STRONG,
    IV_HIGH = 20 (dono IV ya India VIX isse upar = "high").
 ============================================================ */
-const IV_SKEW_MIN = 3, IV_SKEW_STRONG = 5, IV_HIGH = 20;
+const IV_SKEW_MIN = 3, IV_SKEW_STRONG = 5, IV_HIGH = 20, IV_EXTREME = 40; // 3-4 gap, 20-22 freeze, 40+ extreme: Coach (Option trading 4)
 function calcIVSkew() {
   const o = DAY.opening;
   const c = parseFloat(o.callIV), p = parseFloat(o.putIV), vix = parseFloat(o.vix);
   const haveBoth = !isNaN(c) && !isNaN(p);
   const r = { haveBoth, c, p, gap:null, higherSide:null, skew:false, strong:false,
-              bothHigh:false, vixHigh: !isNaN(vix) && vix >= IV_HIGH,
+              bothHigh:false, extreme:false, vixHigh: !isNaN(vix) && vix >= IV_HIGH,
               frozen: o.ivFrozen === 'yes', trap:false, caution:false };
   if (haveBoth) {
     r.gap = Math.round(Math.abs(c - p) * 10) / 10;
@@ -1295,6 +1288,7 @@ function calcIVSkew() {
     r.skew = r.gap >= IV_SKEW_MIN;
     r.strong = r.gap >= IV_SKEW_STRONG;
     r.bothHigh = c >= IV_HIGH && p >= IV_HIGH;
+    r.extreme = c >= IV_EXTREME && p >= IV_EXTREME;
   }
   const highCtx = r.bothHigh || r.vixHigh;
   r.trap = highCtx && r.frozen;
@@ -1307,10 +1301,13 @@ function ivWarningLines(r) {
     out.push("⚠ IV SKEW: Call IV " + r.c.toFixed(1) + " vs Put IV " + r.p.toFixed(1) + " → gap " + r.gap.toFixed(1) + " pts" + (r.strong ? " (STRONG)" : "") +
       ". Higher-IV side = " + r.higherSide + ". Counter-pullback par us side ka premium fast erode hoga — us option me pullback pe entry/hold karne se bacho, premium-erosion ka dhyan rakho.");
   }
+  if (r.extreme) {
+    out.push("⛔ IV EXTREME (dono sides " + IV_EXTREME + "+): Coach — market me volatility ekdam extreme, options trading AVOID karo.");
+  }
   if (r.trap) {
     out.push("⛔ BUYER-TRAP RISK: IV high" + (r.vixHigh ? " (VIX " + IV_HIGH + "+)" : "") + " + freeze. Day-trading option buyers ke trap hone ke chances zyada. Scalping (quick partial) ya swing-shift sahi; normal intraday hold avoid, size kam rakho.");
   } else if (r.caution) {
-    out.push("⚠ IV HIGH (" + (r.bothHigh ? "dono sides " + IV_HIGH + "+" : "VIX " + IV_HIGH + "+") + "): agar IV freeze dikhe (na girti, na badhti) to toggle 'Haan' karo — tab buyer-trap warning lagegi.");
+    out.push("⚠ IV HIGH (" + (r.bothHigh ? "dono sides " + IV_HIGH + "+" : "VIX " + IV_HIGH + "+") + "): agar dono IV 20-22 ke aas-paas kai sessions se atki hui hain to toggle 'Haan' karo — tab buyer-trap warning lagegi.");
   }
   return out;
 }
@@ -1557,11 +1554,12 @@ function renderOpening() {
   if (!sizing) { sizingBox.textContent = "Base lot size bharo"; }
   else {
     let sh = '<div class="row"><span class="muted">Base lot</span><b>' + sizing.base + '</b></div>';
+    sh += '<div class="row"><span class="muted">Conviction tier</span><b>' + sizing.tier + '%</b></div>';
     sh += '<div class="row"><span class="muted">Recommended lot</span><b style="color:#3DDC84">' + sizing.recommended.toFixed(1) + '</b></div>';
     if (sizing.reasons.length === 0) {
       sh += '<div class="muted" style="margin-top:8px">Abhi koi size-reduction factor active nahi — full base size le sakte ho (jab tak day-type/VIX/opening confirm nahi ho jaata).</div>';
     } else {
-      sh += '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">Reduction factors (compound hote hain):</div>';
+      sh += '<div class="muted" style="margin-top:8px;padding-top:8px;border-top:1px dashed #232B36">Conviction tier factors (har factor = 1 tier, 100→75→50→25):</div>';
       sizing.reasons.forEach(r => { sh += '<div class="muted">• ' + r + '</div>'; });
     }
     sizingBox.innerHTML = sh;
@@ -1684,7 +1682,7 @@ function selectStrategyBase() {
         name: "3IB Rule — Counter-trade (LONG)",
         entry: "Naye IB low − half-IB filter ke paar (~" + (ib.ibLow - half).toFixed(1) + ") — ULTI direction (LONG) lo",
         sl: "~" + ib.len.toFixed(0) + " pts defined risk (IB length ke barabar)",
-        target: "Naye din ka apna 2IB (" + (ib.ibLow + ib.len).toFixed(1) + ") phir 3IB (" + (ib.ibLow + ib.len * 2).toFixed(1) + "), ulti direction",
+        target: "Naye din ka apna 2IB (" + tz(ib.ibLow + ib.len) + ") phir 3IB (" + tz(ib.ibLow + ib.len * 2) + "), ulti direction",
         note: "Kal ka move BEARISH (low pe close) tha — laggards jo short mein phanse hain unhe target banate hain, isliye LONG counter-trade. Sirf aaj Normal Variation ban tabhi lagta hai. RR 1:10+ possible, rare setup. Trend Day/Neutral Extreme pe NAHI.",
       };
     }
@@ -1693,7 +1691,7 @@ function selectStrategyBase() {
       name: "3IB Rule — Counter-trade (SHORT)",
       entry: "Naye IB high + half-IB filter ke paar (~" + (ib.ibHigh + half).toFixed(1) + ") — ULTI direction (SHORT) lo",
       sl: "~" + ib.len.toFixed(0) + " pts defined risk (IB length ke barabar)",
-      target: "Naye din ka apna 2IB (" + (ib.ibHigh - ib.len).toFixed(1) + ") phir 3IB (" + (ib.ibHigh - ib.len * 2).toFixed(1) + "), ulti direction",
+      target: "Naye din ka apna 2IB (" + tz(ib.ibHigh - ib.len) + ") phir 3IB (" + tz(ib.ibHigh - ib.len * 2) + "), ulti direction",
       note: "Kal ka move BULLISH (high pe close) tha — laggards jo long mein phanse hain unhe target banate hain, isliye SHORT counter-trade. Sirf aaj Normal Variation ban tabhi lagta hai. RR 1:10+ possible, rare setup. Trend Day/Neutral Extreme pe NAHI. Options: ATM/ITM, weekly/OTM avoid.",
     };
   }
@@ -1791,21 +1789,20 @@ function selectStrategyBase() {
   if (dt === 'Normal Variation') {
     const t1 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len).toFixed(1) : (ib.ibLow - ib.len).toFixed(1)) : "2IB";
     const t2 = ib ? (o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 2).toFixed(1) : (ib.ibLow - ib.len * 2).toFixed(1)) : "3IB";
+    const t1Z = ib ? tz(o.halfIbSide === 'up' ? (ib.ibHigh + ib.len) : (ib.ibLow - ib.len)) : "2IB";
+    const t2Z = ib ? tz(o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 2) : (ib.ibLow - ib.len * 2)) : "3IB";
     const vixNum2 = parseFloat(o.vix);
     const partR = computeCheckpoint('now') || computeCheckpoint('c930') || computeCheckpoint('c920') || computeCheckpoint('c908');
     const lowVix2 = !isNaN(vixNum2) && vixNum2 < 12; // [Fix, coach-verified: PDF says <12, not <13]
     const mixedPart = partR && partR.signal === 'NO CONVICTION';
     let targetText;
     if (lowVix2 && ib) {
-      // Coach's LOW VIX RULE (verbatim, VIX<12 COMPULSORY): theoretical target ko 80% use karo,
-      // exact level mat do ZONE do, T1 zone pe 50-70% partial exit karo.
-      const t1ZoneLow = o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 0.75).toFixed(1) : (ib.ibLow - ib.len * 0.75).toFixed(1);
-      const t1ZoneHigh = o.halfIbSide === 'up' ? (ib.ibHigh + ib.len * 0.85).toFixed(1) : (ib.ibLow - ib.len * 0.85).toFixed(1);
-      targetText = "⚠ LOW VIX (<12) RULE: exact level mat do — T1 ZONE " + t1ZoneLow + "–" + t1ZoneHigh + " (theoretical 2IB ka 80%, " + t1 + " tak full wait mat karo). Zone touch hote hi 50-70% partial exit karo, baaki trail. Full/3IB target ka greed mat karo, momentum weak hota hai Low VIX mein." + (mixedPart ? " (Participation bhi NO CONVICTION hai — extra caution.)" : "");
+      // [Coach Q&A] Low VIX me fixed 80%/multiplier NAHI hai. Volatility kam expected, par sentiment trigger se 1000pt/5-8 sessions bhi possible.
+      targetText = "⚠ LOW VIX (<12): T1 = 2IB " + t1Z + " (exact level mat do, ZONE). Coach: fixed compression/80% multiplier nahi hai — volatility kam expected par sentiment trigger se bada move bhi aa sakta hai. Zone touch hote hi 50-70% partial exit, baaki trail; greed mat karo." + (mixedPart ? " (Participation bhi NO CONVICTION hai — extra caution.)" : "");
     } else if (mixedPart) {
       targetText = "T1: VWAP/IB ke paas hi rakho. 2IB/3IB IGNORE karo — participation mixed/NO CONVICTION ke karan extended target ka basis kamzor hai.";
     } else {
-      targetText = "T1: 2IB (" + t1 + ", partial book min 1:1) · T2: 3IB (" + t2 + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)";
+      targetText = "T1: 2IB (" + t1Z + ", partial book min 1:1) · T2: 3IB (" + t2Z + ", sirf jaldi breakout C/D/E + broad participation ho tabhi)";
     }
     // [BUG#3 FIX (this session): Double-D balance-center injection moved OUT of here — now handled globally by
     // the selectStrategy() wrapper below, for ANY day type, and injected into the TARGET box (not just a note).]
@@ -2028,7 +2025,7 @@ function strategyHTML(dayType, opening, o) {
   const lines = [];
   const vixNum = parseFloat(o.vix);
   if (!isNaN(vixNum) && vixNum < 12) { // [Fix, coach-verified: PDF says <12, not <13]
-    lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ", coach rule VIX<12) — light size rakho. Exact target mat do, 80%-compressed ZONE do (2IB ka 80%), 50-70% partial exit T1-zone pe. VWAP ulti taraf CLOSE ho jaye to turant nikal jao.");
+    lines.push("⚠ LOW VIX (" + vixNum.toFixed(2) + ", coach rule VIX<12) — Exact target mat do, ZONE do; 50-70% partial exit T1-zone pe. Coach: fixed 80% compression nahi hai, volatility kam expected par sentiment trigger se bada move bhi possible (1000pt/5-8 sessions). VWAP ulti taraf CLOSE ho jaye to turant nikal jao.");
   }
   if (o.prevDayType === 'Neutral Extreme') {
     lines.push("Kal Neutral Extreme. Aaj opposite bounce / counter-NE soch sakte ho. Early light entry allowed, confirmation nahi. IB/half-IB ke bina full size mat lo.");
@@ -2410,7 +2407,7 @@ function renderOF() {
 
         // FIX: Require Delta before suggesting any pattern
         if (!hasDelta) {
-          lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') → Delta (+ / −) bharo pattern suggest karne ke liye');
+          lines.push('[?] OF WARNING: Fill Delta (+/-) to confirm pattern. Benchmark: 75k-100k+ (LLT). (POC @ ' + pct.toFixed(0) + '% ' + zone + ')');
         } else if (dominantDelta < DELTA_MIN) {
           lines.push('POC @ ' + pct.toFixed(0) + '% (' + zone + ') — shape matches "' + auto + '" lekin delta sirf ' + (dominantDelta/1000).toFixed(0) + 'K hai (75K+ chahiye, coach LLT) → suggest: Not useful (delta kam)');
         } else {
@@ -2430,6 +2427,11 @@ function renderOF() {
         }
       } else {
         lines.push('H/L/POC bharo → auto suggestion');
+      }
+      // [v15.4] Manual tag IS/IB chuna par delta blank/kam — asli maan ke mat chalo
+      if (entry.tag === 'IS' || entry.tag === 'IB') {
+        if (!hasDelta) lines.push('⛔ Tag ' + entry.tag + ' chuna hai par Delta BLANK — pattern UNCONFIRMED, asli (genuine) mat maano.');
+        else if (dominantDelta < DELTA_MIN) lines.push('⛔ Tag ' + entry.tag + ' chuna hai par delta sirf ' + (dominantDelta/1000).toFixed(0) + 'K (<75K) — Coach: Not useful.');
       }
       if (!isNaN(boxCount) && boxCount > 0) {
         if (boxCount >= 3) lines.push('✓ ' + boxCount + ' consecutive boxes — coach ka 3-box minimum satisfy, institutional-drive confirm maan sakte ho.');
@@ -2490,6 +2492,44 @@ function computeOfRealityFromEntries() {
   return 'not_useful';
 }
 
+/* ORDER FLOW COMBINATIONS (#1-#6) — sequence based (Coach: single activity kaafi nahi).
+   Coach verified: #1 RB+IB, #2 IB+IB, #5 RS+RB (Orderflow part 3) + Q&A: "Opposite of RB+IB = RS+IS, opposite of IB+IB = IS+IS,
+   aise baaki opposite honge" => #3 RS+IS, #4 IS+IS verified.
+   #6: Coach ne naam nahi diya. "Baaki opposite" ke hisaab se #5 ka mirror = RB+RS (INFERRED — confirm baaki).
+   IB<->IS flip Coach ke 6 me nahi hai — sirf apni caution. */
+const OF_COMBOS = {
+  'RB>IB': { n:1, ok:true,  name:'RB + IB', msg:'Short exit + candle close ke baad fresh LONG consider karo (short-term trend-change).' },
+  'IB>IB': { n:2, ok:true,  name:'IB + IB', msg:'Institutional bullish drive — confidence-building (beech me 2-3 doji chalega).' },
+  'RS>IS': { n:3, ok:true,  name:'RS + IS', msg:'Long exit + SHORT trend reversal (#1 ka opposite, Coach verified).' },
+  'IS>IS': { n:4, ok:true,  name:'IS + IS', msg:'Institutional bearish drive (#2 ka opposite, Coach verified).' },
+  'RS>RB': { n:5, ok:true,  name:'RS + RB', msg:'Heavy conflict / chop — "big players fighting". Exit karo, naya trade mat lo.' },
+  'RB>RS': { n:6, ok:false, name:'RB + RS', msg:'#5 ka mirror — dono responsive, conflict/chop. Exit karo, naya trade mat lo. [#6 naam INFERRED — Coach confirm baaki]' },
+  'IB>IS': { n:null, ok:false, name:'IB + IS', msg:'Buy→sell flip — Coach ke 6 combos me nahi; volatility caution, naya trade avoid.' },
+  'IS>IB': { n:null, ok:false, name:'IS + IB', msg:'Sell→buy flip — Coach ke 6 combos me nahi; volatility caution, naya trade avoid.' }
+};
+function comboLabel(c) { return c.n ? ('#' + c.n + ' ' + c.name) : ('Unlisted ' + c.name); }
+function detectOfCombos() {
+  const seq = DAY.orderflow.filter(e => ['IB','IS','RB','RS'].includes(e.tag)).map(e => e.tag);
+  const found = [];
+  for (let i = 1; i < seq.length; i++) {
+    const c = OF_COMBOS[seq[i-1] + '>' + seq[i]];
+    if (c) found.push(c);
+  }
+  return { seq, found };
+}
+function renderOfCombo() {
+  const box = document.getElementById('ofComboBox');
+  if (!box) return;
+  const r = detectOfCombos();
+  if (r.seq.length < 2) { box.innerHTML = 'Combination: kam se kam 2 tagged candle (RB/IB/IS/RS) chahiye'; return; }
+  if (r.found.length === 0) { box.innerHTML = 'Sequence: ' + r.seq.join(' → ') + '<br><span class="muted">Coach ke 6 combinations me se koi match nahi — single activity pe trade mat lo.</span>'; return; }
+  const last = r.found[r.found.length - 1];
+  let h = '<div class="row"><span class="muted">Sequence</span><b>' + r.seq.join(' → ') + '</b></div>';
+  h += '<div style="margin-top:8px;color:' + (last.ok ? '#3DDC84' : '#F5A524') + '"><b>Latest: ' + comboLabel(last) + (last.ok ? '' : ' [UNVERIFIED]') + '</b><br>' + last.msg + '</div>';
+  if (r.found.length > 1) h += '<div class="muted" style="margin-top:6px">Pehle mile: ' + r.found.slice(0,-1).map(comboLabel).join(', ') + '</div>';
+  box.innerHTML = h;
+}
+
 function renderOfTally() {
   const box = document.getElementById('ofTally');
   const tags = ["RB","IS","RS","IB","Absorption","Exhaustion-end","Exhaustion-POC","Continuation-mid","Imbalance-confirmed","Not-useful"];
@@ -2497,6 +2537,7 @@ function renderOfTally() {
   tags.forEach(t => counts[t] = 0);
   DAY.orderflow.forEach(e => { if (e.tag && counts[e.tag] !== undefined) counts[e.tag]++; });
   box.innerHTML = tags.map(t => `<div class="of-tally-box"><div class="n">${counts[t]}</div><div class="t">${t}</div></div>`).join('');
+  renderOfCombo();
 }
 
 document.getElementById('addOfBtn').onclick = () => {
