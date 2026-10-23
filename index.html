@@ -195,7 +195,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v18 (ITM Anchor + Clean score)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v18.3 (CE+PE anchor)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -246,7 +246,20 @@
 
   <!-- ================= MORNING ================= -->
   <div id="section-morning" class="section">
-    <div class="hint-box" style="padding:12px 4px 14px">🌅 9:15–10:15: Open, A/B period, IB, Day-Type ladder shuru, aur 9:08-9:30 Participation checkpoints.</div>
+    <div class="hint-box" style="padding:12px 4px 14px">🌅 Order: ① ITM anchor (neeche pehla card, option chart dekh ke) → ② baaki fields → ③ NotebookLM ek hi baar. Anchor pehle bharoge to analysis me direction already hogi.</div>
+<div class="card">
+      <div class="card-title">① DIRECTION ANCHOR — pehle ye (option chart se)</div>
+      <div class="toggle-q">Option ITM strike vs Fibonacci Value Area (PRIMARY direction anchor)</div>
+      <div class="hint-box" style="padding:0 14px 8px"><b>Direction pata nahi? Zaroorat nahi</b> — dono ITM charts dekho (1 min). Direction in dono se nikalti hai.</div>
+      <div class="hint-box" id="itmStrikeHint" style="padding:0 14px 8px"></div>
+      <div class="toggle-q">CE ITM premium vs Fibonacci Value Area</div>
+      <div class="toggle-group" id="tg_itmCE"><button data-val="above">Above VA</button><button data-val="below">Below VA</button><button data-val="inside">Inside VA</button></div>
+      <div class="toggle-q">PE ITM premium vs Fibonacci Value Area</div>
+      <div class="toggle-group" id="tg_itmPE"><button data-val="above">Above VA</button><button data-val="below">Below VA</button><button data-val="inside">Inside VA</button></div>
+      <div class="result-box" id="itmAnchorBox" style="margin-top:8px"></div>
+      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach Q&amp;A, user-reported]</b> Direction ka pehla anchor. CE ITM premium VA ke upar = bullish, PE ITM premium VA ke upar = bearish (ulta). Dono charts agree = strong anchor. Market Profile VA options ke liye late hai. Ye 2/5 signal count ko replace nahi karta.</div>
+    </div>
+<div class="hint-box" style="padding:12px 4px 14px">🌅 9:15–10:15: Open, A/B period, IB, Day-Type ladder shuru, aur 9:08-9:30 Participation checkpoints.</div>
 <div class="card">
       <div class="card-title">OPEN</div>
       <div class="field-row"><span class="lbl">Open price</span><input id="op_open" inputmode="decimal"></div>
@@ -270,10 +283,6 @@
         <button data-val="fast">Fast</button>
         <button data-val="dull">Dull</button>
       </div>
-      <div class="toggle-q">Option ITM strike vs Fibonacci Value Area (PRIMARY direction anchor)</div>
-      <div class="toggle-group" id="tg_itmVA"><button data-val="above">Above VA</button><button data-val="below">Below VA</button><button data-val="inside">Inside VA</button></div>
-      <div class="result-box" id="itmAnchorBox" style="margin-top:8px"></div>
-      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach Q&amp;A, user-reported]</b> Direction ka pehla anchor: ITM option price Fibonacci (Momentum) Value Area ke upar = bullish, neeche = bearish. Market Profile VA options ke liye late hai. Ye 2/5 signal count ko replace nahi karta.</div>
       <div style="padding:0 14px 12px"><button id="resetMomentumBtn" style="background:transparent;border:1px solid #232B36;color:#7C8896;border-radius:8px;padding:6px 10px;font-size:11px;font-family:inherit">Reset to auto</button></div>
       <div class="hint-box" style="padding:0 14px 12px">Fast momentum → test/ORR tolerance khud-ba-khud 30+ pts tak widen ho jayegi. Auto-suggestion: A-range ≥50pts = Fast, A-range ≤25pts + VIX&lt;13 = Dull. Manually bhi override kar sakte ho.</div>
     </div>
@@ -933,7 +942,7 @@ function blankDay() {
       value20pct: null, value20pctSide: null,
       prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
       cVolumeStrong: null, oaorTimingConfirmed: null,
-      itmVA: null,
+      itmVA: null, itmSide: null, itmCE: null, itmPE: null,
       profileShape: null, pShapeType: null,
       bal1h:"", bal1l:"", bal2h:"", bal2l:"",
       oaorGapFilled: null, aPeriodTail: null, aPeriodTailSide: null,
@@ -2202,7 +2211,8 @@ function wireToggle(id, path) {
   });
 }
 wireToggle('tg_momentum', { get:()=>DAY.opening.momentum, set:(v)=>DAY.opening.momentum=v });
-wireToggle('tg_itmVA', { get:()=>DAY.opening.itmVA, set:(v)=>DAY.opening.itmVA=v });
+wireToggle('tg_itmCE', { get:()=>DAY.opening.itmCE, set:(v)=>DAY.opening.itmCE=v });
+wireToggle('tg_itmPE', { get:()=>DAY.opening.itmPE, set:(v)=>DAY.opening.itmPE=v });
 wireToggle('tg_tickAcceptance', { get:()=>DAY.opening.tickAcceptance, set:(v)=>DAY.opening.tickAcceptance=v });
 document.getElementById('resetMomentumBtn').onclick = () => { DAY.opening.momentum = null; scheduleAutoSave(); renderOpening(); };
 wireToggle('tg_ibBoth', { get:()=>DAY.opening.ibTouchedBothSides, set:(v)=>DAY.opening.ibTouchedBothSides=v });
@@ -2903,7 +2913,7 @@ function tradeContext() {
   try { c.dayType = calcDayType(); } catch (e) {}
   c.vixB = vixBucket(parseFloat(o.vix));
   try { const ib = calcIB(); c.ibCat = ib ? ib.cat : null; } catch (e) {}
-  c.itmVA = o.itmVA || null;
+  const iv = itmVals(); c.itmCE = iv.ce; c.itmPE = iv.pe; c.itmAnchor = itmAnchor();
   c.shape = o.profileShape || null; c.news = o.newsDistortion || null;
   try { const f = detectOfCombos().found; c.ofCombo = f.length ? f[f.length - 1].n : null; } catch (e) {}
   try { const iv = calcIVSkew(); c.ivSkew = !!iv.skew; c.ivTrap = !!iv.trap; } catch (e) {}
@@ -3080,11 +3090,11 @@ function wireTradeToggle(id, key) {
 
 /* PROCESS SCORE: 5 gatekeeper checks x 20 = 0-100%.
    Check #2 (divergence checked) = newsDistortion answer + 9:30 participation >= 8 stocks (derived proxy). */
-const CHECK_LABELS = ['Option ITM > Fib Value Area checked', 'Heavyweight divergence checked', 'SL + Target zone pre-defined', 'Size tier respected (Friday/VIX)', 'Process error nahi'];
+const CHECK_LABELS = ['Option ITM (CE/PE) vs Fib Value Area checked', 'Heavyweight divergence checked', 'SL + Target zone pre-defined', 'Size tier respected (Friday/VIX)', 'Process error nahi'];
 function computeProcessScore(tr) {
   const c = tr.ctx || {};
   const checks = [
-    !!c.itmVA,
+    !!c.itmAnchor,
     c.divChecked === true,
     tr.sSL != null && tr.sT1 != null && tr.pre === 'yes',
     tr.lots != null && c.recLots != null && tr.lots <= c.recLots + 0.0001,
@@ -3102,7 +3112,7 @@ function autoErrReasons(tr) {
   if (tr.slBreach) r.push('SL ke paar exit');
   const m = toMin(tr.time), c = tr.ctx || {};
   if (!isNaN(m) && (m < 11 * 60 + 30 || m >= 14 * 60 + 40)) r.push('entry 11:30-2:40 window ke bahar');
-  if ((c.itmVA === 'below' && tr.dir === 'up') || (c.itmVA === 'above' && tr.dir === 'down')) r.push('ITM VA anchor ke khilaf');
+  if ((c.itmAnchor === 'down' && tr.dir === 'up') || (c.itmAnchor === 'up' && tr.dir === 'down')) r.push('ITM VA anchor ke khilaf');
   if (tr.over) r.push('size > tier');
   return r;
 }
@@ -3216,15 +3226,36 @@ function renderProcessScore() {
   box.innerHTML = h;
 }
 
+// Dono ITM charts: CE premium VA ke upar = bullish (+1), PE premium VA ke upar = bearish (-1). Purane itmSide+itmVA data bhi padhta hai.
+function itmVals() {
+  const o = DAY.opening;
+  return { ce: o.itmCE || (o.itmSide === 'CE' ? o.itmVA : null) || null, pe: o.itmPE || (o.itmSide === 'PE' ? o.itmVA : null) || null };
+}
+function itmAnchor() {
+  const v = itmVals();
+  if (!v.ce && !v.pe) return null;
+  const s = x => x === 'above' ? 1 : (x === 'below' ? -1 : 0);
+  const score = (v.ce ? s(v.ce) : 0) - (v.pe ? s(v.pe) : 0);
+  return score > 0 ? 'up' : (score < 0 ? 'down' : 'none');
+}
 function renderITM() {
-  renderToggleGroup('tg_itmVA', DAY.opening.itmVA);
+  const v = itmVals(), o = DAY.opening;
+  renderToggleGroup('tg_itmCE', v.ce); renderToggleGroup('tg_itmPE', v.pe);
+  const sh = document.getElementById('itmStrikeHint');
+  if (sh) { const sel = calcStrikeSelector(); sh.innerHTML = sel ? 'Open ke hisaab se ATM ' + sel.atm + ' → ek step ITM: <b>CE ' + (sel.atm - 100) + '</b> aur <b>PE ' + (sel.atm + 100) + '</b> ka chart dekho.' : 'Open price bharo to ITM strikes yahan dikhenge (CE = ATM−100, PE = ATM+100).'; }
   const box = document.getElementById('itmAnchorBox'); if (!box) return;
-  const v = DAY.opening.itmVA;
-  if (!v) { box.innerHTML = 'ITM strike ka premium chart par Fibonacci Value Area ke hisaab se dekho aur chuno.'; return; }
-  let h = v === 'above' ? '<span class="pos">Bullish anchor — CE side. Direction ka initial decision ITM strike se.</span>'
-        : (v === 'below' ? '<span class="neg">Bearish anchor — PE side.</span>' : '<span class="amb">Value Area ke andar — clear anchor nahi. Wait ya qty kam.</span>');
+  const anc = itmAnchor();
+  if (anc === null) { box.innerHTML = 'CE ITM aur PE ITM dono ka premium Fibonacci Value Area ke upar/neeche/andar chuno.'; return; }
+  const txt = x => x === 'above' ? 'VA ke UPAR' : (x === 'below' ? 'VA ke NEECHE' : 'VA ke ANDAR');
+  let h = '<div class="muted" style="margin-bottom:4px">CE: ' + (v.ce ? txt(v.ce) : '—') + ' · PE: ' + (v.pe ? txt(v.pe) : '—') + '</div>';
+  const both = v.ce && v.pe;
+  if (anc === 'up') h += '<span class="pos">Bullish anchor — CE side.' + (both ? ' Dono charts agree = STRONG.' : ' Sirf ek chart bhara — doosra bhi dekh lo (confirm).') + '</span>';
+  else if (anc === 'down') h += '<span class="neg">Bearish anchor — PE side.' + (both ? ' Dono charts agree = STRONG.' : ' Sirf ek chart bhara — doosra bhi dekh lo (confirm).') + '</span>';
+  else if (v.ce === 'above' && v.pe === 'above') h += '<span class="amb">Dono premium VA ke upar = volatility/IV spike, direction nahi. NEUTRAL — wait ya qty kam.</span>';
+  else if (v.ce === 'below' && v.pe === 'below') h += '<span class="amb">Dono premium VA ke neeche = premium decay, direction nahi. NEUTRAL — wait ya qty kam.</span>';
+  else h += '<span class="amb">Clear anchor nahi (VA ke andar). NEUTRAL — wait ya qty kam.</span>';
   let bias = null; try { bias = computeSignalsCount().bias; } catch (e) {}
-  if ((v === 'above' && bias === 'down') || (v === 'below' && bias === 'up')) h += '<div class="amb" style="margin-top:6px">⚠ Anchor aur Half-IB bias opposite — conflict. Coach: confusion me qty kam, jiska chance zyada lage wahi, process follow karo.</div>';
+  if ((anc === 'up' && bias === 'down') || (anc === 'down' && bias === 'up')) h += '<div class="amb" style="margin-top:6px">⚠ Anchor aur Half-IB bias opposite — conflict. Coach: confusion me qty kam, jiska chance zyada lage wahi, process follow karo.</div>';
   box.innerHTML = h;
 }
 
