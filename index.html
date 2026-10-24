@@ -195,7 +195,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v18.3 (CE+PE anchor)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v18.6 (Coach timing)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -246,18 +246,36 @@
 
   <!-- ================= MORNING ================= -->
   <div id="section-morning" class="section">
-    <div class="hint-box" style="padding:12px 4px 14px">🌅 Order: ① ITM anchor (neeche pehla card, option chart dekh ke) → ② baaki fields → ③ NotebookLM ek hi baar. Anchor pehle bharoge to analysis me direction already hogi.</div>
+    <div class="hint-box" style="padding:12px 4px 14px">🌅 Order: ① Pre-market: dono ITM option charts ki pichle session High/Low bharo → ② 9:30 (pehli 15-min candle close) premium bharo = anchor, early entry window shuru (Coach: pehle 30-40 min / pehla ghanta) → ③ baaki fields → ④ NotebookLM. 11:30 par MP signal count ke liye premium dobara update.</div>
 <div class="card">
       <div class="card-title">① DIRECTION ANCHOR — pehle ye (option chart se)</div>
       <div class="toggle-q">Option ITM strike vs Fibonacci Value Area (PRIMARY direction anchor)</div>
       <div class="hint-box" style="padding:0 14px 8px"><b>Direction pata nahi? Zaroorat nahi</b> — dono ITM charts dekho (1 min). Direction in dono se nikalti hai.</div>
       <div class="hint-box" id="itmStrikeHint" style="padding:0 14px 8px"></div>
-      <div class="toggle-q">CE ITM premium vs Fibonacci Value Area</div>
+      <div class="toggle-q">CE ITM — option chart (15m): pichle session ki POORI High / Low + 15-min candle close</div>
+      <div class="field-row"><span class="lbl">CE prev session High</span><input id="fibCE_h" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">CE prev session Low</span><input id="fibCE_l" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">CE premium: 15-min candle CLOSE</span><input id="fibCE_p" inputmode="decimal"></div>
+      <div class="hint-box" id="fibCE_out" style="padding:0 14px 8px"></div>
+      <div class="toggle-q">CE: ya manual chuno (calculator khali ho tab chalta hai)</div>
       <div class="toggle-group" id="tg_itmCE"><button data-val="above">Above VA</button><button data-val="below">Below VA</button><button data-val="inside">Inside VA</button></div>
-      <div class="toggle-q">PE ITM premium vs Fibonacci Value Area</div>
+      <div class="toggle-q">PE ITM — option chart (15m): pichle session ki POORI High / Low + 15-min candle close</div>
+      <div class="field-row"><span class="lbl">PE prev session High</span><input id="fibPE_h" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">PE prev session Low</span><input id="fibPE_l" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">PE premium: 15-min candle CLOSE</span><input id="fibPE_p" inputmode="decimal"></div>
+      <div class="hint-box" id="fibPE_out" style="padding:0 14px 8px"></div>
+      <div class="toggle-q">PE: ya manual chuno (calculator khali ho tab chalta hai)</div>
       <div class="toggle-group" id="tg_itmPE"><button data-val="above">Above VA</button><button data-val="below">Below VA</button><button data-val="inside">Inside VA</button></div>
       <div class="result-box" id="itmAnchorBox" style="margin-top:8px"></div>
-      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach Q&amp;A, user-reported]</b> Direction ka pehla anchor. CE ITM premium VA ke upar = bullish, PE ITM premium VA ke upar = bearish (ulta). Dono charts agree = strong anchor. Market Profile VA options ke liye late hai. Ye 2/5 signal count ko replace nahi karta.</div>
+      <div class="hint-box" style="padding:0 14px 12px"><b>[Coach Q&amp;A, user-reported]</b> Fibonacci Value Area = option chart par pichle session ki High/Low par Fib lagao, 38.2%–61.8% ka box; 50% = Half-Back. Market Profile VAH/VAL option par mat use karo. CE premium VA ke upar = bullish, PE premium VA ke upar = bearish (ulta). Dono agree = strong anchor. Accept = 15-min candle CLOSE (touch/wick nahi) — premium wahi bharo, LTP nahi. Timing (Coach): prev session High/Low pre-market bhar sakte ho; ek clean 15-min close kaafi (2-3 candle nahi); Coach ke decisions mostly pehle 30-40 min / pehle ghante me; din me latest acceptance se anchor badalta hai; 2:40 ke baad fresh trade nahi. Market Profile VA options ke liye late hai. Ye 2/5 signal count ko replace nahi karta.</div>
+      <div class="toggle-q">Open Drive 50% (Half) — pehli 15-min candle, Spot + Call + Put teenon chart</div>
+      <div class="field-row"><span class="lbl">Spot candle High</span><input id="op_odH" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">Spot candle Low</span><input id="op_odL" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">CE candle High</span><input id="op_odCEh" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">CE candle Low</span><input id="op_odCEl" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">PE candle High</span><input id="op_odPEh" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">PE candle Low</span><input id="op_odPEl" inputmode="decimal"></div>
+      <div class="hint-box" id="odOut" style="padding:0 14px 12px"></div>
     </div>
 <div class="hint-box" style="padding:12px 4px 14px">🌅 9:15–10:15: Open, A/B period, IB, Day-Type ladder shuru, aur 9:08-9:30 Participation checkpoints.</div>
 <div class="card">
@@ -942,7 +960,7 @@ function blankDay() {
       value20pct: null, value20pctSide: null,
       prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
       cVolumeStrong: null, oaorTimingConfirmed: null,
-      itmVA: null, itmSide: null, itmCE: null, itmPE: null,
+      itmVA: null, itmSide: null, itmCE: null, itmPE: null, fibCE: {h:"",l:"",p:""}, fibPE: {h:"",l:"",p:""}, odH: "", odL: "", odCEh: "", odCEl: "", odPEh: "", odPEl: "",
       profileShape: null, pShapeType: null,
       bal1h:"", bal1l:"", bal2h:"", bal2l:"",
       oaorGapFilled: null, aPeriodTail: null, aPeriodTailSide: null,
@@ -3111,7 +3129,7 @@ function autoErrReasons(tr) {
   if (tr.emotion === 'anx' || tr.emotion === 'imp') r.push('emotion');
   if (tr.slBreach) r.push('SL ke paar exit');
   const m = toMin(tr.time), c = tr.ctx || {};
-  if (!isNaN(m) && (m < 11 * 60 + 30 || m >= 14 * 60 + 40)) r.push('entry 11:30-2:40 window ke bahar');
+  if (!isNaN(m) && m >= 14 * 60 + 40) r.push('2:40 ke baad fresh entry');
   if ((c.itmAnchor === 'down' && tr.dir === 'up') || (c.itmAnchor === 'up' && tr.dir === 'down')) r.push('ITM VA anchor ke khilaf');
   if (tr.over) r.push('size > tier');
   return r;
@@ -3226,10 +3244,20 @@ function renderProcessScore() {
   box.innerHTML = h;
 }
 
-// Dono ITM charts: CE premium VA ke upar = bullish (+1), PE premium VA ke upar = bearish (-1). Purane itmSide+itmVA data bhi padhta hai.
+// Fibonacci Value Area (option chart, prev session H/L): VAL = L+0.382R, Half-Back = L+0.5R, VAH = L+0.618R.
+// Red/green session se box ka PRICE nahi badalta (sirf label); upper edge = VAH, lower edge = VAL.
+function fibCalc(f) {
+  if (!f) return null;
+  const h = parseFloat(f.h), l = parseFloat(f.l), p = parseFloat(f.p);
+  if (isNaN(h) || isNaN(l) || isNaN(p) || h <= l) return null;
+  const R = h - l, val = l + 0.382 * R, half = l + 0.5 * R, vah = l + 0.618 * R;
+  return { val, half, vah, p, state: p > vah ? 'above' : (p < val ? 'below' : 'inside') };
+}
+// Dono ITM charts: CE premium VA ke upar = bullish (+1), PE premium VA ke upar = bearish (-1). Calculator > manual toggle > purana itmSide+itmVA.
 function itmVals() {
-  const o = DAY.opening;
-  return { ce: o.itmCE || (o.itmSide === 'CE' ? o.itmVA : null) || null, pe: o.itmPE || (o.itmSide === 'PE' ? o.itmVA : null) || null };
+  const o = DAY.opening, fc = fibCalc(o.fibCE), fp = fibCalc(o.fibPE);
+  return { ce: (fc && fc.state) || o.itmCE || (o.itmSide === 'CE' ? o.itmVA : null) || null,
+           pe: (fp && fp.state) || o.itmPE || (o.itmSide === 'PE' ? o.itmVA : null) || null };
 }
 function itmAnchor() {
   const v = itmVals();
@@ -3238,9 +3266,27 @@ function itmAnchor() {
   const score = (v.ce ? s(v.ce) : 0) - (v.pe ? s(v.pe) : 0);
   return score > 0 ? 'up' : (score < 0 ? 'down' : 'none');
 }
+function fibOutText(k, f) {
+  const c = fibCalc(f);
+  if (!c) return (f && (f.h || f.l || f.p)) ? 'High > Low aur teeno number bharo — tab VA levels aur Above/Below/Inside apne aap nikalenge.' : k + ' ka High/Low/LTP bharo (ya neeche manual chuno).';
+  const side = c.p > c.half ? 'Half-Back ke upar' : 'Half-Back ke neeche';
+  return 'VAL ' + c.val.toFixed(1) + ' · Half-Back ' + c.half.toFixed(1) + ' · VAH ' + c.vah.toFixed(1) + '<br><b>' + k + ' 15m close ' + c.p + ' → ' + (c.state === 'above' ? 'VA ke UPAR' : (c.state === 'below' ? 'VA ke NEECHE' : 'VA ke ANDAR (' + side + ')')) + '</b> <span class="muted">(auto)</span>';
+}
 function renderITM() {
   const v = itmVals(), o = DAY.opening;
   renderToggleGroup('tg_itmCE', v.ce); renderToggleGroup('tg_itmPE', v.pe);
+  ['CE', 'PE'].forEach(k => {
+    const f = o['fib' + k] || {};
+    ['h', 'l', 'p'].forEach(x => { const el = document.getElementById('fib' + k + '_' + x); if (el && document.activeElement !== el) el.value = f[x] || ''; });
+    const out = document.getElementById('fib' + k + '_out'); if (out) out.innerHTML = fibOutText(k, f);
+  });
+  ['odH', 'odL', 'odCEh', 'odCEl', 'odPEh', 'odPEl'].forEach(x => { const el = document.getElementById('op_' + x); if (el && document.activeElement !== el) el.value = o[x] || ''; });
+  const od = document.getElementById('odOut');
+  if (od) {
+    const mid = (hk, lk) => { const h = parseFloat(o[hk]), l = parseFloat(o[lk]); return (!isNaN(h) && !isNaN(l) && h > l) ? ((h + l) / 2).toFixed(1) : null; };
+    const parts = [['Spot', mid('odH', 'odL')], ['CE', mid('odCEh', 'odCEl')], ['PE', mid('odPEh', 'odPEl')]].filter(x => x[1]);
+    od.innerHTML = parts.length ? 'Half (50%) midpoint: ' + parts.map(x => x[0] + ' <b>' + x[1] + '</b>').join(' · ') + ' — pullback/retest reference.' : 'Open Drive hui ho to pehli 15-min candle ka High/Low bharo (Coach: spot, call, put teenon par sirf 50% mark).';
+  }
   const sh = document.getElementById('itmStrikeHint');
   if (sh) { const sel = calcStrikeSelector(); sh.innerHTML = sel ? 'Open ke hisaab se ATM ' + sel.atm + ' → ek step ITM: <b>CE ' + (sel.atm - 100) + '</b> aur <b>PE ' + (sel.atm + 100) + '</b> ka chart dekho.' : 'Open price bharo to ITM strikes yahan dikhenge (CE = ATM−100, PE = ATM+100).'; }
   const box = document.getElementById('itmAnchorBox'); if (!box) return;
@@ -3258,6 +3304,11 @@ function renderITM() {
   if ((anc === 'up' && bias === 'down') || (anc === 'down' && bias === 'up')) h += '<div class="amb" style="margin-top:6px">⚠ Anchor aur Half-IB bias opposite — conflict. Coach: confusion me qty kam, jiska chance zyada lage wahi, process follow karo.</div>';
   box.innerHTML = h;
 }
+
+['CE', 'PE'].forEach(k => ['h', 'l', 'p'].forEach(x => {
+  document.getElementById('fib' + k + '_' + x).oninput = (e) => { DAY.opening['fib' + k][x] = e.target.value; scheduleAutoSave(); renderITM(); };
+}));
+['odH', 'odL', 'odCEh', 'odCEl', 'odPEh', 'odPEl'].forEach(x => { document.getElementById('op_' + x).oninput = (e) => { DAY.opening[x] = e.target.value; scheduleAutoSave(); renderITM(); }; });
 
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
