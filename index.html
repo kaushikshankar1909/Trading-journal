@@ -193,9 +193,14 @@
 </style>
 </head>
 <body>
+<div id="nlmBanner" style="display:none;position:fixed;left:8px;right:8px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:200;background:#0E2A1A;border:1px solid #3DDC84;border-radius:12px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.5);font-size:13px;color:#E6EDF3">
+  <div id="nlmBannerText"></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button id="nlmCopyBtn" class="weight-save" style="flex:1;margin:0">📋 Copy (NotebookLM)</button><button id="nlmDismissBtn" class="erase-btn" style="margin:0;padding:8px 14px">✕</button></div>
+  <textarea id="nlmTa" readonly style="display:none;width:100%;min-height:80px;margin-top:8px;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:11px;padding:6px;font-family:monospace"></textarea>
+</div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v18.6 (Coach timing)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v19 (Auto reminder)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -960,6 +965,7 @@ function blankDay() {
       value20pct: null, value20pctSide: null,
       prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
       cVolumeStrong: null, oaorTimingConfirmed: null,
+      nlm: { done: {}, lastTrig: "" },
       itmVA: null, itmSide: null, itmCE: null, itmPE: null, fibCE: {h:"",l:"",p:""}, fibPE: {h:"",l:"",p:""}, odH: "", odL: "", odCEh: "", odCEl: "", odPEh: "", odPEl: "",
       profileShape: null, pShapeType: null,
       bal1h:"", bal1l:"", bal2h:"", bal2l:"",
@@ -3310,6 +3316,82 @@ function renderITM() {
 }));
 ['odH', 'odL', 'odCEh', 'odCEl', 'odPEh', 'odPEl'].forEach(x => { document.getElementById('op_' + x).oninput = (e) => { DAY.opening[x] = e.target.value; scheduleAutoSave(); renderITM(); }; });
 
+/* NOTEBOOKLM AUTO-REMINDER: data bhar jaye + candle close ka time ho jaye = banner "ab NotebookLM ko do".
+   5 steps Coach ke din ke flow se; Step 4 trigger tab jab Half-IB access / VA 20% mile (har naye trigger par dobara).
+   Share karne ya dismiss karne par us step (aur pehle ke steps) aaj ke liye done. Sirf aaj ka DAY copy hota hai (backup alag). */
+function nlmMins() { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); }
+function nlmF(v) { return String(v == null ? '' : v).trim() !== ''; }
+function nlmN(cp) { return STOCKS.filter(s => DAY.participation[s.name] && nlmF(DAY.participation[s.name][cp])).length; }
+const NLM_STEPS = [
+  { id: 'pre', cp: 'Pre-market', label: 'Pre-market plan',
+    ask: 'Pre-market plan do: key levels, dono ITM option Fib VA (fibCE/fibPE) ki zone, VIX ke hisaab se sizing tier. Abhi koi entry nahi.',
+    ready: (o, L, m) => ['pdh', 'pdl', 'vah', 'val', 'poc'].every(k => nlmF(L[k])) && nlmF((o.fibCE || {}).h) && nlmF((o.fibCE || {}).l) && nlmF((o.fibPE || {}).h) && nlmF((o.fibPE || {}).l) },
+  { id: 'a930', cp: '9:30 anchor', label: '9:30 — pehli 15-min candle close',
+    ask: 'ITM anchor (CE+PE premium 15-min close vs Fib VA) + opening type + participation se early momentum entry ka view do: direction, strike, entry, SL (VWAP ±10-20), target zone. Flat opening ho to Coach: 15-20 min wait.',
+    ready: (o, L, m) => m >= 9 * 60 + 30 && nlmF(o.open) && nlmF(o.vix) && nlmF((o.fibCE || {}).p) && nlmF((o.fibPE || {}).p) && nlmN('c930') >= 8 },
+  { id: 'ib', cp: '10:15 IB', label: '10:15 — IB complete',
+    ask: 'IB length, Half-IB levels, order flow combinations aur signal count do. Half-IB access nahi mila to Coach: wait, play light.',
+    ready: (o, L, m) => m >= 10 * 60 + 15 && ['h', 'l', 'c'].every(k => nlmF(o.A[k]) && nlmF(o.B[k])) },
+  { id: 'trig', cp: 'Trigger', label: 'Trigger — Half-IB / VA 20% mila',
+    ask: 'Half-IB access ya VA 80% rule trigger hua hai (15-min close). 2+/5 signals check karke entry, SL, target (2IB/3IB/opposite VA) do.',
+    ready: (o, L, m) => m >= 10 * 60 + 15 && nlmF(o.A.h) && nlmF(o.B.h) && (o.halfIbAccess === 'yes' || o.value20pct === 'yes'),
+    key: o => [o.halfIbAccess, o.halfIbSide, o.value20pct, o.value20pctSide].join('|') },
+  { id: 'dt', cp: '11:30 day type', label: '11:30 — day type / profile',
+    ask: 'Day type aur profile shape confirm karo (P-shape 11:30 par provisional). Hold/trail ya skip batao; naya entry sirf agar setup trigger ho.',
+    ready: (o, L, m) => m >= 11 * 60 && o.profileShape != null && o.vwapReaction != null && nlmN('now') >= 8 }
+];
+function nlmText(step) {
+  const hhmm = String(Math.floor(nlmMins() / 60)).padStart(2, '0') + ':' + String(nlmMins() % 60).padStart(2, '0');
+  return 'NOTEBOOKLM INPUT — date: ' + dateKey + ' | copied at: ' + hhmm + ' | checkpoint: ' + step.cp + '\nKaam: ' + step.ask + '\n(Sirf is checkpoint tak jo data bhara hai usi se analysis karo.)\n' + JSON.stringify({ date: dateKey, copiedAt: hhmm, checkpoint: step.cp, data: DAY });
+}
+let NLM_CUR = null;
+function nlmPending() {
+  if (!DAY.nlm) DAY.nlm = { done: {}, lastTrig: '' };
+  const o = DAY.opening, L = DAY.levels || {}, m = nlmMins();
+  let cur = null;
+  NLM_STEPS.forEach(s => {
+    let ok = false; try { ok = s.ready(o, L, m); } catch (e) {}
+    if (!ok) return;
+    if (m >= 14 * 60 + 40 && (s.id === 'trig' || s.id === 'dt')) return;   // 2:40 ke baad fresh trade nahi
+    if (s.id === 'trig') { if (s.key(o) !== DAY.nlm.lastTrig) cur = s; }
+    else if (!DAY.nlm.done[s.id]) cur = s;
+  });
+  return cur;
+}
+function nlmMarkDone(step) {
+  if (!DAY.nlm) DAY.nlm = { done: {}, lastTrig: '' };
+  let hit = false;
+  NLM_STEPS.forEach(s => { if (!hit && s.id !== 'trig') DAY.nlm.done[s.id] = true; if (s.id === step.id) hit = true; });
+  if (step.id === 'trig') DAY.nlm.lastTrig = step.key(DAY.opening);
+  else { /* purane steps bhi done; trigger state dobara tab aayega jab badle */ }
+  scheduleAutoSave();
+}
+function renderNlm() {
+  const bn = document.getElementById('nlmBanner'); if (!bn) return;
+  if (NLM_HOLD) return;
+  const cur = nlmPending(); NLM_CUR = cur;
+  if (!cur) { bn.style.display = 'none'; return; }
+  document.getElementById('nlmBannerText').innerHTML = '✅ <b>' + cur.label + '</b> ka data ready — ab NotebookLM ko do.';
+  document.getElementById('nlmTa').style.display = 'none';
+  bn.style.display = 'block';
+}
+let NLM_HOLD = false;
+document.getElementById('nlmCopyBtn').onclick = async () => {
+  if (!NLM_CUR) return;
+  const step = NLM_CUR, text = nlmText(step), bn = document.getElementById('nlmBanner'), ta = document.getElementById('nlmTa');
+  nlmMarkDone(step);
+  try {
+    await navigator.clipboard.writeText(text);
+    NLM_HOLD = true; document.getElementById('nlmBannerText').innerHTML = '<span class="pos">Copy ho gaya ✓ — NotebookLM me paste karo.</span>';
+    setTimeout(() => { NLM_HOLD = false; renderNlm(); }, 4000);
+  } catch (e) {
+    NLM_HOLD = true; ta.value = text; ta.style.display = 'block'; ta.select();
+    document.getElementById('nlmBannerText').innerHTML = '<span class="amb">Auto-copy nahi hua — neeche text select karke copy karo, phir ✕ dabao.</span>';
+  }
+};
+document.getElementById('nlmDismissBtn').onclick = () => { if (NLM_CUR) nlmMarkDone(NLM_CUR); NLM_HOLD = false; document.getElementById('nlmBanner').style.display = 'none'; };
+if (typeof setInterval === 'function') setInterval(() => { try { renderNlm(); } catch (e) {} }, 5000);
+
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
   document.getElementById('summaryCurrentPrice').value = DAY.niftyPrice;
@@ -3323,6 +3405,7 @@ function renderEverything() {
   renderDrift();
   renderOF();
   renderOfTally();
+  try { renderNlm(); } catch (e) {}
   try { renderTradeSection(); refreshTradesCache().then(() => { try { renderTradeSection(); } catch (e) {} }); } catch (e) {}
 }
 
