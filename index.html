@@ -200,7 +200,7 @@
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v19.2 (Single reminder 10:15)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v20 (Rules Engine)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -217,6 +217,7 @@
   <button data-section="midday">MIDDAY</button>
   <button data-section="afternoon">AFTERNOON</button>
   <button data-section="trades">TRADES</button>
+  <button data-section="engine">ENGINE</button>
   <button data-section="summary">SUMMARY</button>
 </div>
 
@@ -815,6 +816,20 @@
     <div class="card"><div class="card-title">INSIGHTS (saare saved din)</div><div id="insightsBox"></div></div>
   </div>
 
+  <div id="section-engine" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">🧠 Coach Rules Engine — offline. Journal ke bhare data se, Master Rulebook ke rules se. Jahan Coach ne rule nahi diya wahan "COACH UNDEFINED" dikhega. 5-signal map Rulebook Sec C ka hai (DERIVED).</div>
+    <div class="card"><div class="card-title">ANALYSIS</div>
+      <div style="padding:0 14px 10px"><select id="engCP" class="of-tag-select"><option value="auto">Auto (abhi ka time)</option><option value="pre">Pre-market</option><option value="a930">9:30 anchor</option><option value="ib">10:15 IB</option><option value="trig">Trigger</option><option value="dt">11:30 day type</option></select></div>
+      <button class="weight-save" id="engRunBtn" style="width:calc(100% - 28px);margin:0 14px 10px">▶ Analyze</button><div id="engOut"></div></div>
+    <div class="card"><div class="card-title">COACH RULES LIBRARY</div><div class="hint-box" id="rbCount" style="padding:0 14px 8px"></div>
+      <div class="field-row"><span class="lbl">Search</span><input id="rbQ"></div>
+      <div style="padding:0 14px 10px"><select id="rbF" class="of-tag-select"><option value="">Saare status</option><option>VERIFIED</option><option>DERIVED</option><option>SUPERSEDED</option><option>OPEN QUESTION</option><option>CONFLICT</option></select></div>
+      <div id="rbList"></div>
+      <div class="toggle-q">Master_Rulebook.md import (ek baar)</div>
+      <div style="padding:0 14px 10px"><textarea id="rbText" placeholder="Rulebook ka poora text paste karo" style="width:100%;min-height:80px;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:11px;padding:6px"></textarea></div>
+      <button class="weight-save" id="rbImportBtn" style="width:calc(100% - 28px);margin:0 14px 14px">Import rules</button></div>
+  </div>
+
   <!-- ================= SUMMARY ================= -->
   <div id="section-summary" class="section">
     <div class="hint-box" style="padding:12px 4px 14px">🌙 EOD: poore din ka summary, aur neeche history/backup/settings.</div>
@@ -1003,7 +1018,7 @@ function formatDateKey(key) {
 /* ============================================================
    NAV
 ============================================================ */
-const SECTIONS = ["premarket","morning","midday","afternoon","trades","summary"];
+const SECTIONS = ["premarket","morning","midday","afternoon","trades","engine","summary"];
 function showSection(id) {
   SECTIONS.forEach(s => {
     document.getElementById('section-'+s).classList.toggle('active', s===id);
@@ -1011,6 +1026,7 @@ function showSection(id) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
   if (id === 'summary') renderSummary();
   if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
+  if (id === 'engine') { try { rbRender(); engRender(); } catch (e) {} }
 }
 document.querySelectorAll('.nav button').forEach(b => {
   b.onclick = () => showSection(b.dataset.section);
@@ -3392,6 +3408,138 @@ document.getElementById('copyTodayBtn').onclick = async () => {
   try { await navigator.clipboard.writeText(text); alert('Aaj ka data copy ho gaya (' + Math.round(text.length / 1024) + ' KB). NotebookLM me paste karo.'); }
   catch (e) { document.getElementById('backupText').value = text; alert('Auto-copy nahi hua — neeche text box se manually copy kar lo.'); }
 };
+
+/* ===== COACH RULES ENGINE (offline) — Master Rulebook v15 ===== */
+const ENG_REG = {
+ 'R-REF-02':['Poor High/Low','VERIFIED','Unfinished business magnet'],'R-OPEN-01':['Opening Type','VERIFIED','Opening type se initial bias milta hai.'],
+ 'R-OPEN-02':['Big Gap 0.80%+','VERIFIED','0.80% gap: G period tak fill ya same direction'],'R-OPEN-04':['Opening bias via VA','VERIFIED','Opening type se initial bias milta hai.'],
+ 'R-IB-01':['IB calc','VERIFIED','IB = A+B (9:15-10:15)'],'R-IB-03':['Half-IB formula','VERIFIED','IB length 100 ho to half IB 50 pt dono side.'],
+ 'R-IB-04':['Half-IB access','VERIFIED','Half-IB ke upar/neeche 15-minute candle CLOSE = access permission.'],
+ 'R-VA-01':['80% rule','VERIFIED','Previous VA mein 20%+ enter => 80% probability opposite VAL/VAH.'],'R-VA-03':['VA target progression','VERIFIED','Aim 80% of value area. Mid aim POC tag.'],
+ 'R-OF-02':['OF activity map','VERIFIED','Green+Center=IB, Red+Center=IS, Green+Top=RS, Red+Bottom=RB'],'R-OF-03':['OF combinations','VERIFIED','Single activity kaafi nahi, combination chahiye.'],
+ 'R-OF-04':['Delta 75K + colour','VERIFIED','LLT ab 75k-100k. Isse kam = Not useful.'],'R-OF-07':['Absorption','VERIFIED','Absorption lower side... risky fresh short.'],
+ 'R-MOM-02':['Fib VA geometry','VERIFIED','61.8 and 38.2 ... value zone; 15-min candle close.'],'R-ENT-01':['Current-price entry','VERIFIED','Signals fire hue -> Trade valid -> Entry lo (current price).'],
+ 'R-ENT-02':['Pullback is bonus','VERIFIED','Pullback aaya to bonus, nahi aaya to bhi setup correct tha.'],'R-ENT-03':['Early entry window','VERIFIED','30 40 minute mein decision banata hu.'],
+ 'R-ENT-04':['Early alignment','VERIFIED','Alignment karna padega: participation + MP opening structure.'],'R-SL-01':['VWAP TSL','VERIFIED','VWAP +- filter 10-20 points.'],
+ 'R-SL-02':['SL wide IB','VERIFIED','IB wider => stop loss around IB area.'],'R-SL-03':['SL priority','DERIVED','AI-consolidated priority'],'R-SL-05':['Premium % TSL','VERIFIED','Every options move in percentage basis.'],
+ 'R-TGT-01':['Target zones','VERIFIED','Exact level nahi, ZONE do.'],'R-TGT-02':['Targets 2IB/3IB/VA','VERIFIED','Targets: 2IB / 3IB / VA boundaries.'],'R-TGT-03':['Partial booking','VERIFIED','T1 par 70% book + SL cost/VWAP.'],
+ 'R-TGT-04':['Low VIX','VERIFIED','Aisa koi fix nahi hain on 12 vix...'],'R-OPT-01':['ATM/ITM only','VERIFIED','OTM mein play nahi karenge hum.'],'R-OPT-02':['100-multiple','VERIFIED','Only take the 100 strikes.'],
+ 'R-OPT-04':['300pt tracking','DERIVED','Reference strikes only (derived)'],'R-OPT-05':['IV filters','VERIFIED','Dono IV 40+ => options trading avoid.'],
+ 'R-PAR-01':['7-8 of 12','VERIFIED','12 me se 7-8 stocks ek taraf = conviction.'],'R-PAR-03':['Divergence gate','VERIFIED','D-shape + conflicting heavyweights + no Half-IB = NO TRADE.'],
+ 'R-SIZ-01':['Tier scale','VERIFIED','25%-50%-75-100%.'],'R-SIZ-02':['Friday 50%','VERIFIED','Friday 50% qty; pehla trade successful to second nahi.'],
+ 'R-SIZ-03':['High VIX step-down','DERIVED','Direction verified, 1-tier mapping derived'],'R-SIZ-04':['Structure step-down','DERIVED','Direction verified, mapping derived'],
+ 'R-TIME-04':['2:40 cutoff','VERIFIED','Fresh trade after 2:40 PM nahi.'],'R-NOTRADE-01':['0-1 signals','VERIFIED','0-1/5 signals = NO TRADE.'],
+ 'R-NOTRADE-03':['D-shape+HW gate','VERIFIED','No trade is better.'],'R-NOTRADE-05':['RRR<1:1 gate','VERIFIED*','* source = Doubt-Detector checklist (AI), Coach quote sirf Teaching #5'],
+ 'R-NOTRADE-06':['Single OF gate','VERIFIED','Single activity kaafi nahi.'],'R-PSY-01':['Pre-entry mindset','VERIFIED','First question = minimum risk after entry.'],
+ 'R-PSY-06':['No-trade day','VERIFIED','Whenever the doubt rise, no trade.'],'CONF-02':['Anchor vs Half-IB','VERIFIED','Aisa hota nahi opposite move chale. Momentum = one side with follow through.'],
+ 'SIG-MAP':['5-signal map (Rulebook Sec C)','DERIVED','Coach ne 5 signals ki list nahi di (Rulebook Sec F #5 open)'],'R-GAP-01':['ITM depth','OPEN QUESTION','250/300 garbled'],'R-GAP-04':['2-month avg','OPEN QUESTION','formula unstated']
+};
+const UNDEF = 'COACH UNDEFINED — MANUAL JUDGMENT REQUIRED.';
+function engCP() { const m = nlmMins(); return m >= 660 ? 'dt' : (m >= 615 ? 'ib' : (m >= 570 ? 'a930' : 'pre')); }
+function engDir(v) { return v === 'up' ? 'UP' : (v === 'down' ? 'DOWN' : 'NEUTRAL'); }
+function engRun(cp) {
+  const o = DAY.opening, L = DAY.levels || {}, used = {}, trace = [], num = x => { const v = parseFloat(x); return isNaN(v) ? null : v; };
+  const U = (id, why) => { used[id] = 1; if (why) trace.push(id + ': ' + why); };
+  const order = { pre: 0, a930: 1, ib: 2, trig: 3, dt: 4 }, at = k => order[cp] >= order[k];
+  const anc = itmAnchor(), bias = anc === 'up' || anc === 'down' ? anc : null, m = nlmMins(), sg = {};
+  U('SIG-MAP');
+  // S1 ITM anchor
+  const iv = itmVals(); U('R-MOM-02', 'CE=' + (iv.ce || '-') + ' PE=' + (iv.pe || '-') + ' => ' + (anc || 'missing'));
+  sg.s1 = anc === null ? ['WAITING', 'ITM anchor input missing'] : (bias ? ['PASS', engDir(bias) + ' anchor'] : ['FAIL', 'anchor neutral']);
+  // S2 opening / Half-IB
+  const op = calcOpening(), ib = calcIB(); let s2 = ['WAITING', 'Half-IB access 10:15 ke baad'];
+  if (op && op.sub && /drive/i.test(op.sub.type || '')) { const d = num(o.A.c) > num(o.open) ? 'up' : 'down'; U('R-OPEN-01', 'Open Drive ' + d); s2 = bias && d === bias ? ['PASS', 'Open Drive aligned'] : ['FAIL', 'Open Drive ' + d + ' vs bias']; }
+  if (o.halfIbAccess === 'yes') { U('R-IB-04', 'Half-IB access ' + o.halfIbSide); s2 = o.halfIbSide === bias ? ['PASS', 'Half-IB close ' + o.halfIbSide] : ['FAIL', 'Half-IB ' + o.halfIbSide + ' vs bias (CONFLICT)']; }
+  else if (at('ib')) s2 = ['FAIL', 'Half-IB access nahi / flat opening (R-OPEN-04: inside VA = neutral)'];
+  sg.s2 = s2;
+  // S3 participation (rulebook: sign-based 7-8 of 12)
+  const pk = at('trig') && nlmN('now') >= 8 ? 'now' : 'c930'; let up = 0, dn = 0, strong = 0;
+  STOCKS.forEach(s => { const v = num((DAY.participation[s.name] || {})[pk]); if (v === null) return; if (v > 0) up++; else if (v < 0) dn++; if (Math.abs(v) >= 0.5) strong++; });
+  U('R-PAR-01', pk + ': up ' + up + ' / down ' + dn + ' (|move|>=0.5%: ' + strong + ') — % threshold Coach ne nahi diya (sign-based)');
+  const al = bias === 'up' ? up : (bias === 'down' ? dn : Math.max(up, dn));
+  sg.s3 = (up + dn) < 8 ? ['WAITING', 'participation data kam'] : (al >= 7 ? ['PASS', al + '/12 aligned'] : ['FAIL', al + '/12 aligned (need 7-8)']);
+  // S4 order flow
+  const cb = detectOfCombos().found, last = cb[cb.length - 1]; let s4 = ['WAITING', 'combo ke liye 2+ tagged candle'];
+  if (last) { U('R-OF-03', 'combo #' + last.n);
+    if (last.n === 5 || last.n === 6) s4 = ['FAIL', 'conflict combo #' + last.n + ' => exit/no trade'];
+    else { const d = last.n <= 2 ? 'up' : 'down'; s4 = d === bias ? ['PASS', '#' + last.n + ' ' + last.name] : ['FAIL', '#' + last.n + ' opposite bias']; } }
+  else if (DAY.orderflow.some(e => ['IB', 'IS', 'RB', 'RS'].includes(e.tag))) { U('R-NOTRADE-06', 'single activity'); s4 = ['FAIL', 'single activity kaafi nahi']; }
+  const strongD = DAY.orderflow.filter(e => ['IB', 'IS'].includes(e.tag)).some(e => Math.max(parseDeltaK(e.du) || 0, parseDeltaK(e.dd) || 0) >= 75000); if (strongD) U('R-OF-04', 'delta >=75K mila');
+  sg.s4 = s4;
+  // S5 VA 80%
+  sg.s5 = o.value20pct === 'yes' ? (o.value20pctSide === bias ? ['PASS', 'VA 80% ' + o.value20pctSide] : ['FAIL', 'VA 80% side opposite']) : (at('ib') ? ['FAIL', 'VA 20% acceptance nahi'] : ['WAITING', 'C-F period me']);
+  if (o.value20pct === 'yes') U('R-VA-01');
+  const pass = Object.values(sg).filter(x => x[0] === 'PASS').length;
+  // gates
+  const gates = []; const wait = Object.values(sg).some(x => x[0] === 'WAITING');
+  if (m >= 14 * 60 + 40) { gates.push('2:40 PM ke baad fresh trade nahi.'); U('R-TIME-04'); }
+  if (last && (last.n === 5 || last.n === 6)) { gates.push('OF combo #' + last.n + ' (big players fighting) — exit, naya trade nahi'); U('R-OF-03'); }
+  if (sg.s2[1].includes('CONFLICT') || (bias && ((bias === 'up' && up < 7 && dn >= 7) || (bias === 'down' && dn < 7 && up >= 7)))) { gates.push('Anchor vs Half-IB/participation conflict — "Aisa hota nahi opposite move chale"'); U('CONF-02'); }
+  if (o.profileShape === 'D' && up < 7 && dn < 7 && up + dn >= 8 && o.halfIbAccess !== 'yes') { gates.push('D-shape + mixed heavyweights + Half-IB access nahi = "No trade is better."'); U('R-NOTRADE-03'); U('R-PAR-03'); }
+  const cIV = num(o.callIV), pIV = num(o.putIV); if (cIV >= 40 && pIV >= 40) { gates.push('IV 40+ dono sides — options trading avoid'); U('R-OPT-05'); }
+  const fri = new Date(dateKey + 'T00:00:00').getDay() === 5; if (fri && (DAY.trades || []).some(t => t.pnl > 0)) { gates.push('Friday: pehla trade successful — doosra trade nahi'); U('R-SIZ-02'); }
+  if (!bias && anc === 'none') gates.push('ITM anchor NEUTRAL — qty kam/wait (Coach)');
+  let action;
+  if (gates.length) action = 'NO TRADE'; else if (anc === null) action = 'WAITING FOR TRIGGER'; else if (order[cp] <= 1) action = (sg.s1[0] === 'PASS' && sg.s3[0] === 'PASS') ? 'TRADE VALID (early momentum — alignment: anchor + participation)' : 'WAITING FOR TRIGGER';
+  else if (pass >= 3) action = 'STRONG TRADE'; else if (pass === 2) action = 'TRADE VALID'; else action = wait ? 'WAITING FOR TRIGGER' : 'NO TRADE';
+  if (/^NO TRADE/.test(action) && !gates.length) { U('R-NOTRADE-01', pass + '/5 signals'); }
+  // plan
+  let plan = null; const px = num(DAY.niftyPrice) || num(o.B.c) || num(o.A.c);
+  if (/TRADE/.test(action) && !/^NO/.test(action) && bias && px) {
+    const long = bias === 'up', early = order[cp] <= 1 || o.halfIbAccess !== 'yes'; U('R-ENT-01'); U('R-ENT-02'); U('R-TGT-01'); U('R-TGT-03'); U('R-SL-03');
+    let sl, slWhy, t1 = null, t2 = null;
+    if (early) { const kl = long ? num(L.pdl) : num(L.pdh); sl = kl === null ? null : (long ? kl - 10 : kl + 10); slWhy = 'previous session ' + (long ? 'low' : 'high') + ' ∓10 (Coach example, R-ENT-04) ya VWAP ±10-20'; U('R-ENT-04'); U('R-VA-03');
+      const poc = num(L.poc), far = long ? num(L.vah) : num(L.val); if (poc !== null) t1 = poc; if (far !== null) t2 = far; }
+    else if (ib) { sl = long ? ib.ibLow - 10 : ib.ibHigh + 10; slWhy = ib.len >= 120 ? 'IB boundary (wide IB>=120, R-SL-02)' : 'VWAP ±10-20 (VWAP input nahi) / opposite IB'; U('R-SL-02'); U('R-IB-03'); U('R-TGT-02');
+      t1 = long ? ib.ibHigh + ib.len : ib.ibLow - ib.len; t2 = long ? ib.ibHigh + 2 * ib.len : ib.ibLow - 2 * ib.len; }
+    const risk = sl === null ? null : Math.abs(px - sl), rew = t1 === null ? null : Math.abs(t1 - px), rr = risk && rew ? rew / risk : null;
+    if (rr !== null && rr < 1) { gates.push('RRR ' + rr.toFixed(2) + ' < 1:1 (R-NOTRADE-05*)'); U('R-NOTRADE-05'); action = 'NO TRADE'; }
+    const sel = calcStrikeSelector(), z = calcPositionSizing(); U('R-OPT-01'); U('R-OPT-02'); U('R-SIZ-01');
+    plan = { long, px, sl, slWhy, t1, t2, rr, strike: sel ? (long ? (sel.atm - 100) + ' CE (ITM)' : (sel.atm + 100) + ' PE (ITM)') + ' / ATM ' + sel.atm : 'Open bharo', tier: z ? z.tier + '% (' + z.reasons.length + ' filter, DERIVED mapping)' : 'Base lot bharo' };
+  }
+  const miss = []; if (!L.pdh || !L.vah) miss.push('levels (PDH/VAH...)'); if (!(o.fibCE && o.fibCE.p)) miss.push('CE premium 15m close'); if (!(o.fibPE && o.fibPE.p)) miss.push('PE premium 15m close'); if (!o.open) miss.push('open'); if (!o.vix) miss.push('VIX');
+  if (at('ib') && !(o.B.h)) miss.push('B period'); miss.push('VWAP (SL/TSL ke liye) — input nahi'); miss.push('Absorption flag (R-OF-07) — footprint input nahi'); miss.push('2-month avg (R-GAP-04) — formula undefined');
+  return { cp, bias, anc, sg, pass, gates, action, plan, used: Object.keys(used), trace, miss, fri, vix: num(o.vix) };
+}
+function engHTML(r) {
+  const lab = { pre: 'Pre-market', a930: '9:30 anchor', ib: '10:15 IB', trig: 'Trigger', dt: '11:30 day type' }[r.cp], tzs = n => n === null ? '—' : tz(n), P = r.plan;
+  const S = [['S1 ITM Fib anchor', r.sg.s1], ['S2 Opening / Half-IB', r.sg.s2], ['S3 Participation 7-8/12', r.sg.s3], ['S4 Order Flow combo+delta', r.sg.s4], ['S5 VA 80% / Day type', r.sg.s5]];
+  const cls = a => /^NO/.test(a) ? 'neg' : (/WAIT/.test(a) ? 'amb' : 'pos');
+  let h = '<div class="result-box"><b>Checkpoint:</b> ' + lab + ' (sirf us tak ka data)<br><b>1. SIGNAL COUNT:</b> ' + r.pass + '/5 <span class="muted">[5-signal map DERIVED — Rulebook Sec C]</span><br>' +
+    S.map(s => (s[1][0] === 'PASS' ? '✅' : (s[1][0] === 'FAIL' ? '❌' : '⏳')) + ' ' + s[0] + ' — ' + s[1][0] + ': ' + s[1][1]).join('<br>') +
+    '<br><b>2. BIAS:</b> ' + (r.bias ? engDir(r.bias) : (r.anc === 'none' ? 'NEUTRAL' : 'PENDING — ITM anchor missing')) +
+    '<br><b>3. ACTION:</b> <b class="' + cls(r.action) + '">' + r.action + '</b>' + (r.action.startsWith('TRADE') || r.action.startsWith('STRONG') ? '<br>Trade is VALID per Coach\'s 2+ signals rule' : '') + '</div>';
+  if (r.gates.length) h += '<div class="result-box neg"><b>NO-TRADE / CONFLICT:</b><br>' + r.gates.join('<br>') + '</div>';
+  if (P) h += '<div class="result-box"><b>4. ENTRY ZONE:</b> Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.<br><b>5. SL:</b> ' + (P.sl === null ? '—' : P.sl.toFixed(0)) + ' <span class="muted">(' + P.slWhy + ')</span><br><b>Targets (zones):</b> T1 ' + tzs(P.t1) + ' · T2 ' + tzs(P.t2) + (P.rr ? ' · RRR~' + P.rr.toFixed(2) : '') + '<br>Partial: T1 par 50-70% book, SL cost/VWAP (R-TGT-03). TSL: VWAP ±10-20 index / option premium % (R-SL-01/05).<br><b>6. STRIKE:</b> ' + P.strike + ' <span class="muted">(ITM depth = ' + UNDEF + ')</span><br><b>Sizing:</b> ' + P.tier + (r.fri ? ' · Friday 50% cap (R-SIZ-02)' : '') + '<br>Fresh trade 2:40 PM ke baad nahi.</div>';
+  h += '<div class="result-box"><b>7. ORDER FLOW CHECK:</b> ' + r.sg.s4[1] + '<br>Absorption: ' + UNDEF + '<br><b>8. PSYCHOLOGY:</b> ' + (/^NO/.test(r.action) ? '"Whenever the doubt rise, no trade." (R-PSY-06)' : '"Signals fire hue -> Trade valid -> Entry lo (current price). Pullback aaya to bonus, nahi aaya to bhi setup correct tha." (R-PSY-01)') +
+    '<br><b>9. COACH QUOTE:</b> "' + (r.used.map(i => ENG_REG[i]).filter(x => x && x[1].startsWith('VERIFIED'))[0] || ['', '', 'Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo.'])[2] + '"<br><b>11. CONTEXT:</b> VIX ' + (r.vix || '?') + (r.vix && r.vix < 12 ? ' (Low VIX: zone + early partial, R-TGT-04)' : '') + ' · IB ' + ((calcIB() || {}).cat || '—') + ' · Day ' + (calcDayType() || '—') + ' · Opening ' + ((calcOpening() || {}).base || '—') + '</div>';
+  h += '<div class="result-box"><b>Missing / pending inputs:</b><br>' + r.miss.join('<br>') + '</div>';
+  h += '<div class="result-box"><b>AUDIT — rule IDs used:</b><br>' + r.used.map(i => { const e = ENG_REG[i] || ['?', '?', '']; return i + ' · ' + e[0] + ' · <b class="' + (e[1].startsWith('VERIFIED') ? 'pos' : 'amb') + '">' + e[1] + '</b>'; }).join('<br>') + '<br><br><b>Calculation trace:</b><br>' + r.trace.join('<br>') + '</div>';
+  return h;
+}
+function engRender() { const sel = document.getElementById('engCP'); const cp = sel.value === 'auto' ? engCP() : sel.value; document.getElementById('engOut').innerHTML = engHTML(engRun(cp)); }
+/* Rules Library: Master_Rulebook.md paste -> parse -> localStorage 'coach_rulebook' (backup se alag) */
+const RB_FIELDS = ['RULE NAME', 'COACH TEACHING', 'EXACT COACH QUOTE', 'SOURCE FILE / SESSION', 'TIMESTAMP / LOCATION', 'TRIGGER CONDITIONS', 'INVALIDATION CONDITIONS', 'ENTRY LOGIC', 'STOP-LOSS LOGIC', 'TARGET / EXIT LOGIC', 'NO-TRADE CONDITIONS', 'POSITION-SIZING IMPACT', 'CONFLICTS', 'STATUS'];
+function rbParse(txt) {
+  const out = [], parts = txt.split(/RULE ID:\s*/).slice(1);
+  parts.forEach(p => { const id = (p.match(/^([A-Z0-9-]+)/) || [])[1]; if (!id) return; const r = { id }; const re = new RegExp('(' + RB_FIELDS.map(f => f.replace(/[\/]/g, '\\/')).join('|') + '):', 'g'); const idx = []; let m; while ((m = re.exec(p))) idx.push([m[1], m.index, re.lastIndex]);
+    idx.forEach((x, i) => { r[x[0]] = p.slice(x[2], i + 1 < idx.length ? idx[i + 1][1] : p.length).replace(/#{3,}.*$/s, '').trim(); });
+    const st = (r['STATUS'] || '').match(/^(VERIFIED|DERIVED|OPEN QUESTION|SUPERSEDED|CONFLICT)/); r.status = st ? st[1] : 'UNKNOWN'; out.push(r); });
+  return out;
+}
+function rbLoad() { try { return JSON.parse(localStorage.getItem('coach_rulebook') || '[]'); } catch (e) { return []; } }
+function rbRender() {
+  const q = (document.getElementById('rbQ').value || '').toLowerCase(), f = document.getElementById('rbF').value, all = rbLoad();
+  document.getElementById('rbCount').innerHTML = all.length ? all.length + ' rules loaded' : 'Rulebook import nahi hui — neeche paste karke "Import" dabao (Master_Rulebook.md ka poora text).';
+  const rows = all.filter(r => (!f || r.status === f) && (!q || JSON.stringify(r).toLowerCase().includes(q))).slice(0, 60);
+  document.getElementById('rbList').innerHTML = rows.map(r => '<div class="tr-item"><div><b>' + r.id + '</b> · ' + (r['RULE NAME'] || '') + ' · <b class="' + (r.status === 'VERIFIED' ? 'pos' : 'amb') + '">' + r.status + '</b>' +
+    '<br><span class="muted">Teaching:</span> ' + (r['COACH TEACHING'] || '') + '<br><span class="muted">Quote:</span> ' + (r['EXACT COACH QUOTE'] || '') + '<br><span class="muted">Source:</span> ' + (r['SOURCE FILE / SESSION'] || '') +
+    '<br><span class="muted">Trigger:</span> ' + (r['TRIGGER CONDITIONS'] || '') + '<br><span class="muted">Invalid:</span> ' + (r['INVALIDATION CONDITIONS'] || '') + '<br><span class="muted">Entry:</span> ' + (r['ENTRY LOGIC'] || '') + '<br><span class="muted">SL:</span> ' + (r['STOP-LOSS LOGIC'] || '') +
+    '<br><span class="muted">Target:</span> ' + (r['TARGET / EXIT LOGIC'] || '') + '<br><span class="muted">No-trade:</span> ' + (r['NO-TRADE CONDITIONS'] || '') + '<br><span class="muted">Sizing:</span> ' + (r['POSITION-SIZING IMPACT'] || '') + '</div></div>').join('') + (rows.length === 60 ? '<div class="hint-box" style="padding:8px 14px">Pehle 60 dikh rahe hain — search/filter use karo.</div>' : '');
+}
+document.getElementById('engRunBtn').onclick = engRender; document.getElementById('engCP').onchange = engRender;
+document.getElementById('rbQ').oninput = rbRender; document.getElementById('rbF').onchange = rbRender;
+document.getElementById('rbImportBtn').onclick = () => { const t = document.getElementById('rbText').value; const r = rbParse(t); if (!r.length) { alert('Koi RULE ID nahi mila.'); return; } localStorage.setItem('coach_rulebook', JSON.stringify(r)); document.getElementById('rbText').value = ''; rbRender(); alert(r.length + ' rules import ho gaye.'); };
 
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
