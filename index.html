@@ -200,7 +200,7 @@
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v20 (Rules Engine)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v20.1 (Rules Engine fixed)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -817,10 +817,11 @@
   </div>
 
   <div id="section-engine" class="section">
-    <div class="hint-box" style="padding:12px 4px 14px">🧠 Coach Rules Engine — offline. Journal ke bhare data se, Master Rulebook ke rules se. Jahan Coach ne rule nahi diya wahan "COACH UNDEFINED" dikhega. 5-signal map Rulebook Sec C ka hai (DERIVED).</div>
+    <div class="hint-box" style="padding:12px 4px 14px">🧠 Coach Rules Engine — offline. Journal ke bhare data se, Master Rulebook ke rules se. Jahan Coach ne rule nahi diya wahan "COACH UNDEFINED" dikhega. 5-signal map = Coach ke process ka operational mapping (COACH-PROCESS + DERIVED MAPPING).</div>
     <div class="card"><div class="card-title">ANALYSIS</div>
       <div style="padding:0 14px 10px"><select id="engCP" class="of-tag-select"><option value="auto">Auto (abhi ka time)</option><option value="pre">Pre-market</option><option value="a930">9:30 anchor</option><option value="ib">10:15 IB</option><option value="trig">Trigger</option><option value="dt">11:30 day type</option></select></div>
       <button class="weight-save" id="engRunBtn" style="width:calc(100% - 28px);margin:0 14px 10px">▶ Analyze</button><div id="engOut"></div></div>
+    <div class="card"><div class="card-title">COACH ANSWER → PERMANENT TEACHING</div><div class="field-row"><span class="lbl">Situation</span><input id="teachSit"></div><div style="padding:0 14px 10px"><textarea id="teachAns" placeholder="Coach ka verbatim answer" style="width:100%;min-height:60px;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:12px;padding:6px"></textarea></div><button class="weight-save" id="teachSave" style="width:calc(100% - 28px);margin:0 14px 10px">Save teaching (date + situation + answer)</button><div id="teachList"></div></div>
     <div class="card"><div class="card-title">COACH RULES LIBRARY</div><div class="hint-box" id="rbCount" style="padding:0 14px 8px"></div>
       <div class="field-row"><span class="lbl">Search</span><input id="rbQ"></div>
       <div style="padding:0 14px 10px"><select id="rbF" class="of-tag-select"><option value="">Saare status</option><option>VERIFIED</option><option>DERIVED</option><option>SUPERSEDED</option><option>OPEN QUESTION</option><option>CONFLICT</option></select></div>
@@ -1026,7 +1027,7 @@ function showSection(id) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
   if (id === 'summary') renderSummary();
   if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
-  if (id === 'engine') { try { rbRender(); engRender(); } catch (e) {} }
+  if (id === 'engine') { try { rbRender(); teachRender(); engRender(); } catch (e) {} }
 }
 document.querySelectorAll('.nav button').forEach(b => {
   b.onclick = () => showSection(b.dataset.section);
@@ -3432,92 +3433,135 @@ const ENG_REG = {
  'R-NOTRADE-03':['D-shape+HW gate','VERIFIED','No trade is better.'],'R-NOTRADE-05':['RRR<1:1 gate','VERIFIED*','* source = Doubt-Detector checklist (AI), Coach quote sirf Teaching #5'],
  'R-NOTRADE-06':['Single OF gate','VERIFIED','Single activity kaafi nahi.'],'R-PSY-01':['Pre-entry mindset','VERIFIED','First question = minimum risk after entry.'],
  'R-PSY-06':['No-trade day','VERIFIED','Whenever the doubt rise, no trade.'],'CONF-02':['Anchor vs Half-IB','VERIFIED','Aisa hota nahi opposite move chale. Momentum = one side with follow through.'],
- 'SIG-MAP':['5-signal map (Rulebook Sec C)','DERIVED','Coach ne 5 signals ki list nahi di (Rulebook Sec F #5 open)'],'R-GAP-01':['ITM depth','OPEN QUESTION','250/300 garbled'],'R-GAP-04':['2-month avg','OPEN QUESTION','formula unstated']
+ 'SIG-MAP':['Coach process mapped to 5-signal count','COACH-PROCESS + DERIVED MAPPING','Coach ne decision process diya; journal ne us process ko 5-signal operational map me implement kiya.'],'R-DEC-01':['PRIMARY decision rule (Coach direct answer)','VERIFIED','Ap system ka process follow kijiye. Agar 4 things ka alignment hoga to magic hoga. Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo, usme bhi process hi follow kijiye.'],'R-NOTRADE-04':['Extreme divergence','VERIFIED','Half IB ke liye wait karna sahi rahega aise cases mein.'],'R-GAP-01':['ITM depth','OPEN QUESTION','250/300 garbled'],'R-GAP-04':['2-month avg','OPEN QUESTION','formula unstated']
 };
 const UNDEF = 'COACH UNDEFINED — MANUAL JUDGMENT REQUIRED.';
 function engCP() { const m = nlmMins(); return m >= 660 ? 'dt' : (m >= 615 ? 'ib' : (m >= 570 ? 'a930' : 'pre')); }
 function engDir(v) { return v === 'up' ? 'UP' : (v === 'down' ? 'DOWN' : 'NEUTRAL'); }
+const zn = (n, name) => n === null || n === undefined ? '—' : tz(n) + ' [' + name + ']';
 function engRun(cp) {
   const o = DAY.opening, L = DAY.levels || {}, used = {}, trace = [], num = x => { const v = parseFloat(x); return isNaN(v) ? null : v; };
   const U = (id, why) => { used[id] = 1; if (why) trace.push(id + ': ' + why); };
   const order = { pre: 0, a930: 1, ib: 2, trig: 3, dt: 4 }, at = k => order[cp] >= order[k];
-  const anc = itmAnchor(), bias = anc === 'up' || anc === 'down' ? anc : null, m = nlmMins(), sg = {};
-  U('SIG-MAP');
-  // S1 ITM anchor
+  const anc = itmAnchor(), bias = anc === 'up' || anc === 'down' ? anc : null, m = nlmMins(), sg = {}, caution = [];
+  U('SIG-MAP'); U('R-DEC-01');
   const iv = itmVals(); U('R-MOM-02', 'CE=' + (iv.ce || '-') + ' PE=' + (iv.pe || '-') + ' => ' + (anc || 'missing'));
   sg.s1 = anc === null ? ['WAITING', 'ITM anchor input missing'] : (bias ? ['PASS', engDir(bias) + ' anchor'] : ['FAIL', 'anchor neutral']);
-  // S2 opening / Half-IB
   const op = calcOpening(), ib = calcIB(); let s2 = ['WAITING', 'Half-IB access 10:15 ke baad'];
   if (op && op.sub && /drive/i.test(op.sub.type || '')) { const d = num(o.A.c) > num(o.open) ? 'up' : 'down'; U('R-OPEN-01', 'Open Drive ' + d); s2 = bias && d === bias ? ['PASS', 'Open Drive aligned'] : ['FAIL', 'Open Drive ' + d + ' vs bias']; }
   if (o.halfIbAccess === 'yes') { U('R-IB-04', 'Half-IB access ' + o.halfIbSide); s2 = o.halfIbSide === bias ? ['PASS', 'Half-IB close ' + o.halfIbSide] : ['FAIL', 'Half-IB ' + o.halfIbSide + ' vs bias (CONFLICT)']; }
-  else if (at('ib')) s2 = ['FAIL', 'Half-IB access nahi / flat opening (R-OPEN-04: inside VA = neutral)'];
+  else if (at('ib') && !(s2[0] === 'PASS')) s2 = ['FAIL', 'Half-IB access not available / flat opening'];
   sg.s2 = s2;
-  // S3 participation (rulebook: sign-based 7-8 of 12)
   const pk = at('trig') && nlmN('now') >= 8 ? 'now' : 'c930'; let up = 0, dn = 0, strong = 0;
   STOCKS.forEach(s => { const v = num((DAY.participation[s.name] || {})[pk]); if (v === null) return; if (v > 0) up++; else if (v < 0) dn++; if (Math.abs(v) >= 0.5) strong++; });
-  U('R-PAR-01', pk + ': up ' + up + ' / down ' + dn + ' (|move|>=0.5%: ' + strong + ') — % threshold Coach ne nahi diya (sign-based)');
-  const al = bias === 'up' ? up : (bias === 'down' ? dn : Math.max(up, dn));
+  U('R-PAR-01', pk + ': up ' + up + ' / down ' + dn + ' (|move|>=0.5%: ' + strong + ') — % threshold Coach ne nahi diya; sign-based count');
+  const al = bias === 'up' ? up : (bias === 'down' ? dn : Math.max(up, dn)), opp = bias === 'up' ? dn : (bias === 'down' ? up : 0);
   sg.s3 = (up + dn) < 8 ? ['WAITING', 'participation data kam'] : (al >= 7 ? ['PASS', al + '/12 aligned'] : ['FAIL', al + '/12 aligned (need 7-8)']);
-  // S4 order flow
   const cb = detectOfCombos().found, last = cb[cb.length - 1]; let s4 = ['WAITING', 'combo ke liye 2+ tagged candle'];
   if (last) { U('R-OF-03', 'combo #' + last.n);
-    if (last.n === 5 || last.n === 6) s4 = ['FAIL', 'conflict combo #' + last.n + ' => exit/no trade'];
+    if (last.n === 5 || last.n === 6) s4 = ['FAIL', 'conflict combo #' + last.n + ' (exit)'];
     else { const d = last.n <= 2 ? 'up' : 'down'; s4 = d === bias ? ['PASS', '#' + last.n + ' ' + last.name] : ['FAIL', '#' + last.n + ' opposite bias']; } }
-  else if (DAY.orderflow.some(e => ['IB', 'IS', 'RB', 'RS'].includes(e.tag))) { U('R-NOTRADE-06', 'single activity'); s4 = ['FAIL', 'single activity kaafi nahi']; }
-  const strongD = DAY.orderflow.filter(e => ['IB', 'IS'].includes(e.tag)).some(e => Math.max(parseDeltaK(e.du) || 0, parseDeltaK(e.dd) || 0) >= 75000); if (strongD) U('R-OF-04', 'delta >=75K mila');
+  else if (DAY.orderflow.some(e => ['IB', 'IS', 'RB', 'RS'].includes(e.tag))) { U('R-NOTRADE-06', 'single activity — combination nahi'); s4 = ['FAIL', 'single activity is not enough']; }
+  if (DAY.orderflow.filter(e => ['IB', 'IS'].includes(e.tag)).some(e => Math.max(parseDeltaK(e.du) || 0, parseDeltaK(e.dd) || 0) >= 75000)) U('R-OF-04', 'delta >=75K mila');
   sg.s4 = s4;
-  // S5 VA 80%
-  sg.s5 = o.value20pct === 'yes' ? (o.value20pctSide === bias ? ['PASS', 'VA 80% ' + o.value20pctSide] : ['FAIL', 'VA 80% side opposite']) : (at('ib') ? ['FAIL', 'VA 20% acceptance nahi'] : ['WAITING', 'C-F period me']);
+  sg.s5 = o.value20pct === 'yes' ? (o.value20pctSide === bias ? ['PASS', 'VA 80% ' + o.value20pctSide] : ['FAIL', 'VA 80% side opposite']) : (at('ib') ? ['FAIL', 'VA 20% acceptance not present'] : ['WAITING', 'C-F period me']);
   if (o.value20pct === 'yes') U('R-VA-01');
   const pass = Object.values(sg).filter(x => x[0] === 'PASS').length;
-  // gates
-  const gates = []; const wait = Object.values(sg).some(x => x[0] === 'WAITING');
+  // ---- direct coach NO-TRADE rules only ----
+  const gates = [], hw = (up + dn) >= 8;
   if (m >= 14 * 60 + 40) { gates.push('2:40 PM ke baad fresh trade nahi.'); U('R-TIME-04'); }
-  if (last && (last.n === 5 || last.n === 6)) { gates.push('OF combo #' + last.n + ' (big players fighting) — exit, naya trade nahi'); U('R-OF-03'); }
-  if (sg.s2[1].includes('CONFLICT') || (bias && ((bias === 'up' && up < 7 && dn >= 7) || (bias === 'down' && dn < 7 && up >= 7)))) { gates.push('Anchor vs Half-IB/participation conflict — "Aisa hota nahi opposite move chale"'); U('CONF-02'); }
-  if (o.profileShape === 'D' && up < 7 && dn < 7 && up + dn >= 8 && o.halfIbAccess !== 'yes') { gates.push('D-shape + mixed heavyweights + Half-IB access nahi = "No trade is better."'); U('R-NOTRADE-03'); U('R-PAR-03'); }
+  if (last && (last.n === 5 || last.n === 6)) { gates.push('OF combo #' + last.n + ' — big players fighting: exit, naya trade nahi'); U('R-OF-03'); }
+  if (s2[1].includes('CONFLICT')) { gates.push('Anchor vs Half-IB opposite — "Aisa hota nahi opposite move chale" (direct Coach rule)'); U('CONF-02'); }
+  if (o.profileShape === 'D' && hw && up < 7 && dn < 7 && o.halfIbAccess !== 'yes') { gates.push('D-shape + conflicting heavyweights + Half-IB access nahi = "No trade is better."'); U('R-NOTRADE-03'); U('R-PAR-03'); }
+  if (bias && opp >= 10 && o.halfIbAccess !== 'yes') { gates.push('Extreme divergence: ' + opp + '/12 heavyweights opposite — Half-IB close ka wait ya single-stock'); U('R-NOTRADE-04'); }
   const cIV = num(o.callIV), pIV = num(o.putIV); if (cIV >= 40 && pIV >= 40) { gates.push('IV 40+ dono sides — options trading avoid'); U('R-OPT-05'); }
   const fri = new Date(dateKey + 'T00:00:00').getDay() === 5; if (fri && (DAY.trades || []).some(t => t.pnl > 0)) { gates.push('Friday: pehla trade successful — doosra trade nahi'); U('R-SIZ-02'); }
-  if (!bias && anc === 'none') gates.push('ITM anchor NEUTRAL — qty kam/wait (Coach)');
-  let action;
-  if (gates.length) action = 'NO TRADE'; else if (anc === null) action = 'WAITING FOR TRIGGER'; else if (order[cp] <= 1) action = (sg.s1[0] === 'PASS' && sg.s3[0] === 'PASS') ? 'TRADE VALID (early momentum — alignment: anchor + participation)' : 'WAITING FOR TRIGGER';
-  else if (pass >= 3) action = 'STRONG TRADE'; else if (pass === 2) action = 'TRADE VALID'; else action = wait ? 'WAITING FOR TRIGGER' : 'NO TRADE';
-  if (/^NO TRADE/.test(action) && !gates.length) { U('R-NOTRADE-01', pass + '/5 signals'); }
-  // plan
+  if (opp >= 7 && opp < 10 && !gates.length) caution.push('Participation ' + opp + '/12 anchor ke opposite — conviction kam, qty kam');
+  if (sg.s2[0] === 'FAIL' && !s2[1].includes('CONFLICT')) caution.push('Half-IB access missing / flat opening — conviction lower');
+  if (sg.s5[0] === 'FAIL') caution.push('VA 80% acceptance missing');
+  if (sg.s4[0] === 'FAIL') caution.push('Order Flow: ' + sg.s4[1] + ' — non-supportive context, automatic no-trade nahi');
+  let action, valid = false;
+  if (gates.length) action = 'NO TRADE';
+  else if (cp === 'pre') action = 'PLAN ONLY — pre-market me entry nahi';
+  else if (anc === null) action = 'WAITING FOR TRIGGER';
+  else if (pass >= 2) { valid = true; action = (pass >= 3 && !caution.length) ? 'TRADE — STRONG' : 'TRADE — CAUTIOUS / REDUCED CONVICTION'; U('R-NOTRADE-01'); }
+  else action = order[cp] <= 2 ? 'WAITING FOR TRIGGER' : 'NO TRADE';
+  if (action === 'NO TRADE' && !gates.length) U('R-NOTRADE-01', pass + '/5 signals');
+  // ---- plan (3-priority SL, T1/T2 zones) ----
   let plan = null; const px = num(DAY.niftyPrice) || num(o.B.c) || num(o.A.c);
-  if (/TRADE/.test(action) && !/^NO/.test(action) && bias && px) {
-    const long = bias === 'up', early = order[cp] <= 1 || o.halfIbAccess !== 'yes'; U('R-ENT-01'); U('R-ENT-02'); U('R-TGT-01'); U('R-TGT-03'); U('R-SL-03');
-    let sl, slWhy, t1 = null, t2 = null;
-    if (early) { const kl = long ? num(L.pdl) : num(L.pdh); sl = kl === null ? null : (long ? kl - 10 : kl + 10); slWhy = 'previous session ' + (long ? 'low' : 'high') + ' ∓10 (Coach example, R-ENT-04) ya VWAP ±10-20'; U('R-ENT-04'); U('R-VA-03');
-      const poc = num(L.poc), far = long ? num(L.vah) : num(L.val); if (poc !== null) t1 = poc; if (far !== null) t2 = far; }
-    else if (ib) { sl = long ? ib.ibLow - 10 : ib.ibHigh + 10; slWhy = ib.len >= 120 ? 'IB boundary (wide IB>=120, R-SL-02)' : 'VWAP ±10-20 (VWAP input nahi) / opposite IB'; U('R-SL-02'); U('R-IB-03'); U('R-TGT-02');
-      t1 = long ? ib.ibHigh + ib.len : ib.ibLow - ib.len; t2 = long ? ib.ibHigh + 2 * ib.len : ib.ibLow - 2 * ib.len; }
+  if (valid && bias && px) {
+    const long = bias === 'up'; U('R-ENT-01'); U('R-ENT-02'); U('R-TGT-01'); U('R-TGT-03'); U('R-SL-03'); U('R-SL-01'); U('R-TGT-02');
+    const vwap = num(o.trailVwap), val = num(L.val), vah = num(L.vah), pdl = num(L.pdl), pdh = num(L.pdh), poc = num(L.poc);
+    let sl = null, slName = '', slWhy = '';
+    const wide = ib && ib.len >= 120;
+    if (vwap !== null && !wide) { sl = long ? vwap - 20 : vwap + 20; slName = 'VWAP ' + (long ? '−' : '+') + ' 10-20 (' + (long ? (vwap - 20) + '–' + (vwap - 10) : (vwap + 10) + '–' + (vwap + 20)) + ')'; slWhy = 'Priority 1'; }
+    else { const c = long ? [val, pdl].filter(x => x !== null && x < px) : [vah, pdh].filter(x => x !== null && x > px), kl = c.length ? (long ? Math.max.apply(null, c) : Math.min.apply(null, c)) : null;
+      if (wide && ib && (long ? ib.ibLow < px : ib.ibHigh > px)) { sl = long ? ib.ibLow - 10 : ib.ibHigh + 10; slName = (long ? 'IB Low' : 'IB High') + ' ∓10'; slWhy = 'Priority 2 — wide IB>=120 (R-SL-02)'; U('R-SL-02'); }
+      else if (kl !== null) { sl = long ? kl - 10 : kl + 10; slName = (long ? (kl === val ? 'VAL' : 'PDL') : (kl === vah ? 'VAH' : 'PDH')) + ' ∓10'; slWhy = 'Priority 2 — previous-session key level' + (vwap === null ? '; VWAP input (opening.trailVwap) missing' : ''); }
+      else { const f = DAY.orderflow.find(x => ['IB', 'IS'].includes(x.tag)); if (f && num(f.poc) !== null) { sl = long ? num(f.poc) - 10 : num(f.poc) + 10; slName = 'first initiative candle POC ∓10'; slWhy = 'Priority 3 (order-flow scalp)'; U('R-SL-02'); } } }
+    // T1: nearest key obstacle; inside prev VA => POC / opposite VA boundary (80% rule)
+    const insideVA = val !== null && vah !== null && px >= val && px <= vah; let t1 = null, t1n = '';
+    if (insideVA) { const c = long ? [[poc, 'POC'], [vah, 'VAH']] : [[poc, 'POC'], [val, 'VAL']]; const f = c.filter(x => x[0] !== null && (long ? x[0] > px : x[0] < px))[0]; if (f) { t1 = f[0]; t1n = f[1]; U('R-VA-03'); } }
+    if (t1 === null) { const c = long ? [[ib && ib.ibHigh, 'IB High'], [pdh, 'PDH']] : [[ib && ib.ibLow, 'IB Low'], [pdl, 'PDL']]; const f = c.filter(x => x[0] !== null && x[0] !== undefined && (long ? x[0] > px : x[0] < px))[0]; if (f) { t1 = f[0]; t1n = f[1]; } }
+    let t2 = null, t2n = '', ext = [];
+    if (ib) { const len = ib.len, hi = ib.ibHigh, lo = ib.ibLow;
+      const half = long ? Math.round(hi + len / 2) : Math.round(lo - len / 2), x2 = long ? lo + 2 * len : hi - 2 * len, x3 = long ? lo + 3 * len : hi - 3 * len;
+      const lv = [[half, 'Half-IB ' + (long ? 'Upper' : 'Lower') + ' (1.5IB)'], [x2, '2IB'], [x3, '3IB']].filter(x => long ? x[0] > (t1 || px) : x[0] < (t1 || px));
+      if (lv.length) { t2 = lv[0][0]; t2n = lv[0][1]; ext = lv.slice(1); U('R-IB-03'); } }
+    else if (insideVA) { const f = long ? vah : val; if (f !== null && f !== t1) { t2 = f; t2n = long ? 'VAH' : 'VAL'; } }
     const risk = sl === null ? null : Math.abs(px - sl), rew = t1 === null ? null : Math.abs(t1 - px), rr = risk && rew ? rew / risk : null;
-    if (rr !== null && rr < 1) { gates.push('RRR ' + rr.toFixed(2) + ' < 1:1 (R-NOTRADE-05*)'); U('R-NOTRADE-05'); action = 'NO TRADE'; }
+    if (rr !== null && rr < 1) caution.push('RRR ~1:' + rr.toFixed(2) + ' — tight SL / light sizing (R-NOTRADE-05*, derived-source)');
     const sel = calcStrikeSelector(), z = calcPositionSizing(); U('R-OPT-01'); U('R-OPT-02'); U('R-SIZ-01');
-    plan = { long, px, sl, slWhy, t1, t2, rr, strike: sel ? (long ? (sel.atm - 100) + ' CE (ITM)' : (sel.atm + 100) + ' PE (ITM)') + ' / ATM ' + sel.atm : 'Open bharo', tier: z ? z.tier + '% (' + z.reasons.length + ' filter, DERIVED mapping)' : 'Base lot bharo' };
+    let tier = z ? z.tier : null; if (tier !== null && (pass === 2 || caution.length)) tier = Math.max(25, tier - 25);
+    plan = { long, px, sl, slName, slWhy, t1, t1n, t2, t2n, ext, rr, strike: sel ? (long ? (sel.atm - 100) + ' CE (ITM) / ATM ' + sel.atm + ' CE' : (sel.atm + 100) + ' PE (ITM) / ATM ' + sel.atm + ' PE') + ' — 100-multiple, OTM nahi' : 'Open bharo', tier: tier === null ? 'Base lot bharo' : tier + '% (reduced tier — DERIVED mapping, scale verified R-SIZ-01)' };
   }
   const miss = []; if (!L.pdh || !L.vah) miss.push('levels (PDH/VAH...)'); if (!(o.fibCE && o.fibCE.p)) miss.push('CE premium 15m close'); if (!(o.fibPE && o.fibPE.p)) miss.push('PE premium 15m close'); if (!o.open) miss.push('open'); if (!o.vix) miss.push('VIX');
-  if (at('ib') && !(o.B.h)) miss.push('B period'); miss.push('VWAP (SL/TSL ke liye) — input nahi'); miss.push('Absorption flag (R-OF-07) — footprint input nahi'); miss.push('2-month avg (R-GAP-04) — formula undefined');
-  return { cp, bias, anc, sg, pass, gates, action, plan, used: Object.keys(used), trace, miss, fri, vix: num(o.vix) };
+  if (at('ib') && !o.B.h) miss.push('B period'); if (!num(o.trailVwap)) miss.push('VWAP (opening.trailVwap) — SL Priority 1 ke liye'); miss.push('Absorption flag (R-OF-07) — footprint input nahi → ' + UNDEF);
+  return { cp, bias, anc, sg, pass, gates, caution, action, valid, plan, used: Object.keys(used), trace, miss, fri, vix: num(o.vix), up, dn, opp, doubt: engDoubt({ gates, caution, anc, bias, opp, plan, sg, up, dn, pass }) };
+}
+/* LEGIT DOUBT — default NO DOUBT; routine noise = decision by process */
+function engDoubt(r) {
+  const keys = [], why = [];
+  if (r.gates.some(g => /Anchor vs Half-IB/.test(g))) { keys.push('conflict'); why.push('Direct rule conflict: anchor vs Half-IB'); }
+  if (r.bias && r.opp >= 7 && r.opp < 10) { keys.push('opp_part'); why.push('Index signal vs stock participation directly opposite (' + r.opp + '/12)'); }
+  if (r.anc === 'none' && r.sg.s1[1] === 'anchor neutral') { keys.push('dual'); why.push('Dual CE/PE chart combination — Coach rule undefined (R-GAP-02)'); }
+  if (r.plan && r.plan.rr !== null && r.plan.rr < 0.5) { keys.push('rr'); why.push('RR collapse ~1:' + r.plan.rr.toFixed(2) + ' (tight-SL/Half-IB/light-sizing pehle apply karo)'); }
+  const hist = JSON.parse(localStorage.getItem('coach_doubts') || '[]'), now = new Date(dateKey + 'T00:00:00').getTime(), recent = hist.filter(h => now - new Date(h.date + 'T00:00:00').getTime() <= 14 * 864e5);
+  const days = k => new Set(recent.filter(h => h.key === k).map(h => h.date).concat([dateKey])).size;
+  const wk = new Set(hist.filter(h => h.genuine && now - new Date(h.date + 'T00:00:00').getTime() <= 7 * 864e5).map(h => h.date)).size;
+  if (!keys.length) return { status: 'NO DOUBT', reason: 'Routine variation (' + r.pass + '/5, missing Half-IB/VA confirmation, D-shape rotation etc.) = decision-making case, not a coach question.', process: r.valid ? 'Decision made by process — not a coach question. Qty kam, higher-probability side, poora process follow.' : '', keys, wk };
+  const genuine = keys.some(k => days(k) >= 2) && wk < 2;
+  const Q = { conflict: 'Sir, momentum VA signal aur Half-IB opposite aaye to kisko follow karte ho aur size kaise rakhte ho?', opp_part: 'Sir, index ka signal aur 7+ heavyweights ulte hon to aap kaise decide karte ho aur size kitna rakhte ho?', dual: 'Sir, call aur put dono ka VA ek hi taraf dikhe to aap kya karte ho?', rr: 'Sir, entry aur SL ke hisaab se RR bahut kam aaye to aap kya adjust karte ho?' };
+  return { status: genuine ? 'GENUINE DOUBT' : 'POSSIBLE DOUBT', reason: why.join('; ') + (genuine ? ' — repeated structural conflict' : ' — abhi sirf ek baar; repeat hone par genuine') + (wk >= 2 ? ' (weekly limit 1-2 poora)' : ''), process: r.valid ? 'Pehle existing rule apply karo, qty kam, process follow.' : '', question: genuine ? Q[keys.find(k => days(k) >= 2)] : '', keys, wk };
 }
 function engHTML(r) {
-  const lab = { pre: 'Pre-market', a930: '9:30 anchor', ib: '10:15 IB', trig: 'Trigger', dt: '11:30 day type' }[r.cp], tzs = n => n === null ? '—' : tz(n), P = r.plan;
+  const lab = { pre: 'Pre-market', a930: '9:30 anchor', ib: '10:15 IB', trig: 'Trigger', dt: '11:30 day type' }[r.cp], P = r.plan, NA = 'N/A — no valid trade setup';
   const S = [['S1 ITM Fib anchor', r.sg.s1], ['S2 Opening / Half-IB', r.sg.s2], ['S3 Participation 7-8/12', r.sg.s3], ['S4 Order Flow combo+delta', r.sg.s4], ['S5 VA 80% / Day type', r.sg.s5]];
-  const cls = a => /^NO/.test(a) ? 'neg' : (/WAIT/.test(a) ? 'amb' : 'pos');
-  let h = '<div class="result-box"><b>Checkpoint:</b> ' + lab + ' (sirf us tak ka data)<br><b>1. SIGNAL COUNT:</b> ' + r.pass + '/5 <span class="muted">[5-signal map DERIVED — Rulebook Sec C]</span><br>' +
+  const cls = a => /^NO/.test(a) ? 'neg' : (/WAIT|PLAN/.test(a) ? 'amb' : 'pos'), D = r.doubt;
+  let h = '<div class="hint-box" style="padding:0 0 8px"><b>PRIMARY DECISION RULE (Coach):</b> "Ap system ka process follow kijiye. Agar 4 things ka alignment hoga to magic hoga. Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo, usme bhi process hi follow kijiye."</div>';
+  h += '<div class="result-box"><b>Checkpoint:</b> ' + lab + ' (sirf us tak ka data)<br><b>1. SIGNAL COUNT:</b> ' + r.pass + '/5' + (r.pass >= 2 ? ' — TRADE VALID per Coach\'s 2+ signals rule' : '') + '<br><span class="muted">SIG-MAP: Coach ne decision process diya; journal ne use 5-signal operational map me implement kiya.</span><br>' +
     S.map(s => (s[1][0] === 'PASS' ? '✅' : (s[1][0] === 'FAIL' ? '❌' : '⏳')) + ' ' + s[0] + ' — ' + s[1][0] + ': ' + s[1][1]).join('<br>') +
-    '<br><b>2. BIAS:</b> ' + (r.bias ? engDir(r.bias) : (r.anc === 'none' ? 'NEUTRAL' : 'PENDING — ITM anchor missing')) +
-    '<br><b>3. ACTION:</b> <b class="' + cls(r.action) + '">' + r.action + '</b>' + (r.action.startsWith('TRADE') || r.action.startsWith('STRONG') ? '<br>Trade is VALID per Coach\'s 2+ signals rule' : '') + '</div>';
-  if (r.gates.length) h += '<div class="result-box neg"><b>NO-TRADE / CONFLICT:</b><br>' + r.gates.join('<br>') + '</div>';
-  if (P) h += '<div class="result-box"><b>4. ENTRY ZONE:</b> Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.<br><b>5. SL:</b> ' + (P.sl === null ? '—' : P.sl.toFixed(0)) + ' <span class="muted">(' + P.slWhy + ')</span><br><b>Targets (zones):</b> T1 ' + tzs(P.t1) + ' · T2 ' + tzs(P.t2) + (P.rr ? ' · RRR~' + P.rr.toFixed(2) : '') + '<br>Partial: T1 par 50-70% book, SL cost/VWAP (R-TGT-03). TSL: VWAP ±10-20 index / option premium % (R-SL-01/05).<br><b>6. STRIKE:</b> ' + P.strike + ' <span class="muted">(ITM depth = ' + UNDEF + ')</span><br><b>Sizing:</b> ' + P.tier + (r.fri ? ' · Friday 50% cap (R-SIZ-02)' : '') + '<br>Fresh trade 2:40 PM ke baad nahi.</div>';
-  h += '<div class="result-box"><b>7. ORDER FLOW CHECK:</b> ' + r.sg.s4[1] + '<br>Absorption: ' + UNDEF + '<br><b>8. PSYCHOLOGY:</b> ' + (/^NO/.test(r.action) ? '"Whenever the doubt rise, no trade." (R-PSY-06)' : '"Signals fire hue -> Trade valid -> Entry lo (current price). Pullback aaya to bonus, nahi aaya to bhi setup correct tha." (R-PSY-01)') +
-    '<br><b>9. COACH QUOTE:</b> "' + (r.used.map(i => ENG_REG[i]).filter(x => x && x[1].startsWith('VERIFIED'))[0] || ['', '', 'Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo.'])[2] + '"<br><b>11. CONTEXT:</b> VIX ' + (r.vix || '?') + (r.vix && r.vix < 12 ? ' (Low VIX: zone + early partial, R-TGT-04)' : '') + ' · IB ' + ((calcIB() || {}).cat || '—') + ' · Day ' + (calcDayType() || '—') + ' · Opening ' + ((calcOpening() || {}).base || '—') + '</div>';
-  h += '<div class="result-box"><b>Missing / pending inputs:</b><br>' + r.miss.join('<br>') + '</div>';
-  h += '<div class="result-box"><b>AUDIT — rule IDs used:</b><br>' + r.used.map(i => { const e = ENG_REG[i] || ['?', '?', '']; return i + ' · ' + e[0] + ' · <b class="' + (e[1].startsWith('VERIFIED') ? 'pos' : 'amb') + '">' + e[1] + '</b>'; }).join('<br>') + '<br><br><b>Calculation trace:</b><br>' + r.trace.join('<br>') + '</div>';
+    '<br><b>2. BIAS:</b> ' + (r.bias ? engDir(r.bias) : (r.anc === 'none' ? 'NEUTRAL' : 'PENDING — ITM anchor missing')) + '<br><b>3. ACTION:</b> <b class="' + cls(r.action) + '">' + r.action + '</b></div>';
+  if (r.gates.length) h += '<div class="result-box neg"><b>DIRECT COACH NO-TRADE RULE:</b><br>' + r.gates.join('<br>') + '</div>';
+  if (r.caution.length) h += '<div class="result-box amb"><b>CAUTION (reduce size, no-trade nahi):</b><br>' + r.caution.join('<br>') + '<br>Conviction lower; size strictly manage karo.</div>';
+  h += '<div class="result-box"><b>4. ENTRY ZONE:</b> ' + (P ? 'Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.' : NA) +
+    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>SL: ' + (P.sl === null ? '— (VWAP/key level input missing)' : P.sl.toFixed(0) + ' = ' + P.slName + ' <span class="muted">(' + P.slWhy + ')</span>') + '<br>T1 ZONE: ' + zn(P.t1, P.t1n) + '<br>T2 ZONE: ' + zn(P.t2, P.t2n) + (P.ext.length ? '<br>Aage: ' + P.ext.map(x => zn(x[0], x[1])).join(' · ') : '') + (P.rr ? '<br>RRR ~1:' + P.rr.toFixed(2) : '') + '<br>T1 par 50-70% book, runner SL cost/VWAP. TSL: VWAP ±10-20 (index) / premium % (R-SL-01/05).' : NA) +
+    '<br><b>6. STRIKE:</b> ' + (P ? P.strike + ' <span class="muted">(ITM depth: ' + UNDEF + ')</span>' : NA) + '<br><b>Sizing:</b> ' + (P ? P.tier : NA) + (r.fri ? ' · Friday 50% cap (R-SIZ-02)' : '') + '<br>Fresh trade 2:40 PM ke baad nahi.</div>';
+  h += '<div class="result-box"><b>7. ORDER FLOW CHECK:</b> ' + (r.sg.s4[0] === 'FAIL' ? r.sg.s4[1] + '. Non-supportive context, not automatic no-trade.' : r.sg.s4[1]) + '<br>Absorption: ' + UNDEF + '<br><b>8. PSYCHOLOGY:</b> ' + (/^NO/.test(r.action) ? '"Whenever the doubt rise, no trade." (R-PSY-06)' : '"Signals fire hue -> Trade valid -> Entry lo (current price). Pullback aaya to bonus, nahi aaya to bhi setup correct tha."') +
+    '<br><b>9. COACH QUOTE:</b> "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." · "Pullback aaya to bonus, nahi aaya to bhi setup correct tha." · "Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo."' +
+    '<br><b>10. WHAT COACH WOULD DO:</b> ' + (P ? '1) Anchor + signals check ✓ 2) Entry current price pe 3) SL (3-priority) 4) T1 par 50-70% book, SL cost/VWAP 5) 2:40 ke baad no fresh trade; qty kam kyunki ' + (r.caution.length ? 'confirmations missing' : 'normal tier') : 'Process follow: stand down ya agla 15-min close trigger ka wait') +
+    '<br><b>11. CONTEXT:</b> VIX ' + (r.vix || '?') + (r.vix && r.vix < 12 ? ' (Low VIX: zone + early partial, R-TGT-04)' : '') + ' · IB ' + ((calcIB() || {}).cat || '—') + ' · Day ' + (calcDayType() || '—') + ' · Opening ' + ((calcOpening() || {}).base || '—') + ' · Shape ' + (DAY.opening.profileShape || '—') + '</div>';
+  h += '<div class="result-box"><b>? LEGIT DOUBT FOR COACH — DAILY CHECK</b><br>STATUS: <b class="' + (D.status === 'NO DOUBT' ? 'pos' : 'amb') + '">' + D.status + '</b><br>REASON: ' + D.reason + (D.process ? '<br>DECISION MADE BY PROCESS: ' + D.process : '') + (D.question ? '<br>COACH QUESTION: ' + D.question : '') + '<br><span class="muted">Is hafte genuine questions: ' + D.wk + '/2</span></div>';
+  const ids = r.used, sigIds = ['R-MOM-02', 'R-PAR-01', 'R-IB-04', 'R-OF-03', 'R-OF-04', 'R-NOTRADE-06', 'R-VA-01', 'R-OPEN-01'].filter(i => ids.includes(i)), line = i => { const e = ENG_REG[i] || ['?', '?', '']; return i + ' · ' + e[0] + ' · <b class="' + (e[1].startsWith('VERIFIED') ? 'pos' : 'amb') + '">' + e[1] + '</b>'; };
+  h += '<div class="result-box"><b>AUDIT</b><br><b>Signal rules used:</b><br>' + (sigIds.map(line).join('<br>') || '—') + '<br><b>Verified individual rules:</b> ' + ids.filter(i => (ENG_REG[i] || [0, ''])[1].startsWith('VERIFIED')).join(', ') +
+    '<br><b>Derived framework:</b> ' + line('SIG-MAP') + '<br><b>Primary rule:</b> ' + line('R-DEC-01') + '<br><b>Signal count:</b> ' + r.pass + '/5 · <b>Trade validity:</b> ' + (r.pass >= 2 ? 'TRADE VALID per Coach\'s 2+ signals rule' : 'NO TRADE (0-1/5)') + '<br><b>Decision by process:</b> ' + (r.valid && r.caution.length ? 'reduced quantity / cautious conviction' : '—') +
+    '<br><b>Other rule IDs:</b><br>' + ids.filter(i => !sigIds.includes(i) && i !== 'SIG-MAP' && i !== 'R-DEC-01').map(line).join('<br>') + '<br><br><b>Missing / pending inputs:</b><br>' + r.miss.join('<br>') + '<br><br><b>Calculation trace:</b><br>' + r.trace.join('<br>') + '</div>';
   return h;
 }
-function engRender() { const sel = document.getElementById('engCP'); const cp = sel.value === 'auto' ? engCP() : sel.value; document.getElementById('engOut').innerHTML = engHTML(engRun(cp)); }
+function engRender(manual) { const sel = document.getElementById('engCP'); const cp = sel.value === 'auto' ? engCP() : sel.value, r = engRun(cp); document.getElementById('engOut').innerHTML = engHTML(r);
+  if (manual === true && r.doubt.keys.length) { const hist = JSON.parse(localStorage.getItem('coach_doubts') || '[]'); r.doubt.keys.forEach(k => { if (!hist.some(h => h.date === dateKey && h.key === k)) hist.push({ date: dateKey, key: k, genuine: r.doubt.status === 'GENUINE DOUBT' }); }); localStorage.setItem('coach_doubts', JSON.stringify(hist)); } }
+function teachRender() { const a = JSON.parse(localStorage.getItem('coach_teachings') || '[]'); document.getElementById('teachList').innerHTML = a.map(t => '<div class="tr-item"><div><b>' + t.date + '</b> — ' + t.situation + '<br><span class="muted">Coach:</span> "' + t.answer + '"</div></div>').join('') || '<div class="hint-box" style="padding:0 14px 8px">Abhi koi saved teaching nahi.</div>'; }
+document.getElementById('teachSave').onclick = () => { const s = document.getElementById('teachSit').value.trim(), an = document.getElementById('teachAns').value.trim(); if (!s || !an) { alert('Situation aur Coach ka answer dono bharo.'); return; } const a = JSON.parse(localStorage.getItem('coach_teachings') || '[]'); a.push({ date: dateKey, situation: s, answer: an }); localStorage.setItem('coach_teachings', JSON.stringify(a)); document.getElementById('teachSit').value = document.getElementById('teachAns').value = ''; teachRender(); };
 /* Rules Library: Master_Rulebook.md paste -> parse -> localStorage 'coach_rulebook' (backup se alag) */
 const RB_FIELDS = ['RULE NAME', 'COACH TEACHING', 'EXACT COACH QUOTE', 'SOURCE FILE / SESSION', 'TIMESTAMP / LOCATION', 'TRIGGER CONDITIONS', 'INVALIDATION CONDITIONS', 'ENTRY LOGIC', 'STOP-LOSS LOGIC', 'TARGET / EXIT LOGIC', 'NO-TRADE CONDITIONS', 'POSITION-SIZING IMPACT', 'CONFLICTS', 'STATUS'];
 function rbParse(txt) {
@@ -3537,7 +3581,7 @@ function rbRender() {
     '<br><span class="muted">Trigger:</span> ' + (r['TRIGGER CONDITIONS'] || '') + '<br><span class="muted">Invalid:</span> ' + (r['INVALIDATION CONDITIONS'] || '') + '<br><span class="muted">Entry:</span> ' + (r['ENTRY LOGIC'] || '') + '<br><span class="muted">SL:</span> ' + (r['STOP-LOSS LOGIC'] || '') +
     '<br><span class="muted">Target:</span> ' + (r['TARGET / EXIT LOGIC'] || '') + '<br><span class="muted">No-trade:</span> ' + (r['NO-TRADE CONDITIONS'] || '') + '<br><span class="muted">Sizing:</span> ' + (r['POSITION-SIZING IMPACT'] || '') + '</div></div>').join('') + (rows.length === 60 ? '<div class="hint-box" style="padding:8px 14px">Pehle 60 dikh rahe hain — search/filter use karo.</div>' : '');
 }
-document.getElementById('engRunBtn').onclick = engRender; document.getElementById('engCP').onchange = engRender;
+document.getElementById('engRunBtn').onclick = () => engRender(true); document.getElementById('engCP').onchange = engRender;
 document.getElementById('rbQ').oninput = rbRender; document.getElementById('rbF').onchange = rbRender;
 document.getElementById('rbImportBtn').onclick = () => { const t = document.getElementById('rbText').value; const r = rbParse(t); if (!r.length) { alert('Koi RULE ID nahi mila.'); return; } localStorage.setItem('coach_rulebook', JSON.stringify(r)); document.getElementById('rbText').value = ''; rbRender(); alert(r.length + ' rules import ho gaye.'); };
 
