@@ -200,7 +200,7 @@
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v20.1 (Rules Engine fixed)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v21.1 (Plan messages)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -226,6 +226,7 @@
   <!-- ================= LEVELS ================= -->
   <!-- ================= PRE-MARKET ================= -->
   <div id="section-premarket" class="section">
+<div class="card"><div class="card-title">PRE-MARKET CHECKLIST</div><div id="pmBox"></div></div>
     <div class="hint-box" style="padding:12px 4px 14px">🌙 Raat ko bharo: reference levels agle din ke liye.</div>
 <div class="card">
       <div class="card-title">REFERENCE LEVELS (raat ko bhar do)</div>
@@ -442,8 +443,12 @@
   <!-- ================= MIDDAY ================= -->
   <div id="section-midday" class="section">
     <div class="hint-box" style="padding:12px 4px 14px">☀️ Day Type confirm ~11:00 baad hota hai (ladder ke liye time chahiye), lekin Order Flow candles tag karna aur Profile Shape observe karna turant se shuru kar sakte ho — wait mat karo.</div>
+<div class="card"><div class="card-title">C-PERIOD BENCHMARK (optional)</div>
+      <div class="field-row"><span class="lbl">C volume (apna unit)</span><input id="c_vol" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">C price move (pts)</span><input id="c_range" inputmode="decimal"></div>
+      <div class="hint-box" id="cBenchOut" style="padding:0 14px 12px"></div></div>
 <div class="card">
-      <div class="card-title">PROFILE SHAPE (mid-noon / day close par final — 11:30 par provisional)</div>
+      <div class="card-title">PROFILE SHAPE (close pe final, ya mid-noon jab day visual kare)</div>
       <div class="toggle-q">Session ka shape kaisa bana?</div>
       <div class="toggle-group" id="tg_profileShape">
         <button data-val="P">P-shape</button>
@@ -752,6 +757,8 @@
         <div class="big-num">– / 5</div>
         <div class="sub">Half-IB Side toggle (Day Type Ladder, MORNING) bharo pehle</div>
       </div>
+      <!-- Coach: "First watch options strike ITM as per Fibonacci value area... for confidence we need other process to follow." -->
+      <div class="hint-box" style="padding:0 14px 6px"><span class="muted">Engine ka plan ITM Anchor direction se banta hai — Signals Count card se alag hai.</span></div>
       <div class="result-box" id="patternWarnBox" style="margin-top:8px">Pattern warning: Trade log bharo (TRADES tab)</div>
       <div class="hint-box" style="padding:0 14px 12px">Signals: Opening Type, Half-IB Break, VA Access, Tick Acceptance, Time Confirmation. Coach ka rule: "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." — ye ek holy-grail count nahi hai, sirf ek synthesis tool hai jo already-filled toggles se count karta hai.</div>
     </div>
@@ -791,6 +798,8 @@
       <div class="field-row"><span class="lbl">Premium exit (optional)</span><input id="t_exit" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Lots</span><input id="t_lots" inputmode="decimal"></div>
       <div class="hint-box" id="tradeLotHint" style="padding:0 14px 10px"></div>
+      <div class="field-row"><span class="lbl">Lot size (ek baar)</span><input id="t_lotsize" inputmode="decimal" placeholder="risk ₹ ke liye"></div>
+      <div class="hint-box" id="tradeRiskInfo" style="padding:0 14px 10px"></div>
       <div class="field-row"><span class="lbl">P&amp;L ₹ (loss me -)</span><input id="t_pnl" inputmode="text" placeholder="-1200 ya 3.5k"></div>
       <div class="toggle-q">Exit kaise hua</div>
       <div style="padding:0 14px 10px"><select id="t_reason" class="of-tag-select"><option value="">-- chuno --</option><option>T1</option><option>Trail</option><option>SL hit</option><option>Time cutoff</option><option>Panic exit</option><option>Other</option></select></div>
@@ -798,7 +807,7 @@
       <div class="toggle-group" id="tg_tPre"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
       <div class="toggle-q">TSL plan</div>
       <div style="padding:0 14px 10px"><select id="t_tsl" class="of-tag-select"><option value="">-- chuno --</option><option value="vwap">VWAP trailing (±10-20 pts, index)</option><option value="prem">Option premium % retracement</option><option value="ib">IB boundary (wide IB)</option></select></div>
-      <div class="toggle-q">Trade ka trigger kya tha?</div>
+      <div class="toggle-q">Trade ka trigger (auto-suggest — confirm karo)</div>
       <div style="padding:0 14px 10px"><select id="t_trig" class="of-tag-select"><option value="">-- chuno --</option><option value="system">Pure system signal (11:30)</option><option value="news">TV channel / news</option><option value="social">Social media / tweet</option><option value="fomo">FOMO / impatience</option></select></div>
       <div class="toggle-q">Trade ke andar emotion</div>
       <div style="padding:0 14px 10px"><select id="t_emo" class="of-tag-select"><option value="">-- chuno --</option><option value="calm">Calm &amp; planned</option><option value="anx">Anxious &amp; oversized</option><option value="imp">Impatient &amp; early exit</option></select></div>
@@ -806,7 +815,7 @@
       <div class="toggle-group" id="tg_tPlan"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
       <div class="toggle-q">Process error hui? (khali chhodo = auto-detect)</div>
       <div class="toggle-group" id="tg_tPerr"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
-      <div class="toggle-q">Mistakes (jo hui wo tap karo)</div>
+      <div class="toggle-q">Behaviour / Mistakes (OPTIONAL — baad me bhi bhar sakte ho)</div>
       <div class="chips" id="t_mist"></div>
       <div style="padding:0 14px 10px"><textarea id="t_note" placeholder="note..." style="width:100%;min-height:60px;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:13px;padding:8px;font-family:inherit;outline:none"></textarea></div>
       <div class="hint-box" id="tradeFormMsg" style="padding:0 14px 8px"></div>
@@ -834,6 +843,7 @@
   <!-- ================= SUMMARY ================= -->
   <div id="section-summary" class="section">
     <div class="hint-box" style="padding:12px 4px 14px">🌙 EOD: poore din ka summary, aur neeche history/backup/settings.</div>
+<div class="card"><div class="card-title">LOSS-LIMIT ALERT (auto)</div><div id="limitBox"></div></div>
 <div class="card"><div class="card-title">PROCESS COMPLIANCE SCORE</div><div id="processScoreBox"></div></div>
 <div class="card">
       <div class="card-title">CURRENT / LIVE PRICE</div>
@@ -981,7 +991,7 @@ function blankDay() {
       ofReality: null, newsDistortion: null,
       value20pct: null, value20pctSide: null,
       prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
-      cVolumeStrong: null, oaorTimingConfirmed: null,
+      cVolumeStrong: null, oaorTimingConfirmed: null, pmFib: false, pmOpen: false, cVol: "", cRange: "",
       nlm: { done: {}, lastTrig: "" },
       itmVA: null, itmSide: null, itmCE: null, itmPE: null, fibCE: {h:"",l:"",p:""}, fibPE: {h:"",l:"",p:""}, odH: "", odL: "", odCEh: "", odCEl: "", odPEh: "", odPEl: "",
       profileShape: null, pShapeType: null,
@@ -2921,7 +2931,7 @@ const MISTAKES = [
 const MIN_SAMPLE = 5;      // itne trades se kam = "kam sample", bharosa mat karo
 const WARN_WINRATE = 0.35; // is se kam win% + negative ₹ = warning
 let TF = { dir:null, plan:null, pre:null, perr:null, mist:[] };
-let TRADES_CACHE = [];
+let TRADES_CACHE = [], CVOL_CACHE = [];
 
 function parseMoney(v) {
   let s = String(v == null ? '' : v).toLowerCase().replace(/[₹,\s]/g, '');
@@ -3073,6 +3083,7 @@ async function refreshTradesCache() {
   });
   if (!seen[dateKey]) (DAY.trades || []).forEach(t => flat.push(Object.assign({ date: dateKey }, t)));
   TRADES_CACHE = flat;
+  CVOL_CACHE = days.filter(d => d.key !== dateKey).map(d => { const o = (d.saved && d.saved.opening) || {}; return { date: d.key, v: parseFloat(o.cVol), r: parseFloat(o.cRange) }; });
 }
 
 function renderPatternWarn() {
@@ -3099,9 +3110,10 @@ function renderTradeForm() {
   if (!tm.value) { const n = new Date(); tm.value = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); }
   const se = document.getElementById('t_sEntry');
   if (!se.value || se.value === TF.autoSE) { se.value = DAY.niftyPrice || ''; TF.autoSE = se.value; }  // sirf auto-filled value badalta hai, aapka likha nahi
-  updateLotHint(); updateRRHint();
+  updateLotHint(); updateRRHint(); try { tradeAutoFill(); } catch (e) {}
 }
 function updateRRHint() {
+  try { tradeLockUpdate(); } catch (e) {}
   const el = document.getElementById('tradeRRHint'); if (!el) return;
   const g = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
   const up = TF.dir !== 'down';
@@ -3161,6 +3173,7 @@ function autoErrReasons(tr) {
 
 document.getElementById('addTradeBtn').onclick = async () => {
   const msg = document.getElementById('tradeFormMsg');
+  if (!tradeLockOk()) { tradeLockUpdate(); return; }
   const pnl = parseMoney(document.getElementById('t_pnl').value);
   if (!TF.dir) { msg.innerHTML = '<span class="neg">Direction chuno (CE/PE).</span>'; return; }
   if (isNaN(pnl)) { msg.innerHTML = '<span class="neg">P&L ₹ bharo (loss ho to -1200 jaisa).</span>'; return; }
@@ -3250,6 +3263,7 @@ function renderInsights() {
 function renderTradeSection() { renderTradeForm(); renderTodayTrades(); renderInsights(); try { renderProcessScore(); } catch (e) {} try { renderPatternWarn(); } catch (e) {} }
 
 function renderProcessScore() {
+  try { renderLimits(); } catch (e) {}
   const box = document.getElementById('processScoreBox'); if (!box) return;
   const today = (DAY.trades || []).filter(t => typeof t.pnl === 'number').map(t => Object.assign({ _ps: computeProcessScore(t) }, t));
   if (!today.length) { box.innerHTML = '<div class="hint-box" style="padding:0 14px 14px">Aaj process score ke liye koi trade log nahi (TRADES tab).</div>'; return; }
@@ -3517,7 +3531,7 @@ function engRun(cp) {
   }
   const miss = []; if (!L.pdh || !L.vah) miss.push('levels (PDH/VAH...)'); if (!(o.fibCE && o.fibCE.p)) miss.push('CE premium 15m close'); if (!(o.fibPE && o.fibPE.p)) miss.push('PE premium 15m close'); if (!o.open) miss.push('open'); if (!o.vix) miss.push('VIX');
   if (at('ib') && !o.B.h) miss.push('B period'); if (!num(o.trailVwap)) miss.push('VWAP (opening.trailVwap) — SL Priority 1 ke liye'); miss.push('Absorption flag (R-OF-07) — footprint input nahi → ' + UNDEF);
-  return { cp, bias, anc, sg, pass, gates, caution, action, valid, plan, used: Object.keys(used), trace, miss, fri, vix: num(o.vix), up, dn, opp, doubt: engDoubt({ gates, caution, anc, bias, opp, plan, sg, up, dn, pass }) };
+  return { cp, bias, anc, sg, pass, gates, caution, action, valid, plan, neutralNoPlan: !!(valid && !bias && px), pxMissing: !!(valid && bias && !px), used: Object.keys(used), trace, miss, fri, vix: num(o.vix), up, dn, opp, doubt: engDoubt({ gates, caution, anc, bias, opp, plan, sg, up, dn, pass }) };
 }
 /* LEGIT DOUBT — default NO DOUBT; routine noise = decision by process */
 function engDoubt(r) {
@@ -3535,17 +3549,17 @@ function engDoubt(r) {
   return { status: genuine ? 'GENUINE DOUBT' : 'POSSIBLE DOUBT', reason: why.join('; ') + (genuine ? ' — repeated structural conflict' : ' — abhi sirf ek baar; repeat hone par genuine') + (wk >= 2 ? ' (weekly limit 1-2 poora)' : ''), process: r.valid ? 'Pehle existing rule apply karo, qty kam, process follow.' : '', question: genuine ? Q[keys.find(k => days(k) >= 2)] : '', keys, wk };
 }
 function engHTML(r) {
-  const lab = { pre: 'Pre-market', a930: '9:30 anchor', ib: '10:15 IB', trig: 'Trigger', dt: '11:30 day type' }[r.cp], P = r.plan, NA = 'N/A — no valid trade setup';
+  const lab = { pre: 'Pre-market', a930: '9:30 anchor', ib: '10:15 IB', trig: 'Trigger', dt: '11:30 day type' }[r.cp], P = r.plan, NA = 'N/A — no valid trade setup', NP = '<span class="amb">Plan nahi bana kyunki ITM Anchor NEUTRAL hai — CE aur PE ki Fib-VA states clearly opposite nahi hain (dono same side ya inside). Dono charts dobara check karo.</span>', PX = '<span class="amb">Plan nahi bana kyunki current price missing hai — Nifty price (ya A/B close) bharo.</span>', NOPLAN = r.neutralNoPlan ? NP : (r.pxMissing ? PX : NA);
   const S = [['S1 ITM Fib anchor', r.sg.s1], ['S2 Opening / Half-IB', r.sg.s2], ['S3 Participation 7-8/12', r.sg.s3], ['S4 Order Flow combo+delta', r.sg.s4], ['S5 VA 80% / Day type', r.sg.s5]];
   const cls = a => /^NO/.test(a) ? 'neg' : (/WAIT|PLAN/.test(a) ? 'amb' : 'pos'), D = r.doubt;
-  let h = '<div class="hint-box" style="padding:0 0 8px"><b>PRIMARY DECISION RULE (Coach):</b> "Ap system ka process follow kijiye. Agar 4 things ka alignment hoga to magic hoga. Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo, usme bhi process hi follow kijiye."</div>';
+  let h = (pmComplete() ? '' : '<div class="result-box amb">⚠ Pre-market checklist incomplete — process pehle</div>') + '<div class="hint-box" style="padding:0 0 8px"><b>PRIMARY DECISION RULE (Coach):</b> "Ap system ka process follow kijiye. Agar 4 things ka alignment hoga to magic hoga. Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo, usme bhi process hi follow kijiye."</div>';
   h += '<div class="result-box"><b>Checkpoint:</b> ' + lab + ' (sirf us tak ka data)<br><b>1. SIGNAL COUNT:</b> ' + r.pass + '/5' + (r.pass >= 2 ? ' — TRADE VALID per Coach\'s 2+ signals rule' : '') + '<br><span class="muted">SIG-MAP: Coach ne decision process diya; journal ne use 5-signal operational map me implement kiya.</span><br>' +
     S.map(s => (s[1][0] === 'PASS' ? '✅' : (s[1][0] === 'FAIL' ? '❌' : '⏳')) + ' ' + s[0] + ' — ' + s[1][0] + ': ' + s[1][1]).join('<br>') +
     '<br><b>2. BIAS:</b> ' + (r.bias ? engDir(r.bias) : (r.anc === 'none' ? 'NEUTRAL' : 'PENDING — ITM anchor missing')) + '<br><b>3. ACTION:</b> <b class="' + cls(r.action) + '">' + r.action + '</b></div>';
   if (r.gates.length) h += '<div class="result-box neg"><b>DIRECT COACH NO-TRADE RULE:</b><br>' + r.gates.join('<br>') + '</div>';
   if (r.caution.length) h += '<div class="result-box amb"><b>CAUTION (reduce size, no-trade nahi):</b><br>' + r.caution.join('<br>') + '<br>Conviction lower; size strictly manage karo.</div>';
-  h += '<div class="result-box"><b>4. ENTRY ZONE:</b> ' + (P ? 'Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.' : NA) +
-    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>SL: ' + (P.sl === null ? '— (VWAP/key level input missing)' : P.sl.toFixed(0) + ' = ' + P.slName + ' <span class="muted">(' + P.slWhy + ')</span>') + '<br>T1 ZONE: ' + zn(P.t1, P.t1n) + '<br>T2 ZONE: ' + zn(P.t2, P.t2n) + (P.ext.length ? '<br>Aage: ' + P.ext.map(x => zn(x[0], x[1])).join(' · ') : '') + (P.rr ? '<br>RRR ~1:' + P.rr.toFixed(2) : '') + '<br>T1 par 50-70% book, runner SL cost/VWAP. TSL: VWAP ±10-20 (index) / premium % (R-SL-01/05).' : NA) +
+  h += '<div class="result-box"><b>4. ENTRY ZONE:</b> ' + (P ? 'Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.' : NOPLAN) +
+    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>SL: ' + (P.sl === null ? '— (VWAP/key level input missing)' : P.sl.toFixed(0) + ' = ' + P.slName + ' <span class="muted">(' + P.slWhy + ')</span>') + '<br>T1 ZONE: ' + zn(P.t1, P.t1n) + '<br>T2 ZONE: ' + zn(P.t2, P.t2n) + (P.ext.length ? '<br>Aage: ' + P.ext.map(x => zn(x[0], x[1])).join(' · ') : '') + (P.rr ? '<br>RRR ~1:' + P.rr.toFixed(2) : '') + '<br>T1 par 50-70% book, runner SL cost/VWAP. TSL: VWAP ±10-20 (index) / premium % (R-SL-01/05).' : NOPLAN) +
     '<br><b>6. STRIKE:</b> ' + (P ? P.strike + ' <span class="muted">(ITM depth: ' + UNDEF + ')</span>' : NA) + '<br><b>Sizing:</b> ' + (P ? P.tier : NA) + (r.fri ? ' · Friday 50% cap (R-SIZ-02)' : '') + '<br>Fresh trade 2:40 PM ke baad nahi.</div>';
   h += '<div class="result-box"><b>7. ORDER FLOW CHECK:</b> ' + (r.sg.s4[0] === 'FAIL' ? r.sg.s4[1] + '. Non-supportive context, not automatic no-trade.' : r.sg.s4[1]) + '<br>Absorption: ' + UNDEF + '<br><b>8. PSYCHOLOGY:</b> ' + (/^NO/.test(r.action) ? '"Whenever the doubt rise, no trade." (R-PSY-06)' : '"Signals fire hue -> Trade valid -> Entry lo (current price). Pullback aaya to bonus, nahi aaya to bhi setup correct tha."') +
     '<br><b>9. COACH QUOTE:</b> "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." · "Pullback aaya to bonus, nahi aaya to bhi setup correct tha." · "Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo."' +
@@ -3585,6 +3599,69 @@ document.getElementById('engRunBtn').onclick = () => engRender(true); document.g
 document.getElementById('rbQ').oninput = rbRender; document.getElementById('rbF').onchange = rbRender;
 document.getElementById('rbImportBtn').onclick = () => { const t = document.getElementById('rbText').value; const r = rbParse(t); if (!r.length) { alert('Koi RULE ID nahi mila.'); return; } localStorage.setItem('coach_rulebook', JSON.stringify(r)); document.getElementById('rbText').value = ''; rbRender(); alert(r.length + ' rules import ho gaye.'); };
 
+
+/* ===== DISCIPLINE (v21) — low-friction: auto jahan ho sake, optional jahan ho sake ===== */
+// Coach (WhatsApp, user-reported): "Simple rakhe ap bhi" — isliye minimal cards, auto-calc.
+// 1) PRE-MARKET CHECKLIST. Coach: "You will prepare yourself as early you can in a pre market." / "You need to plot Fibonacci on previous session range... you need to do in every session."
+function pmAuto() { const L = DAY.levels || {}, o = DAY.opening; return { lv: ['pdh', 'pdl', 'vah', 'val', 'poc'].every(k => nlmF(L[k])), vix: nlmF(o.vix) }; }
+function pmComplete() { const a = pmAuto(), o = DAY.opening; return a.lv && a.vix && !!o.pmFib && !!o.pmOpen; }
+function renderPmCheck() {
+  const box = document.getElementById('pmBox'); if (!box) return; const a = pmAuto(), o = DAY.opening;
+  const row = (ok, l, key) => '<div class="ins-r"><span>' + (ok ? '✅' : '⬜') + ' ' + l + (key ? '' : ' <span class="muted">(auto)</span>') + '</span>' + (key ? '<button class="chip' + (ok ? ' on' : '') + '" data-pm="' + key + '">' + (ok ? 'done' : 'tick') + '</button>' : '') + '</div>';
+  box.innerHTML = row(a.lv, 'Reference levels bhare (PDH/PDL/VAH/VAL/POC)') + row(!!o.pmFib, 'Fib VA box drawn (CE + PE)', 'pmFib') + row(a.vix, 'VIX dekha') + row(!!o.pmOpen, 'Opening type context (9:08 ke baad)', 'pmOpen') +
+    '<div class="hint-box" style="padding:4px 14px 10px">' + (pmComplete() ? '<span class="pos">Pre-market complete ✓</span>' : 'Process pehle — checklist poori karo.') + '</div>';
+  box.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { DAY.opening[b.dataset.pm] = !DAY.opening[b.dataset.pm]; scheduleAutoSave(); renderPmCheck(); });
+}
+// 2) TRADE ENTRY LOCK. Coach: "Before the trade, you have a predefined position sizing." / "First question should not be the target. First question should be how much the minimum risk I can take right after the entry."
+function tradeLockMissing() { const g = id => nlmF(document.getElementById(id).value), m = []; if (!g('t_sEntry')) m.push('Entry'); if (!g('t_sSL')) m.push('SL'); if (!g('t_sT1')) m.push('T1'); if (TF.pre !== 'yes') m.push('Plan = Haan'); return m; }
+function tradeLockOk() { return tradeLockMissing().length === 0; }
+function tradeLockUpdate() {
+  const btn = document.getElementById('addTradeBtn'), msg = document.getElementById('tradeFormMsg'); if (!btn) return; const m = tradeLockMissing();
+  btn.disabled = m.length > 0; btn.style.opacity = m.length ? 0.45 : 1;
+  if (m.length) msg.innerHTML = '<span class="neg">Plan incomplete (' + m.join(', ') + ') — coach rule: No trade without a plan</span>';
+  else if (/Plan incomplete/.test(msg.textContent)) msg.innerHTML = '';
+  const e = parseFloat(document.getElementById('t_sEntry').value), s = parseFloat(document.getElementById('t_sSL').value), lots = parseFloat(document.getElementById('t_lots').value), ls = parseFloat(document.getElementById('t_lotsize').value), ri = document.getElementById('tradeRiskInfo');
+  if (ri) { if (!isNaN(e) && !isNaN(s)) { const pts = Math.abs(e - s); ri.innerHTML = 'Risk: ' + pts.toFixed(0) + ' spot pts' + (!isNaN(lots) && !isNaN(ls) ? ' · ≈ ₹' + Math.round(pts * lots * ls).toLocaleString('en-IN') + ' (index-pt basis, upper bound — info only)' : ' · lots + lot size se ₹ risk dikhega'); } else ri.innerHTML = ''; }
+}
+function tradeAutoFill() {
+  const tr = document.getElementById('t_trig'), lo = document.getElementById('t_lots'), ls = document.getElementById('t_lotsize');
+  if (!ls.value) { const v = localStorage.getItem('lot_size'); if (v) ls.value = v; }
+  ls.oninput = () => { localStorage.setItem('lot_size', ls.value); tradeLockUpdate(); }; lo.addEventListener && lo.addEventListener('input', tradeLockUpdate);
+  if (!tr.value) { let r = null; try { r = engRun(engCP()); } catch (e) {} if (r && r.pass >= 2) { tr.value = 'system'; document.getElementById('tradeFormMsg').innerHTML = '<span class="muted">Trigger auto-suggest: System signal (' + r.pass + '/5) — confirm karo.</span>'; } }
+  if (!lo.value) { let z = null; try { z = calcPositionSizing(); } catch (e) {} if (z && z.recommended) lo.value = String(Math.round(z.recommended * 100) / 100); }
+  tradeLockUpdate();
+}
+// 3) STREAK / LOSS-LIMIT ALERT. Coach: "agar main continuously 4 session lose kar raha hoon, I will take a break. Main entire week mein trade nahi karunga." / "If you risk limit of a week — 50K if hit — then you don't trade in that week, next week aao."
+// Weekly default 50K = Coach ka example; daily = weekly/5 DERIVED (Coach ne daily limit nahi bola) — dono ek baar edit kar sakte ho.
+function limitVals() { const w = parseFloat(localStorage.getItem('lim_week')) || 50000, d = parseFloat(localStorage.getItem('lim_day')) || Math.round(w / 5); return { w, d }; }
+function renderLimits() {
+  const box = document.getElementById('limitBox'); if (!box) return; const lim = limitVals(), byDay = {};
+  TRADES_CACHE.filter(x => typeof x.pnl === 'number').forEach(x => byDay[x.date] = (byDay[x.date] || 0) + x.pnl);
+  const days = Object.keys(byDay).sort(), today = byDay[dateKey] || 0; let streak = 0; for (let i = days.length - 1; i >= 0 && byDay[days[i]] < 0; i--) streak++;
+  const d = new Date(dateKey + 'T00:00:00'), mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const ms = mon.toISOString().slice(0, 10);
+  const week = days.filter(x => x >= ms && x <= dateKey).reduce((s, x) => s + byDay[x], 0), al = [];
+  if (today <= -lim.d) al.push('Daily loss limit hit: ' + fmtR(today) + ' (limit ₹' + lim.d.toLocaleString('en-IN') + ')');
+  if (streak >= 4) al.push(streak + ' continuous losing sessions — Coach: break lo, is hafte trade nahi');
+  if (week <= -lim.w) al.push('Weekly loss limit hit: ' + fmtR(week) + ' (limit ₹' + lim.w.toLocaleString('en-IN') + ') — Coach: is hafte trade nahi, next week aao');
+  box.innerHTML = (al.length ? '<div class="result-box neg">🚨 ' + al.join('<br>🚨 ') + '<br><span class="muted">Reminder hai, hard block nahi.</span></div>' : '<div class="hint-box" style="padding:0 14px 6px"><span class="pos">Limits OK</span> · aaj ' + fmtR(today) + ' · hafta ' + fmtR(week) + ' · losing streak ' + streak + '</div>') +
+    '<div class="hint-box" style="padding:0 14px 10px">Limits: daily ₹ <input id="limD" inputmode="numeric" value="' + lim.d + '" style="width:80px;background:#0E141A;border:1px solid #232B36;color:#E6EDF3;border-radius:6px;padding:3px"> weekly ₹ <input id="limW" inputmode="numeric" value="' + lim.w + '" style="width:80px;background:#0E141A;border:1px solid #232B36;color:#E6EDF3;border-radius:6px;padding:3px"> <span class="muted">(weekly 50K = Coach example; daily = weekly/5 derived)</span></div>';
+  document.getElementById('limD').onchange = e => { localStorage.setItem('lim_day', e.target.value); renderLimits(); }; document.getElementById('limW').onchange = e => { localStorage.setItem('lim_week', e.target.value); renderLimits(); };
+}
+// 4) C-PERIOD BENCHMARK. Coach: "Volume is a very big factor in C-period strategy." Baseline = pichle 60 din ka avg (sirf wahi din jinme C volume/price bhari). Exact metric/formula Coach ne nahi diya (R-GAP-04) => DERIVED, optional, default OFF.
+function renderCBench() {
+  const o = DAY.opening, out = document.getElementById('cBenchOut'); if (!out) return;
+  ['c_vol', 'c_range'].forEach(id => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = id === 'c_vol' ? (o.cVol || '') : (o.cRange || ''); });
+  const t0 = new Date(dateKey + 'T00:00:00').getTime(), rec = CVOL_CACHE.filter(x => (t0 - new Date(x.date + 'T00:00:00').getTime()) <= 60 * 864e5), avg = k => { const a = rec.map(x => x[k]).filter(v => !isNaN(v)); return a.length >= 5 ? { v: a.reduce((s, x) => s + x, 0) / a.length, n: a.length } : null; };
+  const av = avg('v'), ar = avg('r'), cv = parseFloat(o.cVol), cr = parseFloat(o.cRange);
+  if (!av && !ar) { out.innerHTML = 'Benchmark OFF — 60 din ke 5+ din ka C volume/price chahiye (abhi ' + rec.filter(x => !isNaN(x.v) || !isNaN(x.r)).length + '). Aaj ki value bharte raho, avg khud banega.'; return; }
+  const l = []; let ok = []; if (av && !isNaN(cv)) { l.push('Volume ' + cv + ' vs avg ' + av.v.toFixed(0) + ' (n=' + av.n + ') → ' + (cv > av.v ? 'ABOVE' : 'BELOW')); ok.push(cv > av.v); }
+  if (ar && !isNaN(cr)) { l.push('Price move ' + cr + ' vs avg ' + ar.v.toFixed(0) + ' (n=' + ar.n + ') → ' + (cr > ar.v ? 'ABOVE' : 'BELOW')); ok.push(cr > ar.v); }
+  out.innerHTML = (l.join('<br>') || 'Aaj ka C volume/price bharo') + (ok.length ? '<br><b>' + (ok.every(x => x) ? 'Avg ke upar — strong C' : 'Avg ke upar nahi') + '</b> <span class="muted">(DERIVED, 60-din avg)</span>' : '');
+  if (ok.length && o.cVolumeStrong == null) { o.cVolumeStrong = ok.every(x => x) ? 'yes' : 'no'; try { renderToggleGroup('tg_cVolumeStrong', o.cVolumeStrong); } catch (e) {} scheduleAutoSave(); }
+}
+['c_vol', 'c_range'].forEach(id => { document.getElementById(id).oninput = e => { DAY.opening[id === 'c_vol' ? 'cVol' : 'cRange'] = e.target.value; scheduleAutoSave(); renderCBench(); }; });
+if (typeof setInterval === 'function') setInterval(() => { try { renderPmCheck(); renderCBench(); renderLimits(); } catch (e) {} }, 3000);
+
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
   document.getElementById('summaryCurrentPrice').value = DAY.niftyPrice;
@@ -3598,7 +3675,7 @@ function renderEverything() {
   renderDrift();
   renderOF();
   renderOfTally();
-  try { renderNlm(); } catch (e) {}
+  try { renderNlm(); renderPmCheck(); renderCBench(); } catch (e) {}
   try { renderTradeSection(); refreshTradesCache().then(() => { try { renderTradeSection(); } catch (e) {} }); } catch (e) {}
 }
 
