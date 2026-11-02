@@ -200,7 +200,7 @@
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v21.1 (Plan messages)</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v21.3 (Trade-type exit)</div>
   <div class="title">Daily Trading Journal</div>
 </header>
 
@@ -620,6 +620,14 @@
 
 <div class="card">
       <div class="card-title">TRAIL CHECKLIST (TSL management, after entry)</div>
+      <div class="toggle-q">EXIT TIMEFRAME HIERARCHY <span class="muted">(Coach: "Context 30mnt ka hi standard rakho. Execution ke doran 15mnt close consider kar sakte hain.")</span></div>
+      <div class="ins-r"><span class="pos">● Wick only</span><b>noise, exit nahi</b></div>
+      <div class="ins-r"><span class="amb">● 15-min close SL break</span><b>execution caution, 30-min context dekho</b></div>
+      <div class="ins-r"><span class="neg">● 30-min close SL break</span><b>context kharab, exit</b></div>
+      <div class="ins-r"><span class="neg">● VWAP reject</span><b>explicit exit</b></div>
+      <div class="hint-box" style="padding:2px 14px 10px"><span class="muted">Mapping DERIVED (Teaching 11); VWAP reject = existing rule. QA #14 ke baad exit trade-type based hai — neeche wala card dekho.</span></div>
+      <div class="toggle-q">EXIT RULE — TRADE TYPE BASED <span class="muted">(live, orderflow execution ke saath — fixed single rule nahi)</span></div>
+      <div id="exitRuleBox"><div class="ins-r" data-tt="counter"><span>Counter-trade</span><b>SL fix rakho</b></div><div class="ins-r" data-tt="momentum"><span>Momentum</span><b>SL fix rakho</b></div><div class="ins-r" data-tt="mp"><span>Market Profile</span><b>30-min + 2-3 period close below/above dekho</b></div></div>
       <div class="toggle-q">Position direction</div>
       <div class="toggle-group" id="tg_trailDirection">
         <button data-val="long">Long</button>
@@ -803,6 +811,10 @@
       <div class="field-row"><span class="lbl">P&amp;L ₹ (loss me -)</span><input id="t_pnl" inputmode="text" placeholder="-1200 ya 3.5k"></div>
       <div class="toggle-q">Exit kaise hua</div>
       <div style="padding:0 14px 10px"><select id="t_reason" class="of-tag-select"><option value="">-- chuno --</option><option>T1</option><option>Trail</option><option>SL hit</option><option>Time cutoff</option><option>Panic exit</option><option>Other</option></select></div>
+      <div class="toggle-q">Exit Basis</div>
+      <div style="padding:0 14px 10px"><select id="t_exitBasis" class="of-tag-select"><option value="">-- chuno --</option><option value="wick">Wick only</option><option value="c15">15-min close</option><option value="c30">30-min close</option><option value="vwap">VWAP reject</option><option value="target">Target hit</option></select></div>
+      <div class="toggle-q">Trade Type (ek baar chuno)</div>
+      <div style="padding:0 14px 10px"><select id="t_tradeType" class="of-tag-select"><option value="">-- chuno --</option><option value="counter">Counter-trade (C-period failure)</option><option value="momentum">Momentum</option><option value="mp">Market Profile</option></select></div>
       <div class="toggle-q">Plan trade se PEHLE tay kiya tha? (entry, SL, target)</div>
       <div class="toggle-group" id="tg_tPre"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
       <div class="toggle-q">TSL plan</div>
@@ -2982,6 +2994,8 @@ const DIMS = [
   { id:'fri',  label:'Din',        fn: t => t.ctx ? (t.ctx.friday ? 'Friday' : 'Baaki din') : null },
   { id:'ib',   label:'IB size',    fn: t => t.ctx && t.ctx.ibCat },
   { id:'time', label:'Entry time', fn: t => timeBucket(t.time) },
+  { id:'ttype', label:'Trade type', fn: t => ({ counter: 'Counter-trade', momentum: 'Momentum', mp: 'Market Profile' })[t.tradeType] || null },
+  { id:'exitb', label:'Exit basis',  fn: t => ({ wick: 'Wick only', c15: '15-min close', c30: '30-min close', vwap: 'VWAP reject', target: 'Target hit' })[t.exitBasis] || null },
   { id:'exit', label:'Exit reason',fn: t => t.exitReason || null },
   { id:'plan', label:'Plan',       fn: t => t.plan === 'yes' ? 'Plan follow' : (t.plan === 'no' ? 'Plan toda' : null) },
   { id:'rr',   label:'Planned RR (spot)', fn: t => t.rr == null ? null : (t.rr < 1 ? 'RR <1' : (t.rr < 1.5 ? 'RR 1-1.5' : 'RR 1.5+')) },
@@ -3188,7 +3202,7 @@ document.getElementById('addTradeBtn').onclick = async () => {
   const trade = {
     id: Date.now(), time: document.getElementById('t_time').value.trim(), dir: TF.dir,
     strike: document.getElementById('t_strike').value.trim(), sEntry: sE, sSL: sS, sT1: sT, sT1Zone: (tgo && tgo.lo !== tgo.hi) ? [tgo.lo, tgo.hi] : null, sExit: sX, entry: pE, exit: pX, lots, pnl,
-    exitReason: document.getElementById('t_reason').value, plan: TF.plan, mistakes: TF.mist.slice(),
+    exitReason: document.getElementById('t_reason').value, exitBasis: document.getElementById('t_exitBasis').value, tradeType: document.getElementById('t_tradeType').value, plan: TF.plan, mistakes: TF.mist.slice(),
     note: document.getElementById('t_note').value.trim(), ctx,
     pre: TF.pre, tslPlan: document.getElementById('t_tsl').value, trigger: document.getElementById('t_trig').value, emotion: document.getElementById('t_emo').value,
     risk: risk > 0 ? risk : null,
@@ -3206,7 +3220,7 @@ document.getElementById('addTradeBtn').onclick = async () => {
   DAY.trades = (DAY.trades || []).concat([trade]);
   await saveDay(true);
   ['t_strike','t_sEntry','t_sSL','t_sT1','t_sExit','t_entry','t_exit','t_lots','t_pnl','t_note','t_time'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('t_reason').value = ''; ['t_tsl','t_trig','t_emo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('t_reason').value = ''; document.getElementById('t_exitBasis').value = ''; document.getElementById('t_tradeType').value = ''; ['t_tsl','t_trig','t_emo'].forEach(id => document.getElementById(id).value = '');
   TF = { dir:null, plan:null, pre:null, perr:null, mist:[] };
   msg.innerHTML = trade.mistakeKick ? '<span class="neg">🚨 MISTAKE KICK: profit hua par process galat tha (' + (errs.join(', ') || 'manual') + '). Isse jeet mat maano.</span>' : '<span class="pos">Trade add ho gaya ✓ · Process score ' + ps.score + '%</span>';
   await refreshTradesCache(); renderTradeSection();
@@ -3220,7 +3234,7 @@ function renderTodayTrades() {
     const ms = (t.mistakes || []).map(id => (MISTAKES.filter(m => m.id === id)[0] || {}).label).filter(Boolean).join(', ');
     return '<div class="tr-item' + (t.mistakeKick ? ' kick' : '') + '"><div>' + (t.mistakeKick ? '<b class="neg">🚨 MISTAKE KICK (RED ALERT)</b><br>' : '') + '<b>' + (t.time || '--:--') + '</b> · ' + (t.dir === 'up' ? 'CE' : 'PE') + (t.strike ? ' ' + t.strike : '') +
       ' · <b class="' + (t.pnl >= 0 ? 'pos' : 'neg') + '">' + fmtR(t.pnl) + '</b>' + (t.sEntry != null && t.sExit != null ? ' · spot ' + t.sEntry + '→' + t.sExit : '') + (t.sT1Zone ? ' · tgt ' + t.sT1Zone[0] + '-' + t.sT1Zone[1] : '') + (t.r != null ? ' · ' + t.r + 'R' : '') + (t.premPct != null ? ' · prem ' + t.premPct + '%' : '') + (t.slBreach ? ' · <span class="neg">SL ke paar</span>' : '') +
-      (t.exitReason ? ' · ' + t.exitReason : '') + (t.plan ? (t.plan === 'yes' ? ' · plan ✓' : ' · <span class="neg">plan ✗</span>') : '') +
+      (t.exitReason ? ' · ' + t.exitReason : '') + (t.tradeType ? ' · ' + ({ counter: 'counter', momentum: 'momentum', mp: 'MP' })[t.tradeType] : '') + (t.exitBasis ? ' · basis ' + ({ wick: 'wick', c15: '15m close', c30: '30m close', vwap: 'VWAP reject', target: 'target' })[t.exitBasis] : '') + (t.plan ? (t.plan === 'yes' ? ' · plan ✓' : ' · <span class="neg">plan ✗</span>') : '') +
       (t.over ? ' · <span class="neg">size > tier</span>' : '') + ' · proc ' + computeProcessScore(t).score + '%' +
       (t.ctx && t.ctx.signals != null ? '<br><span class="muted">' + t.ctx.signals + '/5 · ' + (t.ctx.dayType || '?') + (t.ctx.opening ? ' · ' + t.ctx.opening : '') + '</span>' : '') +
       (ms ? '<br><span class="amb">' + ms + '</span>' : '') + (t.note ? '<br><span class="muted">' + t.note + '</span>' : '') + '</div>' +
@@ -3436,7 +3450,7 @@ const ENG_REG = {
  'R-MOM-02':['Fib VA geometry','VERIFIED','61.8 and 38.2 ... value zone; 15-min candle close.'],'R-ENT-01':['Current-price entry','VERIFIED','Signals fire hue -> Trade valid -> Entry lo (current price).'],
  'R-ENT-02':['Pullback is bonus','VERIFIED','Pullback aaya to bonus, nahi aaya to bhi setup correct tha.'],'R-ENT-03':['Early entry window','VERIFIED','30 40 minute mein decision banata hu.'],
  'R-ENT-04':['Early alignment','VERIFIED','Alignment karna padega: participation + MP opening structure.'],'R-SL-01':['VWAP TSL','VERIFIED','VWAP +- filter 10-20 points.'],
- 'R-SL-02':['SL wide IB','VERIFIED','IB wider => stop loss around IB area.'],'R-SL-03':['SL priority','DERIVED','AI-consolidated priority'],'R-SL-05':['Premium % TSL','VERIFIED','Every options move in percentage basis.'],
+ 'R-SL-02':['SL wide IB','VERIFIED','IB wider => stop loss around IB area.'],'R-SL-03':['SL priority','DERIVED','AI-consolidated priority'],'R-SL-08':['SL/Exit trade-type based','VERIFIED','Counter/Momentum = SL fix, Market Profile = 30mnt and 2-3 period close below/above it.'],'R-SL-07':['SL exit timeframe hierarchy','VERIFIED','Context 30mnt ka hi standard rakho. Execution ke doran 15mnt close consider kar sakte hain.'],'R-SL-05':['Premium % TSL','VERIFIED','Every options move in percentage basis.'],
  'R-TGT-01':['Target zones','VERIFIED','Exact level nahi, ZONE do.'],'R-TGT-02':['Targets 2IB/3IB/VA','VERIFIED','Targets: 2IB / 3IB / VA boundaries.'],'R-TGT-03':['Partial booking','VERIFIED','T1 par 70% book + SL cost/VWAP.'],
  'R-TGT-04':['Low VIX','VERIFIED','Aisa koi fix nahi hain on 12 vix...'],'R-OPT-01':['ATM/ITM only','VERIFIED','OTM mein play nahi karenge hum.'],'R-OPT-02':['100-multiple','VERIFIED','Only take the 100 strikes.'],
  'R-OPT-04':['300pt tracking','DERIVED','Reference strikes only (derived)'],'R-OPT-05':['IV filters','VERIFIED','Dono IV 40+ => options trading avoid.'],
@@ -3559,7 +3573,7 @@ function engHTML(r) {
   if (r.gates.length) h += '<div class="result-box neg"><b>DIRECT COACH NO-TRADE RULE:</b><br>' + r.gates.join('<br>') + '</div>';
   if (r.caution.length) h += '<div class="result-box amb"><b>CAUTION (reduce size, no-trade nahi):</b><br>' + r.caution.join('<br>') + '<br>Conviction lower; size strictly manage karo.</div>';
   h += '<div class="result-box"><b>4. ENTRY ZONE:</b> ' + (P ? 'Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.' : NOPLAN) +
-    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>SL: ' + (P.sl === null ? '— (VWAP/key level input missing)' : P.sl.toFixed(0) + ' = ' + P.slName + ' <span class="muted">(' + P.slWhy + ')</span>') + '<br>T1 ZONE: ' + zn(P.t1, P.t1n) + '<br>T2 ZONE: ' + zn(P.t2, P.t2n) + (P.ext.length ? '<br>Aage: ' + P.ext.map(x => zn(x[0], x[1])).join(' · ') : '') + (P.rr ? '<br>RRR ~1:' + P.rr.toFixed(2) : '') + '<br>T1 par 50-70% book, runner SL cost/VWAP. TSL: VWAP ±10-20 (index) / premium % (R-SL-01/05).' : NOPLAN) +
+    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>SL: ' + (P.sl === null ? '— (VWAP/key level input missing)' : P.sl.toFixed(0) + ' = ' + P.slName + ' <span class="muted">(' + P.slWhy + ')</span>') + '<br><span class="muted">Exit basis: 15-min close trigger, 30-min context standard</span><br><span class="muted">Exit basis: trade-type ke hisaab se (Counter/Momentum = SL fix, Market Profile = 30-min + 2-3 period close)</span><br>T1 ZONE: ' + zn(P.t1, P.t1n) + '<br>T2 ZONE: ' + zn(P.t2, P.t2n) + (P.ext.length ? '<br>Aage: ' + P.ext.map(x => zn(x[0], x[1])).join(' · ') : '') + (P.rr ? '<br>RRR ~1:' + P.rr.toFixed(2) : '') + '<br>T1 par 50-70% book, runner SL cost/VWAP. TSL: VWAP ±10-20 (index) / premium % (R-SL-01/05).' : NOPLAN) +
     '<br><b>6. STRIKE:</b> ' + (P ? P.strike + ' <span class="muted">(ITM depth: ' + UNDEF + ')</span>' : NA) + '<br><b>Sizing:</b> ' + (P ? P.tier : NA) + (r.fri ? ' · Friday 50% cap (R-SIZ-02)' : '') + '<br>Fresh trade 2:40 PM ke baad nahi.</div>';
   h += '<div class="result-box"><b>7. ORDER FLOW CHECK:</b> ' + (r.sg.s4[0] === 'FAIL' ? r.sg.s4[1] + '. Non-supportive context, not automatic no-trade.' : r.sg.s4[1]) + '<br>Absorption: ' + UNDEF + '<br><b>8. PSYCHOLOGY:</b> ' + (/^NO/.test(r.action) ? '"Whenever the doubt rise, no trade." (R-PSY-06)' : '"Signals fire hue -> Trade valid -> Entry lo (current price). Pullback aaya to bonus, nahi aaya to bhi setup correct tha."') +
     '<br><b>9. COACH QUOTE:</b> "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." · "Pullback aaya to bonus, nahi aaya to bhi setup correct tha." · "Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo."' +
@@ -3585,7 +3599,11 @@ function rbParse(txt) {
     const st = (r['STATUS'] || '').match(/^(VERIFIED|DERIVED|OPEN QUESTION|SUPERSEDED|CONFLICT)/); r.status = st ? st[1] : 'UNKNOWN'; out.push(r); });
   return out;
 }
-function rbLoad() { try { return JSON.parse(localStorage.getItem('coach_rulebook') || '[]'); } catch (e) { return []; } }
+const RB_EXTRA = [{ id: 'R-SL-08', status: 'VERIFIED', 'RULE NAME': 'SL/Exit — Trade-Type Based', 'COACH TEACHING': 'Exit decision live market ka hai, orderflow execution ke saath; fixed single rule nahi. Counter-trade (C-period failure) = SL fix; sirf Momentum framework trade = SL fix; Market Profile based trade = 30-min + 2-3 period close below/above. Operational mapping DERIVED.',
+  'EXACT COACH QUOTE': 'Ye decision live market ka hoga as per orderflow execution, fix nahi rakh sakte. If you take a counter trade like in C period failer to sl fix rakho, agar sirf momentum framework dekh ke liya to fix, agar market profile based trade hain to 30mnt and 2-3 period close below/above it.', 'SOURCE FILE / SESSION': 'Direct Coach Q&A, 31 Oct 2026 (Permanent Teaching #14)', 'TRIGGER CONDITIONS': 'SL break / exit decision (trade type ke hisaab se).', 'INVALIDATION CONDITIONS': 'Ek fixed rule sab trades par lagana.', 'ENTRY LOGIC': 'N/A', 'STOP-LOSS LOGIC': 'Counter/Momentum: SL fix. Market Profile: 30-min + 2-3 period close below/above.', 'TARGET / EXIT LOGIC': 'Live, orderflow execution ke saath.', 'NO-TRADE CONDITIONS': 'N/A', 'POSITION-SIZING IMPACT': 'N/A' },
+ { id: 'R-SL-07', status: 'VERIFIED', 'RULE NAME': 'SL Exit — Timeframe Hierarchy (15-min close vs 30-min context)', 'COACH TEACHING': 'Context/structure standard = 30-min (PRIMARY). Execution ke doran 15-min close consider kar sakte hain (SECONDARY). Operational mapping DERIVED: wick-only = noise, 15-min close SL break = execution caution + 30-min context check, 30-min close SL break = context kharab/exit, VWAP reject = explicit exit (existing).',
+  'EXACT COACH QUOTE': 'Context 30mnt ka hi standard rakho. Execution ke doran 15mnt close consider kar sakte hain.', 'SOURCE FILE / SESSION': 'Direct Coach Q&A, 31 Oct 2026 (Permanent Teaching #11)', 'TRIGGER CONDITIONS': 'Price SL level ko break kare (wick / 15-min close / 30-min close) ya VWAP reject.', 'INVALIDATION CONDITIONS': 'Sirf wick breach (15-min close nahi) = noise.', 'ENTRY LOGIC': 'N/A', 'STOP-LOSS LOGIC': 'R-SL-01/02/03 ke saath: SL break ka decision timeframe hierarchy se.', 'TARGET / EXIT LOGIC': '30-min close SL break ya VWAP reject = exit.', 'NO-TRADE CONDITIONS': 'N/A', 'POSITION-SIZING IMPACT': 'N/A' }];
+function rbLoad() { let a = []; try { a = JSON.parse(localStorage.getItem('coach_rulebook') || '[]'); } catch (e) {} return a.concat(RB_EXTRA.filter(x => !a.some(r => r.id === x.id))); }
 function rbRender() {
   const q = (document.getElementById('rbQ').value || '').toLowerCase(), f = document.getElementById('rbF').value, all = rbLoad();
   document.getElementById('rbCount').innerHTML = all.length ? all.length + ' rules loaded' : 'Rulebook import nahi hui — neeche paste karke "Import" dabao (Master_Rulebook.md ka poora text).';
@@ -3661,6 +3679,15 @@ function renderCBench() {
 }
 ['c_vol', 'c_range'].forEach(id => { document.getElementById(id).oninput = e => { DAY.opening[id === 'c_vol' ? 'cVol' : 'cRange'] = e.target.value; scheduleAutoSave(); renderCBench(); }; });
 if (typeof setInterval === 'function') setInterval(() => { try { renderPmCheck(); renderCBench(); renderLimits(); } catch (e) {} }, 3000);
+
+
+// QA #14 auto-highlight: Trade Type dropdown (form) ya aaj ke last trade ka type se
+function renderExitRule() {
+  const b = document.getElementById('exitRuleBox'); if (!b) return; const f = document.getElementById('t_tradeType'), tr = (DAY.trades || []).slice(-1)[0], sel = (f && f.value) || (tr && tr.tradeType) || '';
+  b.querySelectorAll('[data-tt]').forEach(r => { const on = r.dataset.tt === sel; r.style.background = on ? '#1E2A33' : 'transparent'; r.style.borderLeft = on ? '3px solid #3FD5E0' : '3px solid transparent'; r.style.fontWeight = on ? '700' : '400'; });
+}
+document.getElementById('t_tradeType').onchange = renderExitRule;
+if (typeof setInterval === 'function') setInterval(() => { try { renderExitRule(); } catch (e) {} }, 3000);
 
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
