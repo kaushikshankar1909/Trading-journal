@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal</title>
+<title>Daily Trading Journal v21.5 · Coach Trade Plan</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -798,6 +798,16 @@
       <div id="finalStrategyBox"></div>
     </div>
 
+    <div class="card" id="coachTradePlanCard">
+      <div class="card-title">COACH RULE-BASED TRADE PLAN · ENTRY / SL / TARGET</div>
+      <div class="hint-box" style="padding:0 14px 8px">Afternoon mein Engine ka calculated plan yahan dikhega. Numeric entry ke liye current Nifty spot price zaroori hai; purane A/B close ko live entry nahi maana jayega.</div>
+      <div class="field-row"><span class="lbl">Planned trade type (Coach #14)</span><select id="planTradeType" class="of-tag-select" style="width:190px"><option value="">-- choose trade type --</option><option value="counter">Counter-trade</option><option value="momentum">Momentum framework</option><option value="mp">Market Profile</option></select></div>
+      <div class="field-row"><span class="lbl">Specific setup</span><select id="planSetupSubtype" class="of-tag-select" style="width:220px"><option value="">-- choose setup --</option><option value="c_failure">C-period failure / bluff</option><option value="45_degree">45-degree / OAIR</option><option value="island">Island profile / mean reversion</option><option value="failed_auction">Failed auction revisit</option><option value="momentum_fib">ITM option Fib momentum</option><option value="half_ib">Half-IB access / range extension</option><option value="va_80">80% previous Value Area rule</option><option value="other">Other / manual setup</option></select></div>
+      <div class="field-row"><span class="lbl">Actual setup trigger confirmed? (manual check)</span><select id="planTriggerConfirmed" class="of-tag-select" style="width:190px"><option value="no">No — wait / not confirmed</option><option value="yes">Yes — 15m close / setup evidence checked</option></select></div>
+      <div class="hint-box" style="padding:0 14px 10px">Important: Directional bias aur 2/5 legacy signals setup trigger nahi hain. Ye manual confirmation sirf tumhare check ko record karta hai; journal candle data ko independently verify nahi karta.</div>
+      <div class="result-inner" id="coachTradePlanView">Trade type, setup aur actual trigger confirm karne ke baad plan evaluate hoga.</div>
+    </div>
+
 <div class="card">
       <div class="card-title">SUPPORTING NOTES</div>
       <div class="strategy-list" id="strategyBoxOpening"></div>
@@ -887,8 +897,9 @@
 <div class="card"><div class="card-title">PROCESS COMPLIANCE SCORE</div><div id="processScoreBox"></div></div>
 <div class="card">
       <div class="card-title">CURRENT / LIVE PRICE</div>
-      <div class="field-row"><span class="lbl">Nifty current price</span><input id="summaryCurrentPrice" inputmode="decimal" placeholder="e.g. 24512"></div>
-      <div class="hint-box" style="padding:0 14px 12px">Ye value Participation tab ke "Nifty price" field ke saath sync hai (same data). Yahan bharo taaki jab aap ye Summary NotebookLM/Claude ko analysis ke liye paste karo, current price bhi saath jaaye — entry/target/SL sahi se nikal sake.</div>
+      <div class="field-row"><span class="lbl">Nifty current / live spot price</span><input id="summaryCurrentPrice" inputmode="decimal" placeholder="e.g. 24512"></div>
+      <div class="field-row"><span class="lbl">Nifty current / live VWAP</span><input id="summaryCurrentVwap" inputmode="decimal" placeholder="e.g. 24485"></div>
+      <div class="hint-box" style="padding:0 14px 12px">Dono values manually update karo: Nifty spot price aur current session VWAP. Spot price Participation tab ke Nifty price ke saath sync hai; VWAP Opening tab ke Live VWAP / TSL field ke saath sync hai. VWAP missing hoga to VWAP-based SL reference aur kuch target calculations available nahi honge. Journal market feed se automatic live data fetch nahi karta.</div>
     </div>
 <div id="summaryBox"></div>
 
@@ -1076,6 +1087,7 @@ function blankDay() {
       strikeDist: "",
       fibP1: "", fibP2: "", fibP3: "", fibHHLLConfirmed: null,
       trailDirection: null, trailVwap: "", trailFilter: "", trailPartialBooked: null,
+      planTradeType: null,
       baseLotSize: "",
       middayTailPeriod: "", middayTailSide: null,
     },
@@ -2523,6 +2535,7 @@ function renderDrift() {
 
 document.getElementById('niftyPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; document.getElementById('summaryCurrentPrice').value = e.target.value; renderResult(); renderCompare(); renderDrift(); renderOpening(); scheduleAutoSave(); };
 document.getElementById('summaryCurrentPrice').oninput = (e) => { DAY.niftyPrice = e.target.value; document.getElementById('niftyPrice').value = e.target.value; renderResult(); renderCompare(); renderDrift(); renderOpening(); renderSummary(); scheduleAutoSave(); };
+document.getElementById('summaryCurrentVwap').oninput = (e) => { DAY.opening.trailVwap = e.target.value; document.getElementById('op_trailVwap').value = e.target.value; renderOpening(); renderSummary(); try { renderCoachContext(); } catch (err) {} scheduleAutoSave(); };
 
 /* ============================================================
    ORDER FLOW
@@ -3582,7 +3595,7 @@ function engRun(cp) {
   else action = order[cp] <= 2 ? 'WAITING FOR TRIGGER' : 'NO TRADE';
   if (action === 'NO TRADE' && !gates.length) U('R-NOTRADE-01', pass + '/5 signals');
   // ---- plan (3-priority SL, T1/T2 zones) ----
-  let plan = null; const px = num(DAY.niftyPrice) || num(o.B.c) || num(o.A.c);
+  let plan = null; const px = num(DAY.niftyPrice); // Current spot only; an old A/B close is not a live entry.
   if (valid && bias && px) {
     const long = bias === 'up'; U('R-ENT-01'); U('R-ENT-02'); U('R-TGT-01'); U('R-TGT-03'); U('R-SL-03'); U('R-SL-01'); U('R-TGT-02');
     const vwap = num(o.trailVwap), val = num(L.val), vah = num(L.vah), pdl = num(L.pdl), pdh = num(L.pdh), poc = num(L.poc);
@@ -3652,6 +3665,101 @@ function engHTML(r) {
     '<br><b>Other rule IDs:</b><br>' + ids.filter(i => !sigIds.includes(i) && i !== 'SIG-MAP' && i !== 'R-DEC-01').map(line).join('<br>') + '<br><br><b>Missing / pending inputs:</b><br>' + r.miss.join('<br>') + '<br><br><b>Calculation trace:</b><br>' + r.trace.join('<br>') + '</div>';
   return h;
 }
+function renderAfternoonTradePlan(){
+  const el=document.getElementById('coachTradePlanView'); if(!el)return;
+  const typeEl=document.getElementById('planTradeType');
+  const setupEl=document.getElementById('planSetupSubtype');
+  const triggerEl=document.getElementById('planTriggerConfirmed');
+  const type=DAY.opening.planTradeType||'';
+  const setup=DAY.opening.planSetupSubtype||'';
+  const triggerConfirmed=DAY.opening.planTriggerConfirmed==='yes';
+  if(typeEl && typeEl.value!==type) typeEl.value=type;
+  if(setupEl && setupEl.value!==setup) setupEl.value=setup;
+  if(triggerEl && triggerEl.value!==(triggerConfirmed?'yes':'no')) triggerEl.value=triggerConfirmed?'yes':'no';
+  let r=null, s=null;
+  try { r=engRun('trig'); s=selectStrategy(); }
+  catch(e) { el.innerHTML='<div class="amb">Plan calculation error: '+String(e.message||e)+'</div>'; return; }
+  if(!r) { el.textContent='Engine data unavailable.'; return; }
+  const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const waitPattern=/wait|mat lo|no trade|cancel|skip|not a fresh entry|fresh aggressive entry/i;
+  const playbookText=s?String(s.name||'')+' '+String(s.entry||''):'';
+  const playbookBlocks=!!(s&&waitPattern.test(playbookText));
+  const typeLabel={counter:'Counter-trade',momentum:'Momentum framework',mp:'Market Profile'}[type]||'Not selected';
+  const setupLabel={c_failure:'C-period failure / bluff','45_degree':'45-degree / OAIR',island:'Island profile / mean reversion',failed_auction:'Failed auction revisit',momentum_fib:'ITM option Fib momentum',half_ib:'Half-IB access / range extension',va_80:'80% previous Value Area rule',other:'Other / manual setup'}[setup]||'Not selected';
+  const setupMatchesType=setup==='other'||(type==='counter'&&['c_failure','45_degree','island','failed_auction'].includes(setup))||(type==='momentum'&&setup==='momentum_fib')||(type==='mp'&&['half_ib','va_80'].includes(setup));
+  const exitRule=(type==='counter'||type==='momentum')
+    ? 'FIXED SL — Coach #14. Fixed stop ko follow karo; Market Profile ka 30-min + 2-3 period close wait apply nahi hota.'
+    : type==='mp'
+      ? '30-min context standard + 2–3 period close below/above the relevant SL reference (Coach #14). Exact algorithm for defining the 2–3 periods is not specified in the source; do not treat this as a hard-coded consecutive-candle formula. 15-min close may be considered during execution.'
+      : 'Trade type select karo. Coach #14 ke hisaab se SL/exit handling trade type par depend karti hai.';
+  let h='';
+  h+='<div class="kv-row"><span>Engine action (directional context only)</span><b>'+esc(r.action)+'</b></div>';
+  h+='<div class="kv-row"><span>Directional anchor</span><b>'+esc(r.bias?engDir(r.bias):(r.anc==='none'?'NEUTRAL':'PENDING'))+'</b></div>';
+  h+='<div class="kv-row"><span>Signal count (legacy journal mapping)</span><b>'+r.pass+'/5</b></div>';
+  h+='<div class="kv-row"><span>Selected setup</span><b>'+esc(setupLabel)+'</b></div>';
+  h+='<div class="kv-row"><span>Manual trigger confirmation</span><b>'+(triggerConfirmed?'YES — user checked':'NO — not confirmed')+'</b></div>';
+  if(r.gates&&r.gates.length) h+='<div class="result-box neg"><b>NO-TRADE GATE</b><br>'+r.gates.map(esc).join('<br>')+'</div>';
+  if(r.caution&&r.caution.length) h+='<div class="result-box amb"><b>CAUTION</b><br>'+r.caution.map(esc).join('<br>')+'</div>';
+  if(!type){
+    h+='<div class="result-box amb"><b>TRADE TYPE SELECT KARO</b><br>Coach #14 ke hisaab se Counter-trade, Momentum aur Market Profile ka SL/exit rule alag hai. Trade type select hone tak final SL mode issue nahi hoga.</div>';
+  } else if(!setup){
+    h+='<div class="result-box amb"><b>SPECIFIC SETUP SELECT KARO</b><br>Counter, Momentum aur Market Profile ke andar alag setups hain. Generic trade-type selection se numeric SL/target release nahi hoga.</div>';
+  } else if(!setupMatchesType){
+    h+='<div class="result-box amb"><b>TRADE TYPE / SETUP MISMATCH</b><br>Selected setup selected trade type se match nahi karta. Counter: C-period / 45-degree / Island / Failed Auction; Momentum: ITM Fib; Market Profile: Half-IB / 80% VA. Selection correct karo.</div>';
+  } else if(!triggerConfirmed){
+    h+='<div class="result-box amb"><b>SETUP TRIGGER NOT CONFIRMED — NO ENTRY PLAN</b><br>Actual setup evidence / completed 15-minute trigger close manually confirm karo. Directional anchor ya 2/5 legacy signal count ko entry trigger mat samjho. Journal candle feed ko independently verify nahi karta.</div>';
+  } else if(!r.valid || playbookBlocks){
+    h+='<div class="result-box"><b>ENTRY / SL / TARGET: NOT ISSUED</b><br>'+(playbookBlocks?'Playbook currently WAIT / NO-TRADE / CANCEL keh raha hai. ':'Engine trigger conditions complete nahi hue. ')+'WAIT / NO TRADE ko follow karo; missing confirmation ko positive signal nahi maana jayega.</div>';
+  } else if(!r.plan){
+    h+='<div class="result-box amb"><b>NUMERIC PLAN PENDING</b><br>Current Nifty spot price (niftyPrice) missing hai. Entry trigger candle close ke current spot par hoti hai; old A/B close ko live entry nahi maana jayega.</div>';
+  } else {
+    const p=r.plan, long=p.long, ib=calcIB(), L=DAY.levels||{}, o=DAY.opening;
+    h+='<div class="stat-grid"><div class="stat-box"><div class="val">'+(long?'LONG':'SHORT')+'</div><div class="lbl">DIRECTION</div></div><div class="stat-box"><div class="val">'+p.px.toFixed(1)+'</div><div class="lbl">SPOT ENTRY</div></div><div class="stat-box"><div class="val">'+(type==='mp'&&p.sl!==null?p.sl.toFixed(1):'—')+'</div><div class="lbl">MP SL REF</div></div><div class="stat-box"><div class="val">'+(type==='mp'&&p.rr!==null?'1:'+p.rr.toFixed(2):'—')+'</div><div class="lbl">RR TO ENGINE T1</div></div></div>';
+    h+='<div class="kv-row"><span>Entry rule</span><b>15-min trigger candle close par current spot; pullback bonus, requirement nahi.</b></div>';
+    if(type==='mp'){
+      h+='<div class="kv-row"><span>Initial SL reference</span><b>'+(p.sl===null?'Not calculated — VWAP / structural input missing':p.sl.toFixed(1)+' · '+esc(p.slName))+'</b></div>';
+      if(p.slWhy)h+='<div class="hint-box">'+esc(p.slWhy)+'. MP initial SL reference; exit confirmation Coach #14 ke 30-min + 2-3 period rule ke hisaab se.</div>';
+      let t1=null,t2=null,t1n='',t2n='',targetWhy='';
+      if(o.value20pct==='yes' && o.value20pctSide===(long?'up':'down')){
+        const poc=parseFloat(L.poc), opposite=parseFloat(long?L.vah:L.val);
+        if(Number.isFinite(poc)&&Number.isFinite(opposite)){t1=poc;t1n='Previous POC (mandatory mid-target)';t2=opposite;t2n=long?'Opposite VAH':'Opposite VAL';targetWhy='80% VA rule: T1 POC, T2 opposite VA boundary.';}
+      } else if(s && /Normal Variation/i.test(s.name) && ib && o.halfIbAccess==='yes' && o.halfIbSide===(long?'up':'down')){
+        const aligned=long?r.up:r.dn;
+        if(aligned>=7){t1=long?ib.ibHigh+ib.len:ib.ibLow-ib.len;t1n='2IB';t2=long?ib.ibHigh+2*ib.len:ib.ibLow-2*ib.len;t2n='3IB';targetWhy='Normal Variation + Half-IB access + participation '+aligned+'/12: 2IB then 3IB references. Coach also cautions that Half-IB access does not guarantee 2IB; nearby levels and day type still matter.';}
+        else {targetWhy='Participation '+aligned+'/12: Coach 2IB/3IB extended target condition (7-8 aligned) not met. Playbook target: '+s.target;}
+      } else if(s && /45-Degree Rule/i.test(s.name) && ib){
+        t1=(ib.ibHigh+ib.ibLow)/2;t1n='45° / IB midpoint';const v=long?parseFloat(L.vah):parseFloat(L.val);if(Number.isFinite(v)){t2=v;t2n=long?'VAH':'VAL';}targetWhy='45-degree playbook target.';
+      } else if(s && /C-Period Rejection/i.test(s.name) && ib){
+        const vw=parseFloat(o.trailVwap);if(Number.isFinite(vw)){t1=vw;t1n='VWAP';}t2=long?ib.ibHigh:ib.ibLow;t2n=long?'IB High':'IB Low';targetWhy='C-period rejection playbook: T1 VWAP, T2 opposite IB extreme.';
+      }
+      if(t1!==null)h+='<div class="kv-row"><span>T1 target zone</span><b>'+esc(zn(t1,t1n))+'</b></div>';
+      if(t2!==null)h+='<div class="kv-row"><span>T2 target zone</span><b>'+esc(zn(t2,t2n))+'</b></div>';
+      if(targetWhy)h+='<div class="hint-box">'+esc(targetWhy)+'</div>';
+      else h+='<div class="result-box amb"><b>SETUP-SPECIFIC TARGET NOT NUMERICALLY CALCULATED</b><br>'+esc(s?s.target:'Playbook target unavailable')+'</div>';
+      if(p.sl===null)h+='<div class="result-box amb">Numeric SL unavailable: Live VWAP (opening.trailVwap), wide-IB boundary or applicable structural reference input missing. SL guess nahi kiya gaya.</div>';
+    } else if(type==='momentum'){
+      const fib=calcFibExtension();
+      h+='<div class="result-box"><b>SL / INVALIDATION</b><br>Coach #14: fixed SL for a Momentum-framework trade. Exact invalidation reference is setup-dependent; the extracted sources do not establish one universal numeric spot/futures SL formula. Option-premium Fib references must not be converted into Nifty spot points without a validated conversion rule.</div>';
+      if(fib && fib.hhllConfirmed==='yes' && fib.gating && fib.gating.satisfied){
+        const selected=fib.levels.filter(x=>['100%','161.8%','261.8%'].includes(x.label));
+        h+='<div class="kv-row"><span>Momentum T1 zone (100%)</span><b>'+esc(tz(selected[0].value))+'</b></div>';
+        h+='<div class="kv-row"><span>Momentum T2 zone (161.8%)</span><b>'+esc(tz(selected[1].value))+'</b></div>';
+        h+='<div class="kv-row"><span>Momentum T3 reference (261.8%)</span><b>'+esc(tz(selected[2].value))+'</b></div>';
+      } else h+='<div class="result-box amb"><b>FIB TARGETS NOT RELEASED</b><br>HH/LL confirmation aur previous-session VAH/VAL gating dono pass hone chahiye. Fib inputs/gating incomplete ya fail hai.</div>';
+    } else {
+      const counterSetupNote=setup==='c_failure'?'C-period high/low ka exact stop anchor aur applicable filter verify/input kiye bina numeric SL nahi niklega.':setup==='45_degree'?'45-degree / OAIR setup ke liye exact invalidation boundary aur filter ka numeric rule is journal input set mein independently confirmed nahi hai.':setup==='island'?'Island profile ke liye island extreme aur exact invalidation rule required; current inputs se numeric SL release nahi hoga.':setup==='failed_auction'?'Failed Auction revisit ke liye failed-auction extreme/reference input required; current inputs se numeric SL release nahi hoga.':'Selected Counter setup ka exact stop anchor source/input se establish nahi hua.';
+      h+='<div class="result-box"><b>COUNTER-TRADE SL — FIXED</b><br>Coach #14 confirms fixed SL for C-period failure counter trades. '+esc(counterSetupNote)+' Numeric SL guess nahi kiya gaya. Playbook SL note: '+esc(s?s.sl:'Not available')+'</div>';
+      h+='<div class="result-box"><b>COUNTER-TRADE TARGET</b><br>'+esc(s?s.target:'Playbook target unavailable')+'<br>Exact target depends on the selected counter setup and live structure; no generic numeric T1/T2 is forced.</div>';
+    }
+    h+='<div class="result-box"><b>TRADE-TYPE EXIT RULE — '+esc(typeLabel)+'</b><br>'+esc(exitRule)+'</div>';
+    h+='<div class="hint-box">T1 par 50–70% partial booking (70% operational default from framework); remaining runner ka SL Cost/VWAP par shift as applicable. Targets structural ZONES hain (source guidance ±10–15 pts); displayed reference is not a guaranteed exact fill price.</div>';
+    h+='<div class="hint-box">Strike suggestion: '+esc(p.strike)+' · Position sizing: '+esc(p.tier)+'</div>';
+  }
+  if(s)h+='<div class="result-box"><b>PLAYBOOK RULE MATCH</b><br>'+esc(s.name)+'<br><b>Entry:</b> '+esc(s.entry)+'<br><b>SL:</b> '+esc(s.sl)+'<br><b>Target:</b> '+esc(s.target)+(s.note?'<br><span class="muted">'+esc(s.note)+'</span>':'')+'</div>';
+  h+='<div class="hint-box">Source note: Coach #14 directly confirms trade-type-dependent SL handling. This panel separates directional context from manual setup confirmation. Some setup-specific numeric SL/target formulas and the exact 2–3 period algorithm remain unresolved; the journal does not invent them. Gemini Notebook extraction is treated as a lead, not independent proof of every Category A claim.</div>';
+  el.innerHTML=h;
+}
+
 function engRender(manual) { const sel = document.getElementById('engCP'); const cp = sel.value === 'auto' ? engCP() : sel.value, r = engRun(cp); document.getElementById('engOut').innerHTML = engHTML(r);
   if (manual === true && r.doubt.keys.length) { const hist = JSON.parse(localStorage.getItem('coach_doubts') || '[]'); r.doubt.keys.forEach(k => { if (!hist.some(h => h.date === dateKey && h.key === k)) hist.push({ date: dateKey, key: k, genuine: r.doubt.status === 'GENUINE DOUBT' }); }); localStorage.setItem('coach_doubts', JSON.stringify(hist)); } }
 function teachRender() { const a = JSON.parse(localStorage.getItem('coach_teachings') || '[]'); document.getElementById('teachList').innerHTML = a.map(t => '<div class="tr-item"><div><b>' + t.date + '</b> — ' + t.situation + '<br><span class="muted">Coach:</span> "' + t.answer + '"</div></div>').join('') || '<div class="hint-box" style="padding:0 14px 8px">Abhi koi saved teaching nahi.</div>'; }
@@ -3753,6 +3861,12 @@ function renderExitRule() {
   b.querySelectorAll('[data-tt]').forEach(r => { const on = r.dataset.tt === sel; r.style.background = on ? '#1E2A33' : 'transparent'; r.style.borderLeft = on ? '3px solid #3FD5E0' : '3px solid transparent'; r.style.fontWeight = on ? '700' : '400'; });
 }
 document.getElementById('t_tradeType').onchange = renderExitRule;
+const planTradeTypeEl=document.getElementById('planTradeType');
+if(planTradeTypeEl) planTradeTypeEl.onchange=e=>{DAY.opening.planTradeType=e.target.value||null;DAY.opening.planSetupSubtype=null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
+const planSetupSubtypeEl=document.getElementById('planSetupSubtype');
+if(planSetupSubtypeEl) planSetupSubtypeEl.onchange=e=>{DAY.opening.planSetupSubtype=e.target.value||null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
+const planTriggerConfirmedEl=document.getElementById('planTriggerConfirmed');
+if(planTriggerConfirmedEl) planTriggerConfirmedEl.onchange=e=>{DAY.opening.planTriggerConfirmed=e.target.value==='yes'?'yes':'no';scheduleAutoSave();renderAfternoonTradePlan();};
 if (typeof setInterval === 'function') setInterval(() => { try { renderExitRule(); } catch (e) {} }, 3000);
 
 /* ============================================================
@@ -3815,6 +3929,7 @@ function renderCoachContext(){
  const max=c.maximum==='tie'?'Tie / mixed':ciDirectionLabel(c.maximum);
  const rows=c.items.map(x=>{const cls=x.direction==='up'?'ci-good':(x.direction==='down'?'ci-bad':(x.direction==='neutral'?'ci-warn':'ci-muted'));return '<div class="ci-rule"><b>'+x.label+'</b> <span class="ci-pill">'+x.tool+'</span><br><span class="'+cls+'">'+ciDirectionLabel(x.direction)+'</span> — '+x.detail+'</div>';}).join('');
  el.innerHTML='<div class="ci-grid"><div class="ci-stat"><span class="ci-muted">Maximum indication direction</span><b>'+max+'</b></div><div class="ci-stat"><span class="ci-muted">Bullish / Bearish / Neutral</span><b>'+c.counts.bullish+' / '+c.counts.bearish+' / '+c.counts.neutral+'</b></div><div class="ci-stat"><span class="ci-muted">Market Profile only</span><b>'+c.marketProfileCounts.bullish+' bull · '+c.marketProfileCounts.bearish+' bear</b></div><div class="ci-stat"><span class="ci-muted">Unavailable fields</span><b>'+c.counts.unavailable+'</b></div></div><div style="margin-top:10px"><b>Context confidence — evidence-based, no invented percentage</b><div>'+c.confidence+'</div></div><div style="margin-top:10px"><b>Tool-by-tool evidence</b>'+rows+'</div>'+(c.structureNotes.length?'<div class="ci-muted" style="margin-top:8px">Additional structure (not double-counted): '+c.structureNotes.join('; ')+'</div>':'')+'<div class="ci-muted" style="margin-top:8px">Important: this directional view is separate from the existing legacy X/5 score. More indications do not guarantee direction or create an entry trigger.</div>';
+ try{renderAfternoonTradePlan();}catch(e){}
 }
 
 function ciDataQuality(day, key){
@@ -3848,7 +3963,7 @@ const CI_AI_INSTRUCTIONS=[
 ];
 function ciBaseExport(type, key, day, trades, stats){
  const c=computeCoachContext(); const quality=ciDataQuality(day,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v21.3 + Coach Intelligence upgrade',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)]))},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues.concat(['Implementation/source mismatch: participation bucket thresholds in current code differ from Coach flat-zone wording; requires explicit rule reconciliation.','Legacy X/5 signal mapping contains possible overlap and direction-independent flags; preserved, not treated as independent tool count.']),calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; existing logic uses its current bias and five booleans.',participation:'Uses current journal checkpoint calculations; current code buckets up >=0.5%, down <= -0.5%, flat between -0.25% and +0.25%. This does not match the source quote In % 0.05 to 0.10% is flat; preserve as an unresolved implementation/source mismatch, do not assume equivalence.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v21.5 + Coach Trade Plan setup gate',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)]))},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues.concat(['Implementation/source mismatch: participation bucket thresholds in current code differ from Coach flat-zone wording; requires explicit rule reconciliation.','Legacy X/5 signal mapping contains possible overlap and direction-independent flags; preserved, not treated as independent tool count.']),calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; existing logic uses its current bias and five booleans.',participation:'Uses current journal checkpoint calculations; current code buckets up >=0.5%, down <= -0.5%, flat between -0.25% and +0.25%. This does not match the source quote In % 0.05 to 0.10% is flat; preserve as an unresolved implementation/source mismatch, do not assume equivalence.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -3878,6 +3993,7 @@ async function ciExport(type,format){
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
   document.getElementById('summaryCurrentPrice').value = DAY.niftyPrice;
+  document.getElementById('summaryCurrentVwap').value = DAY.opening.trailVwap;
   renderDayBanner();
   renderLevels();
   renderOpening();
