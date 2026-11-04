@@ -801,8 +801,10 @@
     <div class="card" id="coachTradePlanCard">
       <div class="card-title">COACH RULE-BASED TRADE PLAN · ENTRY / SL / TARGET</div>
       <div class="hint-box" style="padding:0 14px 8px">Afternoon mein Engine ka calculated plan yahan dikhega. Numeric entry ke liye current Nifty spot price zaroori hai; purane A/B close ko live entry nahi maana jayega.</div>
+      <div class="hint-box" style="padding:8px 14px">AUTO DETECTION: Playbook aur recorded evidence se trade type/setup suggest honge. Dropdown se manual override kar sakte ho. Trigger confirmation hamesha tumhara manual check rahega.</div>
       <div class="field-row"><span class="lbl">Planned trade type (Coach #14)</span><select id="planTradeType" class="of-tag-select" style="width:190px"><option value="">-- choose trade type --</option><option value="counter">Counter-trade</option><option value="momentum">Momentum framework</option><option value="mp">Market Profile</option></select></div>
       <div class="field-row"><span class="lbl">Specific setup</span><select id="planSetupSubtype" class="of-tag-select" style="width:220px"><option value="">-- choose setup --</option><option value="c_failure">C-period failure / bluff</option><option value="45_degree">45-degree / OAIR</option><option value="island">Island profile / mean reversion</option><option value="failed_auction">Failed auction revisit</option><option value="momentum_fib">ITM option Fib momentum</option><option value="half_ib">Half-IB access / range extension</option><option value="va_80">80% previous Value Area rule</option><option value="other">Other / manual setup</option></select></div>
+      <div class="field-row"><button type="button" id="planAutoDetectBtn" class="secondary-btn" style="width:auto">Auto-detect from recorded evidence</button></div>
       <div class="field-row"><span class="lbl">Actual setup trigger confirmed? (manual check)</span><select id="planTriggerConfirmed" class="of-tag-select" style="width:190px"><option value="no">No — wait / not confirmed</option><option value="yes">Yes — 15m close / setup evidence checked</option></select></div>
       <div class="hint-box" style="padding:0 14px 10px">Important: Directional bias aur 2/5 legacy signals setup trigger nahi hain. Ye manual confirmation sirf tumhare check ko record karta hai; journal candle data ko independently verify nahi karta.</div>
       <div class="result-inner" id="coachTradePlanView">Trade type, setup aur actual trigger confirm karne ke baad plan evaluate hoga.</div>
@@ -1088,6 +1090,7 @@ function blankDay() {
       fibP1: "", fibP2: "", fibP3: "", fibHHLLConfirmed: null,
       trailDirection: null, trailVwap: "", trailFilter: "", trailPartialBooked: null,
       planTradeType: null,
+      planSelectionMode: 'auto',
       baseLotSize: "",
       middayTailPeriod: "", middayTailSide: null,
     },
@@ -3670,15 +3673,31 @@ function renderAfternoonTradePlan(){
   const typeEl=document.getElementById('planTradeType');
   const setupEl=document.getElementById('planSetupSubtype');
   const triggerEl=document.getElementById('planTriggerConfirmed');
+  let r=null, s=null;
+  try { r=engRun('trig'); s=selectStrategy(); }
+  catch(e) { el.innerHTML='<div class="amb">Plan calculation error: '+String(e.message||e)+'</div>'; return; }
+  const infer=()=>{
+    const n=String(s&&s.name||'');
+    if(/C-Period Rejection/i.test(n) && !/Skip|Warning/i.test(n)) return {type:'counter',setup:'c_failure',why:'C-period rejection playbook'};
+    if(/45-Degree Rule/i.test(n) && !/OVERRIDDEN|Filter Fail/i.test(n)) return {type:'mp',setup:'45_degree',why:'45-degree playbook'};
+    if(/Normal Variation — Half-IB Breakout/i.test(n)) return {type:'mp',setup:'half_ib',why:'Half-IB breakout playbook'};
+    if(/80% Rule — Confidence Confirmation/i.test(n)) return {type:'mp',setup:'va_80',why:'80% VA context detected (not a fresh entry by itself)'};
+    const fib=calcFibExtension();
+    if(fib && fib.hhllConfirmed==='yes' && fib.gating && fib.gating.satisfied) return {type:'momentum',setup:'momentum_fib',why:'ITM Fib HH/LL and previous-VA gating recorded'};
+    return null;
+  };
+  if(DAY.opening.planSelectionMode!=='manual') {
+    const detected=infer();
+    DAY.opening.planSelectionMode='auto';
+    DAY.opening.planTradeType=detected?detected.type:null;
+    DAY.opening.planSetupSubtype=detected?detected.setup:null;
+  }
   const type=DAY.opening.planTradeType||'';
   const setup=DAY.opening.planSetupSubtype||'';
   const triggerConfirmed=DAY.opening.planTriggerConfirmed==='yes';
   if(typeEl && typeEl.value!==type) typeEl.value=type;
   if(setupEl && setupEl.value!==setup) setupEl.value=setup;
   if(triggerEl && triggerEl.value!==(triggerConfirmed?'yes':'no')) triggerEl.value=triggerConfirmed?'yes':'no';
-  let r=null, s=null;
-  try { r=engRun('trig'); s=selectStrategy(); }
-  catch(e) { el.innerHTML='<div class="amb">Plan calculation error: '+String(e.message||e)+'</div>'; return; }
   if(!r) { el.textContent='Engine data unavailable.'; return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const waitPattern=/wait|mat lo|no trade|cancel|skip|not a fresh entry|fresh aggressive entry/i;
@@ -3686,7 +3705,7 @@ function renderAfternoonTradePlan(){
   const playbookBlocks=!!(s&&waitPattern.test(playbookText));
   const typeLabel={counter:'Counter-trade',momentum:'Momentum framework',mp:'Market Profile'}[type]||'Not selected';
   const setupLabel={c_failure:'C-period failure / bluff','45_degree':'45-degree / OAIR',island:'Island profile / mean reversion',failed_auction:'Failed auction revisit',momentum_fib:'ITM option Fib momentum',half_ib:'Half-IB access / range extension',va_80:'80% previous Value Area rule',other:'Other / manual setup'}[setup]||'Not selected';
-  const setupMatchesType=setup==='other'||(type==='counter'&&['c_failure','45_degree','island','failed_auction'].includes(setup))||(type==='momentum'&&setup==='momentum_fib')||(type==='mp'&&['half_ib','va_80'].includes(setup));
+  const setupMatchesType=setup==='other'||(type==='counter'&&['c_failure','45_degree','island','failed_auction'].includes(setup))||(type==='momentum'&&setup==='momentum_fib')||(type==='mp'&&['half_ib','va_80','45_degree'].includes(setup));
   const exitRule=(type==='counter'||type==='momentum')
     ? 'FIXED SL — Coach #14. Fixed stop ko follow karo; Market Profile ka 30-min + 2-3 period close wait apply nahi hota.'
     : type==='mp'
@@ -3696,7 +3715,9 @@ function renderAfternoonTradePlan(){
   h+='<div class="kv-row"><span>Engine action (directional context only)</span><b>'+esc(r.action)+'</b></div>';
   h+='<div class="kv-row"><span>Directional anchor</span><b>'+esc(r.bias?engDir(r.bias):(r.anc==='none'?'NEUTRAL':'PENDING'))+'</b></div>';
   h+='<div class="kv-row"><span>Signal count (legacy journal mapping)</span><b>'+r.pass+'/5</b></div>';
+  h+='<div class="kv-row"><span>Auto / selected trade type</span><b>'+esc(typeLabel)+'</b></div>';
   h+='<div class="kv-row"><span>Selected setup</span><b>'+esc(setupLabel)+'</b></div>';
+  h+='<div class="hint-box">Selection mode: '+(DAY.opening.planSelectionMode==='manual'?'Manual override':'Auto-detected from recorded playbook evidence')+'. Auto-detection sirf supported playbook pattern par hota hai; ambiguous evidence par blank rahega.</div>'; 
   h+='<div class="kv-row"><span>Manual trigger confirmation</span><b>'+(triggerConfirmed?'YES — user checked':'NO — not confirmed')+'</b></div>';
   if(r.gates&&r.gates.length) h+='<div class="result-box neg"><b>NO-TRADE GATE</b><br>'+r.gates.map(esc).join('<br>')+'</div>';
   if(r.caution&&r.caution.length) h+='<div class="result-box amb"><b>CAUTION</b><br>'+r.caution.map(esc).join('<br>')+'</div>';
@@ -3862,11 +3883,13 @@ function renderExitRule() {
 }
 document.getElementById('t_tradeType').onchange = renderExitRule;
 const planTradeTypeEl=document.getElementById('planTradeType');
-if(planTradeTypeEl) planTradeTypeEl.onchange=e=>{DAY.opening.planTradeType=e.target.value||null;DAY.opening.planSetupSubtype=null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
+if(planTradeTypeEl) planTradeTypeEl.onchange=e=>{DAY.opening.planSelectionMode='manual';DAY.opening.planTradeType=e.target.value||null;DAY.opening.planSetupSubtype=null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
 const planSetupSubtypeEl=document.getElementById('planSetupSubtype');
-if(planSetupSubtypeEl) planSetupSubtypeEl.onchange=e=>{DAY.opening.planSetupSubtype=e.target.value||null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
+if(planSetupSubtypeEl) planSetupSubtypeEl.onchange=e=>{DAY.opening.planSelectionMode='manual';DAY.opening.planSetupSubtype=e.target.value||null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
 const planTriggerConfirmedEl=document.getElementById('planTriggerConfirmed');
 if(planTriggerConfirmedEl) planTriggerConfirmedEl.onchange=e=>{DAY.opening.planTriggerConfirmed=e.target.value==='yes'?'yes':'no';scheduleAutoSave();renderAfternoonTradePlan();};
+const planAutoDetectBtn=document.getElementById('planAutoDetectBtn');
+if(planAutoDetectBtn) planAutoDetectBtn.onclick=()=>{DAY.opening.planSelectionMode='auto';DAY.opening.planTradeType=null;DAY.opening.planSetupSubtype=null;DAY.opening.planTriggerConfirmed='no';scheduleAutoSave();renderAfternoonTradePlan();};
 if (typeof setInterval === 'function') setInterval(() => { try { renderExitRule(); } catch (e) {} }, 3000);
 
 /* ============================================================
