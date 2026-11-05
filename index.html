@@ -1,5 +1,5 @@
 <!--
-TRADING JOURNAL v24 — COACH PLAYBOOK AUDIT INTEGRATED
+TRADING JOURNAL v25 — COACH LEARNING LAB INTEGRATED
 Base: user-provided V21.8 complete source.
 Changes: current-price trigger wording; target-zone width 15 points each side;
 80% VA evidence gate; conservative C-period confirmation gate; explicit source/inference caveats.
@@ -10,7 +10,7 @@ This is a complete HTML document stored with .txt extension for portability.
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v24 · Coach Audit Integrated Engine</title>
+<title>Daily Trading Journal v25 · Coach Learning Lab</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -241,6 +241,7 @@ This is a complete HTML document stored with .txt extension for portability.
   <button data-section="afternoon">AFTERNOON</button>
   <button data-section="trades">TRADES</button>
   <button data-section="engine">ENGINE</button>
+  <button data-section="learning">LEARNING LAB</button>
   <button data-section="summary">SUMMARY</button>
 </div>
 
@@ -812,15 +813,15 @@ This is a complete HTML document stored with .txt extension for portability.
     </div>
 
     <div class="card" id="coachTradePlanCard">
-      <div class="card-title">V25 · CONTEXTUAL + EXECUTABLE TRADE PLAN</div>
+      <div class="card-title">COACH RULE-BASED TRADE PLAN · ENTRY / SL / TARGET</div>
       <div class="hint-box" style="padding:0 14px 8px">Current Nifty spot price tum manually enter karoge. Confirmed 15-minute trigger close ke exact waqt ka CURRENT SPOT price Entry banega (candle OHLC close ko substitute mat karo); uske basis par available Coach rules se SL reference aur Target zones calculate honge. Har price update PRE-TRADE plan refresh karega.</div>
-      <div class="hint-box" style="padding:8px 14px">AUTO DETECTION: Playbook aur recorded evidence se trade type/setup suggest honge. Dropdown se manual override kar sakte ho. Trigger confirmation hamesha tumhara manual check rahega. V25 me contextual levels aur executable plan alag hain; contextual levels kabhi entry permission nahi dete.</div>
+      <div class="hint-box" style="padding:8px 14px">AUTO DETECTION: Playbook aur recorded evidence se trade type/setup suggest honge. Dropdown se manual override kar sakte ho. Trigger confirmation hamesha tumhara manual check rahega.</div>
       <div class="field-row"><span class="lbl">Planned trade type (Coach #14)</span><select id="planTradeType" class="of-tag-select" style="width:190px"><option value="">-- choose trade type --</option><option value="counter">Counter-trade</option><option value="momentum">Momentum framework</option><option value="mp">Market Profile</option></select></div>
       <div class="field-row"><span class="lbl">Specific setup</span><select id="planSetupSubtype" class="of-tag-select" style="width:220px"><option value="">-- choose setup --</option><option value="c_failure">C-period failure / bluff</option><option value="45_degree">45-degree / OAIR</option><option value="island">Island profile / mean reversion</option><option value="failed_auction">Failed auction revisit</option><option value="momentum_fib">ITM option Fib momentum</option><option value="half_ib">Half-IB access / range extension</option><option value="va_80">80% previous Value Area rule</option><option value="other">Other / manual setup</option></select></div>
       <div class="field-row"><button type="button" id="planAutoDetectBtn" class="secondary-btn" style="width:auto">Auto-detect from recorded evidence</button></div>
       <div class="field-row"><span class="lbl">Actual setup trigger confirmed? (manual 15m close check)</span><select id="planTriggerConfirmed" class="of-tag-select" style="width:190px"><option value="no">No — wait / not confirmed</option><option value="yes">Yes — 15m close / setup evidence checked</option></select></div>
       <div class="hint-box" style="padding:0 14px 10px">Important: [v24] 45-degree → Counter grouping audit-derived mapping hai, Coach ka verbatim classification nahi. Failed Auction exact entry/SL, Island Profile intraday mapping aur Market Profile 2–3 period SL automation fully specified nahi hain; inhe manual/WAIT rakho. Directional bias aur 2/5 legacy signals setup trigger nahi hain. Ye manual confirmation sirf tumhare check ko record karta hai; journal candle data ko independently verify nahi karta.</div>
-      <div class="result-inner" id="coachContextPlanView">Contextual plan loading…</div><div class="divider" style="margin:12px 0;border-top:1px solid var(--line)"></div><div class="card-title" style="font-size:13px">B. EXECUTABLE TRADE PLAN — STRICT GATES</div><div class="result-inner" id="coachTradePlanView">Trade type, setup aur actual trigger confirm karne ke baad plan evaluate hoga.</div>
+      <div class="result-inner" id="coachTradePlanView">Trade type, setup aur actual trigger confirm karne ke baad plan evaluate hoga.</div>
     </div>
 
 <div class="card">
@@ -903,6 +904,35 @@ This is a complete HTML document stored with .txt extension for portability.
       <div class="toggle-q">Master_Rulebook.md import (ek baar)</div>
       <div style="padding:0 14px 10px"><textarea id="rbText" placeholder="Rulebook ka poora text paste karo" style="width:100%;min-height:80px;background:#0E141A;border:1px solid #232B36;border-radius:8px;color:#E6EDF3;font-size:11px;padding:6px"></textarea></div>
       <button class="weight-save" id="rbImportBtn" style="width:calc(100% - 28px);margin:0 14px 14px">Import rules</button></div>
+  </div>
+
+
+  <!-- ================= COACH LEARNING LAB ================= -->
+  <div id="section-learning" class="section">
+    <div class="hint-box" style="padding:12px 4px 14px">Is tab mein chart ko observe karke options select karo. Yeh test nahi hai: koi answer ko zabardasti sahi/galat nahi kaha jayega. “Not observed / unclear” valid answer hai. Analysis Coach ke source rules, audit-derived logic aur tumhari observation ko alag rakhega.</div>
+    <div class="card"><div class="card-title">SESSION CONTEXT · MARKET PROFILE (60% PRIMARY CONTEXT)</div>
+      <div class="toggle-q">1. Aaj ka opening structure kya bana?</div><div class="field-row"><span class="lbl">Opening type</span><select id="ll_q1" class="of-tag-select"><option value="">Select karo</option><option>OAIR</option><option>OAOR</option><option>Open Drive</option><option>OTD</option><option>ORR</option><option>Mixed / changing</option><option>Not observed / unclear</option></select></div>
+      <div class="toggle-q">2. A+B (10:15 AM) ke baad price kis structure mein tha?</div><div class="field-row"><span class="lbl">Price location</span><select id="ll_q2" class="of-tag-select"><option value="">Select karo</option><option>IB ke andar rotation</option><option>Half-IB Upper ke upar 15m close</option><option>Half-IB Lower ke neeche 15m close</option><option>Value Area ke andar re-entry</option><option>VA ke bahar sustain</option><option>Structure unclear / observe nahi kiya</option></select></div>
+      <div class="toggle-q">3. VAH/VAL acceptance ka evidence kya tha?</div><div class="field-row"><span class="lbl">VA acceptance</span><select id="ll_q3" class="of-tag-select"><option value="">Select karo</option><option>VAH ke upar 2–3 consecutive candles sustain</option><option>VAL ke neeche 2–3 consecutive candles sustain</option><option>Sirf ek 15m close mila</option><option>Price VA ke andar wapas aa gaya</option><option>Acceptance nahi dikha</option><option>Not observed / unclear</option></select></div>
+      <div class="toggle-q">4. 80% Value Area Rule ke liye kya evidence available tha?</div><div class="field-row"><span class="lbl">80% VA evidence</span><select id="ll_q4" class="of-tag-select"><option value="">Select karo</option><option>AB complete + 20% VA depth + 15m close + multi-letter TPO acceptance</option><option>AB complete, par 20% depth missing</option><option>20% depth dikhi, TPO acceptance missing</option><option>AB abhi complete nahi tha</option><option>Sirf price VA mein enter hua</option><option>Not applicable / unclear</option></select></div>
+    </div>
+    <div class="card"><div class="card-title">SETUP & CONFIRMATION · ENTRY IS NOT JUST DIRECTION</div>
+      <div class="toggle-q">5. Tumhe kaunsa actionable setup clearly dikha?</div><div class="field-row"><span class="lbl">Setup observation</span><select id="ll_q5" class="of-tag-select"><option value="">Select karo</option><option>C-period Bluff / Reversal</option><option>45-Degree OAIR Rotation</option><option>Failed Auction Revisit</option><option>Early ITM Option Anchor</option><option>Fibonacci Extension (HH/LL)</option><option>Institutional Momentum (OD/OTD/ORR)</option><option>Half-IB Access Breakout</option><option>Value Area 80% Rule</option><option>Trend Day Continuation</option><option>Opening context tha, actionable setup nahi</option><option>Setup identify nahi hua</option></select></div>
+      <div class="toggle-q">6. Order Flow mein kya mila?</div><div class="field-row"><span class="lbl">Order Flow</span><select id="ll_q6" class="of-tag-select"><option value="">Select karo</option><option>Combo #1 RB+IB</option><option>Combo #2 IB+IB</option><option>Combo #3 RS+IS</option><option>Combo #4 IS+IS</option><option>Combo #5 RS+RB (conflicting / no new trade)</option><option>Combo #6 IB+IS (conflicting / no new trade)</option><option>Sirf single tag (IB / IS / RB / RS)</option><option>Koi recognized combo nahi</option><option>Order Flow data unavailable</option></select></div>
+      <div class="toggle-q">7. 12 heavyweight stocks ka participation kya keh raha tha?</div><div class="field-row"><span class="lbl">Participation</span><select id="ll_q7" class="of-tag-select"><option value="">Select karo</option><option>7–8 ya usse zyada same direction mein</option><option>6 ya usse kam aligned</option><option>Mixed: bullish aur bearish dono</option><option>Ek heavyweight news se distorted lag raha tha</option><option>Data incomplete / not checked</option></select></div>
+      <div class="toggle-q">8. ITM CE/PE Fibonacci anchor ka observation?</div><div class="field-row"><span class="lbl">ITM anchor</span><select id="ll_q8" class="of-tag-select"><option value="">Select karo</option><option>CE Fib VAH ke upar 15m close (bullish)</option><option>PE Fib VAL ke neeche 15m close (bearish)</option><option>Dono mixed / conflicting</option><option>Dono Fib VA ke andar</option><option>Anchor establish nahi hua / data missing</option></select></div>
+    </div>
+    <div class="card"><div class="card-title">EXECUTION, RISK & CONTINUOUS LEARNING</div>
+      <div class="toggle-q">9. VWAP ke paas price ka reaction kya tha?</div><div class="field-row"><span class="lbl">VWAP reaction</span><select id="ll_q9" class="of-tag-select"><option value="">Select karo</option><option>VWAP hold / support</option><option>VWAP reject (explicit exit consideration)</option><option>VWAP accept / price VWAP ke paar sustain</option><option>VWAP ke around freeze / chop</option><option>VWAP data unavailable</option></select></div>
+      <div class="toggle-q">10. Tumhare paas kitne valid legacy signals the? (0–5)</div><div class="field-row"><span class="lbl">Signal count</span><select id="ll_q10" class="of-tag-select"><option value="">Select karo</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>Count nahi kiya</option></select></div>
+      <div class="toggle-q">11. Entry ke waqt exact trigger candle close aur SL anchor clear tha?</div><div class="field-row"><span class="lbl">Execution readiness</span><select id="ll_q11" class="of-tag-select"><option value="">Select karo</option><option>15m trigger close clear + setup-based SL anchor known</option><option>Trigger clear, SL anchor missing</option><option>Setup/context tha, par trigger close nahi</option><option>Entry pullback ka wait kar raha tha (trigger already valid)</option><option>Doubt / confusion tha</option><option>Trade nahi liya</option></select></div>
+      <div class="toggle-q">12. Session ke baad is event ko kaise classify karoge?</div><div class="field-row"><span class="lbl">Reflection (not a verdict)</span><select id="ll_q12" class="of-tag-select"><option value="">Select karo</option><option>Coach rule follow hua; outcome profit</option><option>Coach rule follow hua; outcome loss</option><option>Rule break hua; outcome profit</option><option>Rule break hua; outcome loss</option><option>Trade nahi liya; planned WAIT follow kiya</option><option>Evidence insufficient — abhi conclusion nahi</option></select></div>
+      <div class="textarea-wrap"><span class="lbl">13. Tumhari apni chart observation / kya seekha? (optional)</span><textarea id="ll_note" placeholder="Jo tumne chart par dekha, bina hindsight se rule banaye likho..."></textarea></div>
+      <button class="weight-save" id="llAnalyzeBtn" style="width:calc(100% - 28px);margin:0 14px 10px">▶ Analyse my selections</button>
+      <button class="erase-btn" id="llResetBtn" style="margin:0 14px 14px">Reset Learning Lab answers</button>
+      <div id="llAnalysis" class="result-box" style="display:none"></div>
+    </div>
+    <div class="hint-box">Principle: “Trading is a continuous learning process.” Experience mein mistakes bhi hoti hain. Ek profitable trade ko automatically good process, ya ek loss ko automatically bad analysis nahi maana jayega. Koi naya permanent rule ek single incident se create nahi hoga.</div>
   </div>
 
   <!-- ================= SUMMARY ================= -->
@@ -1128,12 +1158,13 @@ function formatDateKey(key) {
 /* ============================================================
    NAV
 ============================================================ */
-const SECTIONS = ["premarket","morning","midday","afternoon","trades","engine","summary"];
+const SECTIONS = ["premarket","morning","midday","afternoon","trades","engine","learning","summary"];
 function showSection(id) {
   SECTIONS.forEach(s => {
     document.getElementById('section-'+s).classList.toggle('active', s===id);
   });
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
+  if (id === 'learning') { try { llLoad(); } catch(e) {} }
   if (id === 'summary') renderSummary();
   if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
   if (id === 'engine') { try { rbRender(); teachRender(); engRender(); } catch (e) {} }
@@ -1141,6 +1172,46 @@ function showSection(id) {
 document.querySelectorAll('.nav button').forEach(b => {
   b.onclick = () => showSection(b.dataset.section);
 });
+
+/* COACH LEARNING LAB — separate from trade engine; observations are not auto-promoted into rules. */
+const LL_IDS = Array.from({length:12},(_,i)=>'ll_q'+(i+1)).concat(['ll_note']);
+function llStorageKey(){ return 'coach_learning_lab_'+(dateKey||todayKey()); }
+function llLoad(){ try { const a=JSON.parse(localStorage.getItem(llStorageKey())||'{}'); LL_IDS.forEach(id=>{const e=document.getElementById(id);if(e)e.value=a[id]||'';}); }catch(e){} }
+function llSave(){ const a={}; LL_IDS.forEach(id=>{const e=document.getElementById(id);if(e)a[id]=e.value;}); try{localStorage.setItem(llStorageKey(),JSON.stringify(a));}catch(e){} }
+function llAnalyse(){
+ const v=id=>(document.getElementById('ll_'+id)?.value||'').trim();
+ const answers=LL_IDS.slice(0,12).map((id,i)=>({n:i+1,q:document.querySelector('#section-learning .toggle-q:nth-of-type('+ (i+1) +')')?.textContent||'',a:document.getElementById(id)?.value||''}));
+ const chosen=answers.filter(x=>x.a); const out=[]; const get=n=>v('q'+n);
+ out.push('<b>SELECTION REVIEW</b><br>'+chosen.length+'/12 questions answered. Missing answers are treated as unknown, not negative evidence.');
+ const q1=get(1),q2=get(2),q3=get(3),q4=get(4),q5=get(5),q6=get(6),q10=get(10),q11=get(11),q12=get(12);
+ out.push('<br><br><b>1. MARKET CONTEXT</b><br>Opening: '+(q1||'Not recorded')+'<br>Post-AB structure: '+(q2||'Not recorded')+'<br>VA acceptance: '+(q3||'Not recorded'));
+ if(q4.includes('AB complete +')) out.push('<br><span class="ci-good">80% VA evidence checklist: all four elements reported.</span>');
+ else if(q4 && !q4.includes('Not applicable')) out.push('<br><span class="ci-warn">80% VA Rule: required evidence appears incomplete or not confirmed. Do not label it a valid 80% setup from this answer alone.</span>');
+ out.push('<br><br><b>2. SETUP & CONFIRMATION</b><br>Observed setup: '+(q5||'Not recorded')+'<br>Order Flow: '+(q6||'Not recorded')+'<br>Participation: '+(get(7)||'Not recorded')+'<br>ITM anchor: '+(get(8)||'Not recorded'));
+ if(q6.includes('Combo #5')||q6.includes('Combo #6')) out.push('<br><span class="ci-bad">No-new-trade / conflicting Order Flow combination selected. Recheck Coach filter before considering entry.</span>');
+ if(q6.includes('single tag')||q6.includes('Koi recognized')) out.push('<br><span class="ci-warn">A single tag or absence of a recognized combination is not a standalone entry trigger.</span>');
+ if(q5==='Opening context tha, actionable setup nahi'||q5==='Setup identify nahi hua') out.push('<br><span class="ci-warn">Context alone is not an actionable setup. WAIT is a valid process outcome.</span>');
+ out.push('<br><br><b>3. EXECUTION & RISK</b><br>VWAP: '+(get(9)||'Not recorded')+'<br>Signals: '+(q10||'Not recorded')+'<br>Execution readiness: '+(q11||'Not recorded'));
+ if(q10==='0'||q10==='1') out.push('<br><span class="ci-bad">Selected signal score is 0–1/5: source rule says NO TRADE.</span>');
+ else if(q10==='2') out.push('<br><span class="ci-warn">2/5: source framework classifies this as a valid but cautious trade; it still needs a valid setup, trigger and risk anchor.</span>');
+ else if(['3','4','5'].includes(q10)) out.push('<br><span class="ci-good">3+/5: strong signal count per source matrix; this does not replace setup and trigger validation.</span>');
+ if(q11==='Trigger clear, SL anchor missing') out.push('<br><span class="ci-bad">SL PENDING: do not invent a numeric stop. Setup-specific anchor must be established first.</span>');
+ if(q11==='Setup/context tha, par trigger close nahi') out.push('<br><span class="ci-warn">No trigger close reported: context is not an entry. WAIT.</span>');
+ if(q11==='Doubt / confusion tha') out.push('<br><span class="ci-bad">Coach doubt rule: whenever doubt rises, no trade.</span>');
+ if(q11==='Entry pullback ka wait kar raha tha (trigger already valid)') out.push('<br><span class="ci-warn">Coach framework: pullback is a bonus, not a requirement after a valid 15m trigger close.</span>');
+ out.push('<br><br><b>4. CONTINUOUS-LEARNING REVIEW</b><br>Session reflection: '+(q12||'Not recorded'));
+ if(q12.includes('outcome loss')&&q12.includes('rule follow')) out.push('<br>Loss despite rule-following is not automatically a process failure. Review execution evidence and risk, not P&L alone.');
+ if(q12.includes('outcome profit')&&q12.includes('Rule break')) out.push('<br>Profit after a rule break does not validate the decision. Record the deviation without turning the outcome into a rule.');
+ if(q12.includes('WAIT follow')) out.push('<br>Planned WAIT followed: this can be a successful process decision even without a trade.');
+ if(q12.includes('insufficient')) out.push('<br>Keep it as an unresolved observation. More evidence is needed before drawing a conclusion.');
+ const note=v('note'); if(note)out.push('<br><br><b>YOUR OBSERVATION</b><br>'+note.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/\n/g,'<br>'));
+ out.push('<br><br><span class="ci-muted">Source boundary: framework thresholds and setup filters are taken from the supplied Coach Playbook Audit. Interpretive comments are journal analysis, not new Coach rules. This review does not predict the market or guarantee a trade outcome.</span>');
+ const el=document.getElementById('llAnalysis');el.innerHTML=out.join('');el.style.display='block';llSave();
+}
+LL_IDS.forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('change',llSave);if(e&&id==='ll_note')e.addEventListener('input',llSave);});
+document.getElementById('llAnalyzeBtn').onclick=llAnalyse;
+document.getElementById('llResetBtn').onclick=()=>{if(!confirm('Is date ke Learning Lab answers reset karne hain?'))return;LL_IDS.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});localStorage.removeItem(llStorageKey());const a=document.getElementById('llAnalysis');a.style.display='none';a.innerHTML='';};
+
 
 /* ============================================================
    CLOUD STORAGE (Claude db/user capabilities, with localStorage fallback)
@@ -3733,32 +3804,6 @@ function renderAfternoonTradePlan(){
   const waitPattern=/wait|mat lo|no trade|cancel|skip|not a fresh entry|fresh aggressive entry/i;
   const playbookText=s?String(s.name||'')+' '+String(s.entry||''):'';
   const playbookBlocks=!!(s&&waitPattern.test(playbookText));
-  // V25: contextual references are displayed separately and never authorize an entry.
-  const contextEl=document.getElementById('coachContextPlanView');
-  if(contextEl){
-    const L=DAY.levels||{}, O=DAY.opening||{}, ibCtx=calcIB();
-    const pxCtx=parseFloat(DAY.niftyPrice);
-    const validPx=Number.isFinite(pxCtx);
-    const ref=(v)=>{const n=parseFloat(v);return Number.isFinite(n)?esc(tz(n)):'Not entered';};
-    const refs=[['PDH',L.pdh],['PDL',L.pdl],['VAH',L.vah],['VAL',L.val],['POC',L.poc]];
-    let c='<div class="result-box"><b>CONTEXT ONLY — NOT AN ENTRY SIGNAL</b><br>This panel maps recorded market context and reference levels. It does not issue an order or convert a WAIT/OAOR playbook into a trade.</div>';
-    c+='<div class="kv-row"><span>Current Nifty spot snapshot</span><b>'+(validPx?esc(tz(pxCtx)):'Not entered')+'</b></div>';
-    c+='<div class="kv-row"><span>Directional context</span><b>'+esc(r.bias?engDir(r.bias):(r.anc==='none'?'NEUTRAL':'PENDING / ANCHOR MISSING'))+'</b></div>';
-    c+='<div class="kv-row"><span>Engine context action</span><b>'+esc(r.action)+'</b></div>';
-    c+='<div class="kv-row"><span>Legacy signal display</span><b>'+r.pass+'/5 — context only, not a trigger</b></div>';
-    if(s)c+='<div class="result-box"><b>Selected playbook</b><br>'+esc(s.name||'')+'<br><b>Playbook instruction</b><br>'+esc(s.entry||'Not available')+'</div>';
-    if(playbookBlocks){
-      c+='<div class="result-box neg"><b>OAOR / WAIT / NO-TRADE CONTEXT</b><br>The selected playbook text contains a wait/no-trade instruction. No directional entry is proposed. For Big Gap OAOR, observe only the Open Acceptance / Open Rejection behaviour specified by the selected playbook; do not treat the current spot or reference levels as an entry.</div>';
-    } else {
-      c+='<div class="result-box amb"><b>CONTEXT IS NOT EXECUTABLE</b><br>Directional bias or signal count alone is insufficient. Wait for the specific setup evidence and completed trigger confirmation before considering the separate executable plan.</div>';
-    }
-    c+='<div class="kv-row"><span>Market reference levels</span><b>'+refs.map(x=>x[0]+': '+ref(x[1])).join(' · ')+'</b></div>';
-    if(ibCtx)c+='<div class="kv-row"><span>Initial Balance references</span><b>IB High: '+ref(ibCtx.ibHigh)+' · IB Low: '+ref(ibCtx.ibLow)+' · Range: '+ref(ibCtx.len)+'</b></div>';
-    else c+='<div class="kv-row"><span>Initial Balance references</span><b>Not available / incomplete</b></div>';
-    c+='<div class="result-box"><b>STOP-LOSS CONTEXT</b><br>SL: PENDING — a numeric stop is not inferred from generic levels. Coach #14 requires trade-type-specific handling; Market Profile also requires its relevant structural reference and 30-minute context / 2–3 period close process.</div>';
-    c+='<div class="hint-box"><b>Missing evidence to resolve next:</b> '+(!type?'trade type; ':'')+(!setup?'specific setup; ':'')+(!triggerConfirmed?'manual confirmation of actual setup + completed 15-minute trigger close; ':'')+(!validPx?'current spot snapshot; ':'')+(!r.valid?'engine trigger conditions; ':'')+(playbookBlocks?'playbook WAIT/OAOR condition must remain respected; ':'')+'Any missing numeric SL anchor remains pending — it will not be guessed.</div>';
-    contextEl.innerHTML=c;
-  }
   const typeLabel={counter:'Counter-trade',momentum:'Momentum framework',mp:'Market Profile'}[type]||'Not selected';
   const setupLabel={c_failure:'C-period failure / bluff','45_degree':'45-degree / OAIR',island:'Island profile / mean reversion',failed_auction:'Failed auction revisit',momentum_fib:'ITM option Fib momentum',half_ib:'Half-IB access / range extension',va_80:'80% previous Value Area rule',other:'Other / manual setup'}[setup]||'Not selected';
   const setupMatchesType=setup==='other'||(type==='counter'&&['c_failure','45_degree','island','failed_auction'].includes(setup))||(type==='momentum'&&setup==='momentum_fib')||(type==='mp'&&['half_ib','va_80','45_degree'].includes(setup));
@@ -4061,7 +4106,7 @@ const CI_AI_INSTRUCTIONS=[
 ];
 function ciBaseExport(type, key, day, trades, stats){
  const c=computeCoachContext(); const quality=ciDataQuality(day,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v25 + Contextual and Executable Trade Plan separation',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)]))},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues.concat(['Implementation/source mismatch: participation bucket thresholds in current code differ from Coach flat-zone wording; requires explicit rule reconciliation.','Legacy X/5 signal mapping contains possible overlap and direction-independent flags; preserved, not treated as independent tool count.']),calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; existing logic uses its current bias and five booleans.',participation:'Uses current journal checkpoint calculations; current code buckets up >=0.5%, down <= -0.5%, flat between -0.25% and +0.25%. This does not match the source quote In % 0.05 to 0.10% is flat; preserve as an unresolved implementation/source mismatch, do not assume equivalence.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v24 + Coach-rule Entry-SL-Target engine',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)]))},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues.concat(['Implementation/source mismatch: participation bucket thresholds in current code differ from Coach flat-zone wording; requires explicit rule reconciliation.','Legacy X/5 signal mapping contains possible overlap and direction-independent flags; preserved, not treated as independent tool count.']),calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; existing logic uses its current bias and five booleans.',participation:'Uses current journal checkpoint calculations; current code buckets up >=0.5%, down <= -0.5%, flat between -0.25% and +0.25%. This does not match the source quote In % 0.05 to 0.10% is flat; preserve as an unresolved implementation/source mismatch, do not assume equivalence.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
