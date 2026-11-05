@@ -1,9 +1,16 @@
+<!--
+TRADING JOURNAL v24 — COACH PLAYBOOK AUDIT INTEGRATED
+Base: user-provided V21.8 complete source.
+Changes: current-price trigger wording; target-zone width 15 points each side;
+80% VA evidence gate; conservative C-period confirmation gate; explicit source/inference caveats.
+This is a complete HTML document stored with .txt extension for portability.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v21.8 · Coach Entry-SL-Target Engine</title>
+<title>Daily Trading Journal v24 · Coach Audit Integrated Engine</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -710,6 +717,9 @@
           <button data-val="no">Nahi, normal/weak</button>
         </div>
         <div class="hint-box" style="padding:0 14px 12px">Agar C ka volume STRONG hai (A+B se 50%+ zyada), to ye bluff nahi — genuine breakout ho sakta hai. Coach: bluff ka signature bada bar + NO follow-through hai, strong volume follow-through ka sign hai.</div>
+        <div class="hint-box" style="padding:8px 14px">[v24 safety gate] Counter-trade se pehle price-average aur volume-average status alag confirm karo. Dono above-average hon to C-period fade mat lo. Kisi ka status unknown ho, ya dono above-average na hon, to automatic fade signal nahi — WAIT / Coach clarification required.</div>
+        <div class="toggle-q">C-period price average se upar/strong tha?</div><div class="toggle-group" id="tg_cPriceAboveAvg"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+        <div class="toggle-q">C-period volume average se upar/strong tha?</div><div class="toggle-group" id="tg_cVolumeAboveAvg"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
         <div class="toggle-q">Bluff kis taraf tha?</div>
         <div class="toggle-group" id="tg_cPeriodBluffDir">
           <button data-val="up">Upar fake tod (asli direction NEECHE)</button>
@@ -740,6 +750,9 @@
           <button data-val="up">Neeche se upar aaya (VAL se)</button>
         </div>
       </div>
+      <div class="hint-box" style="padding:8px 14px">[v24 evidence gate] 80% VA setup ko tabhi valid mark karo jab open VA ke bahar tha, price re-enter karke reject/acceptance evidence dikhaye, aur 20% penetration ke andar 15-min CLOSE hua ho. Missing evidence = WAIT; 80% rule ko standalone fresh entry mat samjho.</div>
+      <div class="toggle-q">Session open previous VA ke bahar tha?</div><div class="toggle-group" id="tg_valueOpenedOutsideVA"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">VA mein re-entry ke baad acceptance/rejection confirm hua?</div><div class="toggle-group" id="tg_valueReentryRejected"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
 
       <div class="toggle-q">Kal violent 3IB tha (Normal Variation day, extreme pe close)?</div>
       <div class="toggle-group" id="tg_prevDay3IBHighClose">
@@ -800,13 +813,13 @@
 
     <div class="card" id="coachTradePlanCard">
       <div class="card-title">COACH RULE-BASED TRADE PLAN · ENTRY / SL / TARGET</div>
-      <div class="hint-box" style="padding:0 14px 8px">Current Nifty spot price tum manually enter karoge. Confirmed 15-minute trigger close ke waqt wahi price Entry banega; uske basis par available Coach rules se SL reference aur Target zones calculate honge. Har price update PRE-TRADE plan refresh karega.</div>
+      <div class="hint-box" style="padding:0 14px 8px">Current Nifty spot price tum manually enter karoge. Confirmed 15-minute trigger close ke exact waqt ka CURRENT SPOT price Entry banega (candle OHLC close ko substitute mat karo); uske basis par available Coach rules se SL reference aur Target zones calculate honge. Har price update PRE-TRADE plan refresh karega.</div>
       <div class="hint-box" style="padding:8px 14px">AUTO DETECTION: Playbook aur recorded evidence se trade type/setup suggest honge. Dropdown se manual override kar sakte ho. Trigger confirmation hamesha tumhara manual check rahega.</div>
       <div class="field-row"><span class="lbl">Planned trade type (Coach #14)</span><select id="planTradeType" class="of-tag-select" style="width:190px"><option value="">-- choose trade type --</option><option value="counter">Counter-trade</option><option value="momentum">Momentum framework</option><option value="mp">Market Profile</option></select></div>
       <div class="field-row"><span class="lbl">Specific setup</span><select id="planSetupSubtype" class="of-tag-select" style="width:220px"><option value="">-- choose setup --</option><option value="c_failure">C-period failure / bluff</option><option value="45_degree">45-degree / OAIR</option><option value="island">Island profile / mean reversion</option><option value="failed_auction">Failed auction revisit</option><option value="momentum_fib">ITM option Fib momentum</option><option value="half_ib">Half-IB access / range extension</option><option value="va_80">80% previous Value Area rule</option><option value="other">Other / manual setup</option></select></div>
       <div class="field-row"><button type="button" id="planAutoDetectBtn" class="secondary-btn" style="width:auto">Auto-detect from recorded evidence</button></div>
       <div class="field-row"><span class="lbl">Actual setup trigger confirmed? (manual 15m close check)</span><select id="planTriggerConfirmed" class="of-tag-select" style="width:190px"><option value="no">No — wait / not confirmed</option><option value="yes">Yes — 15m close / setup evidence checked</option></select></div>
-      <div class="hint-box" style="padding:0 14px 10px">Important: Directional bias aur 2/5 legacy signals setup trigger nahi hain. Ye manual confirmation sirf tumhare check ko record karta hai; journal candle data ko independently verify nahi karta.</div>
+      <div class="hint-box" style="padding:0 14px 10px">Important: [v24] 45-degree → Counter grouping audit-derived mapping hai, Coach ka verbatim classification nahi. Failed Auction exact entry/SL, Island Profile intraday mapping aur Market Profile 2–3 period SL automation fully specified nahi hain; inhe manual/WAIT rakho. Directional bias aur 2/5 legacy signals setup trigger nahi hain. Ye manual confirmation sirf tumhare check ko record karta hai; journal candle data ko independently verify nahi karta.</div>
       <div class="result-inner" id="coachTradePlanView">Trade type, setup aur actual trigger confirm karne ke baad plan evaluate hoga.</div>
     </div>
 
@@ -853,7 +866,7 @@
       <div class="toggle-q">TSL plan</div>
       <div style="padding:0 14px 10px"><select id="t_tsl" class="of-tag-select"><option value="">-- chuno --</option><option value="vwap">VWAP trailing (±10-20 pts, index)</option><option value="prem">Option premium % retracement</option><option value="ib">IB boundary (wide IB)</option></select></div>
       <div class="toggle-q">Trade ka trigger (auto-suggest — confirm karo)</div>
-      <div style="padding:0 14px 10px"><select id="t_trig" class="of-tag-select"><option value="">-- chuno --</option><option value="system">Pure system signal (11:30)</option><option value="news">TV channel / news</option><option value="social">Social media / tweet</option><option value="fomo">FOMO / impatience</option></select></div>
+      <div style="padding:0 14px 10px"><select id="t_trig" class="of-tag-select"><option value="">-- chuno --</option><option value="system">Pure system signal (event-driven 15m trigger)</option><option value="news">TV channel / news</option><option value="social">Social media / tweet</option><option value="fomo">FOMO / impatience</option></select></div>
       <div class="toggle-q">Trade ke andar emotion</div>
       <div style="padding:0 14px 10px"><select id="t_emo" class="of-tag-select"><option value="">-- chuno --</option><option value="calm">Calm &amp; planned</option><option value="anx">Anxious &amp; oversized</option><option value="imp">Impatient &amp; early exit</option></select></div>
       <div class="toggle-q">Plan follow kiya?</div>
@@ -1072,9 +1085,9 @@ function blankDay() {
       failedAuction: null, threeIB: null, threeIBFast: null,
       cPeriodRejected: null, cPeriodBluffDir: null, cCloseNearVwap: null, abVolumeLow: null,
       ofReality: null, newsDistortion: null,
-      value20pct: null, value20pctSide: null,
+      value20pct: null, value20pctSide: null, valueOpenedOutsideVA: null, valueReentryRejected: null,
       prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
-      cVolumeStrong: null, oaorTimingConfirmed: null, pmFib: false, pmOpen: false, cVol: "", cRange: "",
+      cVolumeStrong: null, cPriceAboveAvg: null, cVolumeAboveAvg: null, oaorTimingConfirmed: null, pmFib: false, pmOpen: false, cVol: "", cRange: "",
       nlm: { done: {}, lastTrig: "" },
       itmVA: null, itmSide: null, itmCE: null, itmPE: null, fibCE: {h:"",l:"",p:""}, fibPE: {h:"",l:"",p:""}, odH: "", odL: "", odCEh: "", odCEl: "", odPEh: "", odPEl: "",
       profileShape: null, pShapeType: null,
@@ -1392,8 +1405,8 @@ function getOfReality() {
   return computeOfRealityFromEntries();
 }
 
-/* [v15.4] TARGET ZONE: Coach — exact mathematical level mat do, ZONE do. Width editable (Coach ke examples 10-20 pts wide). */
-const TARGET_ZONE_HALF = 10;
+/* [v24] TARGET ZONE: Coach — exact mathematical level mat do, ZONE do. 15-point half-width selected within Coach examples/range. */
+const TARGET_ZONE_HALF = 15;
 function tz(n) { return (n - TARGET_ZONE_HALF).toFixed(0) + '–' + (n + TARGET_ZONE_HALF).toFixed(0) + ' Zone'; }
 
 function calcPositionSizing() {
@@ -1815,10 +1828,14 @@ function renderOpening() {
   renderToggleGroup('tg_newsDistortion', DAY.opening.newsDistortion);
   renderToggleGroup('tg_value20pct', DAY.opening.value20pct);
   renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
+  renderToggleGroup('tg_valueOpenedOutsideVA', DAY.opening.valueOpenedOutsideVA);
+  renderToggleGroup('tg_valueReentryRejected', DAY.opening.valueReentryRejected);
   renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
   renderToggleGroup('tg_prevDay3IBDirection', DAY.opening.prevDay3IBDirection);
   document.getElementById('q_prevDay3IBDir').style.display = (DAY.opening.prevDay3IBHighClose === 'yes') ? 'block' : 'none';
   renderToggleGroup('tg_cVolumeStrong', DAY.opening.cVolumeStrong);
+  renderToggleGroup('tg_cPriceAboveAvg', DAY.opening.cPriceAboveAvg);
+  renderToggleGroup('tg_cVolumeAboveAvg', DAY.opening.cVolumeAboveAvg);
   renderToggleGroup('tg_oaorTimingConfirmed', DAY.opening.oaorTimingConfirmed);
   document.getElementById('sel_prevDayType').value = DAY.opening.prevDayType || "";
   renderToggleGroup('tg_prevSpikeHad', DAY.opening.prevSpikeHad);
@@ -1967,6 +1984,15 @@ function selectStrategyBase() {
 
   // 5. C-PERIOD REJECTION — [P2 Bug#6 FIX: strong-volume filter block karta hai bluff read]
   if (o.cPeriodRejected === 'yes' && ib) {
+    if (o.cPriceAboveAvg == null || o.cVolumeAboveAvg == null) {
+      return { name: "C-Period Rejection — WAIT (Average Status Unknown)", entry: "Counter-trade MAT LO — price-average aur volume-average dono status fill karo", sl: "—", target: "No automatic target; wait for complete evidence / Coach clarification", note: "[v24 safety gate] Unknown status ko weak/strong assume nahi kiya jayega. Missing evidence = WAIT." };
+    }
+    if (o.cPriceAboveAvg === 'yes' && o.cVolumeAboveAvg === 'yes') {
+      return { name: "C-Period Rejection — NO FADE (Both Above Average)", entry: "C-period counter-trade MAT LO", sl: "—", target: "Original breakout direction ko independently evaluate karo; automatic entry nahi", note: "[v24 safety gate] Price aur volume dono average se upar/strong record hue hain; C-period fade block hai." };
+    }
+    if (o.cPriceAboveAvg !== 'yes' || o.cVolumeAboveAvg !== 'yes') {
+      return { name: "C-Period Rejection — WAIT (Coach Clarification)", entry: "Automatic counter-trade MAT LO", sl: "—", target: "No automatic target", note: "[v24 safety gate] Dono averages above nahi hain, lekin source se below-average + rejection ke liye complete fade permission conclusively establish nahi hoti. Coach se confirm karo; tab tak WAIT." };
+    }
     if (o.cVolumeStrong === 'yes') {
       return {
         name: "C-Period Rejection — Genuine Breakout Warning",
@@ -2071,6 +2097,9 @@ function selectStrategyBase() {
       };
     }
     if (o.value20pct === 'yes') {
+      if (o.valueOpenedOutsideVA !== 'yes' || o.valueReentryRejected !== 'yes' || !o.value20pctSide) {
+        return { name: "80% VA Rule — WAIT (Evidence Incomplete)", entry: "Fresh entry MAT LO — opening outside VA, re-entry/acceptance evidence aur entry side verify karo", sl: "—", target: "No target until all required evidence is recorded", note: "[v24 evidence gate] Coach source describes the 80% VA setup with outside-VA opening and re-entry/20% penetration acceptance. Missing any field means WAIT; do not infer the setup from a simple yes toggle." };
+      }
       const targetLevel = o.value20pctSide === 'down' ? L.val : L.vah;
       return {
         name: "80% Rule — Confidence Confirmation (NOT a fresh entry)",
@@ -2372,9 +2401,13 @@ wireToggle('tg_ofReality', { get:()=>DAY.opening.ofReality, set:(v)=>DAY.opening
 wireToggle('tg_newsDistortion', { get:()=>DAY.opening.newsDistortion, set:(v)=>DAY.opening.newsDistortion=v });
 wireToggle('tg_value20pct', { get:()=>DAY.opening.value20pct, set:(v)=>DAY.opening.value20pct=v });
 wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>DAY.opening.value20pctSide=v });
+wireToggle('tg_valueOpenedOutsideVA', { get:()=>DAY.opening.valueOpenedOutsideVA, set:(v)=>DAY.opening.valueOpenedOutsideVA=v });
+wireToggle('tg_valueReentryRejected', { get:()=>DAY.opening.valueReentryRejected, set:(v)=>DAY.opening.valueReentryRejected=v });
 wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
 wireToggle('tg_prevDay3IBDirection', { get:()=>DAY.opening.prevDay3IBDirection, set:(v)=>DAY.opening.prevDay3IBDirection=v });
 wireToggle('tg_cVolumeStrong', { get:()=>DAY.opening.cVolumeStrong, set:(v)=>DAY.opening.cVolumeStrong=v });
+wireToggle('tg_cPriceAboveAvg', { get:()=>DAY.opening.cPriceAboveAvg, set:(v)=>DAY.opening.cPriceAboveAvg=v });
+wireToggle('tg_cVolumeAboveAvg', { get:()=>DAY.opening.cVolumeAboveAvg, set:(v)=>DAY.opening.cVolumeAboveAvg=v });
 wireToggle('tg_oaorTimingConfirmed', { get:()=>DAY.opening.oaorTimingConfirmed, set:(v)=>DAY.opening.oaorTimingConfirmed=v });
 wireToggle('tg_prevSpikeHad', { get:()=>DAY.opening.prevSpikeHad, set:(v)=>DAY.opening.prevSpikeHad=v });
 document.getElementById('sel_prevDayType').onchange = (e) => { DAY.opening.prevDayType = e.target.value || null; scheduleAutoSave(); renderOpening(); };
@@ -4002,7 +4035,7 @@ const CI_AI_INSTRUCTIONS=[
 ];
 function ciBaseExport(type, key, day, trades, stats){
  const c=computeCoachContext(); const quality=ciDataQuality(day,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v21.8 + Coach-rule Entry-SL-Target engine',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)]))},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues.concat(['Implementation/source mismatch: participation bucket thresholds in current code differ from Coach flat-zone wording; requires explicit rule reconciliation.','Legacy X/5 signal mapping contains possible overlap and direction-independent flags; preserved, not treated as independent tool count.']),calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; existing logic uses its current bias and five booleans.',participation:'Uses current journal checkpoint calculations; current code buckets up >=0.5%, down <= -0.5%, flat between -0.25% and +0.25%. This does not match the source quote In % 0.05 to 0.10% is flat; preserve as an unresolved implementation/source mismatch, do not assume equivalence.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v24 + Coach-rule Entry-SL-Target engine',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)]))},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues.concat(['Implementation/source mismatch: participation bucket thresholds in current code differ from Coach flat-zone wording; requires explicit rule reconciliation.','Legacy X/5 signal mapping contains possible overlap and direction-independent flags; preserved, not treated as independent tool count.']),calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; existing logic uses its current bias and five booleans.',participation:'Uses current journal checkpoint calculations; current code buckets up >=0.5%, down <= -0.5%, flat between -0.25% and +0.25%. This does not match the source quote In % 0.05 to 0.10% is flat; preserve as an unresolved implementation/source mismatch, do not assume equivalence.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -4060,4 +4093,3 @@ if (typeof setInterval === 'function') setInterval(() => { try { renderCoachCont
 
 </body>
 </html>
-
