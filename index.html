@@ -1,7 +1,7 @@
 <!--
 TRADING JOURNAL v26 — LEARNING LAB DATE SELECTOR
 Base: user-provided V21.8 complete source.
-Changes: preserved prior v26 features; added exact 09:15–09:30 Spot OHLC, locked CE/PE p930 anchors, separate Setup 4 evidence audit, directional/strong participation counters, and exact trigger-time spot capture. No look-ahead into A/B or post-10:15 data for Setup 4.
+Changes: preserved prior v26 features and saved-day schema compatibility; retained exact 09:15–09:30 Spot OHLC, locked CE/PE p930 anchors, separate Setup 4 evidence audit, and exact trigger-time spot capture. Added directional distinct-evidence 5-item audit, provisional 12-stock completeness, explicit VA 80% TPO acceptance gate, separate Half-IB touch/wick/15m-close/acceptance records, T1/T2 RR and partial/runner execution logging, and source-status clarifications. No look-ahead into A/B or post-10:15 data for Setup 4.
 This is a complete HTML document stored with .txt extension for portability.
 -->
 <!DOCTYPE html>
@@ -390,7 +390,9 @@ This is a complete HTML document stored with .txt extension for portability.
         <button data-val="accepted">Accepted (Open ke paas rotation)</button>
         <button data-val="rejected">Rejected (bina ruke drive)</button>
       </div>
-      <div class="hint-box" style="padding:0 14px 12px">Accepted → OAIR/rotation expected. Rejected → Open Drive/institutional presence expected. Auto-suggestion Opening Type result (Drive/OTD/ORR detect hua ya nahi) se aati hai — manually override kar sakte ho.</div>
+      <div class="hint-box" style="padding:0 14px 8px">Accepted → OAIR/rotation expected. Rejected → Open Drive/institutional presence expected. Auto-suggestion Opening Type result se aati hai; ye apne aap directional signal nahi hai.</div>
+      <div class="toggle-q">Tick behaviour ka separately observed directional side?</div><div class="toggle-group" id="tg_tickAcceptanceSide"><button data-val="up">UP</button><button data-val="down">DOWN</button></div>
+      <div class="toggle-q">Kya yeh Opening Type se independent evidence hai?</div><div class="toggle-group" id="tg_tickAcceptanceIndependent"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
     </div>
 
 <div class="card">
@@ -427,7 +429,7 @@ This is a complete HTML document stored with .txt extension for portability.
       <div id="q_halfAccess" style="display:none">
         <div class="toggle-q">2. Half-IB access mila (CLOSE se)?</div>
         <div class="toggle-group" id="tg_halfAccess">
-          <button data-val="yes">Haan</button>
+          <button data-val="yes">Haan — 15m completed close beyond Half-IB</button>
           <button data-val="no">Nahi</button>
         </div>
       </div>
@@ -640,13 +642,21 @@ This is a complete HTML document stored with .txt extension for portability.
       <b>Delta filter (ab auto-enforce hota hai):</b> Dominant delta 75K+ chahiye (coach LLT benchmark), kam ho to auto-suggest "Not useful" dikhega chahe pattern-shape match kare.<br>
       <b>Imbalance boxes (alag concept, RB/IS/RS/IB se related nahi):</b> Agar chart pe consecutive diagonal yellow boxes dikhein, unki ginti "CONSECUTIVE IMBALANCE BOXES" field mein daalo — 3+ ho to confirmed institutional-drive, 1-2 ko ignore karo.<br>
       <b>"1 lakh POC volume" (alag concept — ye candle-tag filter nahi hai):</b> Ye chart ki "extended volume POC" setting hai (yellow reference lines) jo key S/R levels highlight karti hai — agar "Exhaustion (POC extreme)" tag use kar rahe ho, apne chart pe check kar lo ki wahi POC us 1-lakh-highlighted level ke paas hai ya nahi, journal mein alag number nahi daalna.<br>
-      Combination chahiye — RB+IB, IB+IB, RS+IS, IS+IS, RS+RB. Single pattern kaafi nahi.
+      Combinations: #1 RB+IB (bullish reversal), #2 IB+IB (bullish continuation), #3 RS+IS (bearish reversal), #4 IS+IS (bearish continuation), #5 RS+RB (conflict / exit / no new trade), #6 IB+IS (initiative conflict / exit / no new trade). Single tag standalone trade signal nahi.
     </div>
   </div>
 
   <!-- ================= AFTERNOON ================= -->
   <div id="section-afternoon" class="section">
     <div class="hint-box" style="padding:12px 4px 14px">🌇 Naam sirf grouping ke liye hai — ⚠ 1 baje tak WAIT mat karo. C-period rejected (~10:45), A+B volume (~10:15), Order Flow reality (~10:15) — ye sab MORNING/MIDDAY ke saath hi bharo jaise jaise data aata hai. Playbook Match card live update hota hai, jaise hi zaroori toggles bhar jaate hain waisi hi strategy dikhne lagti hai.</div>
+
+<div class="card"><div class="card-title">HALF-IB EVENT AUDIT · POST-10:15</div>
+      <div class="hint-box" style="padding:0 14px 8px">Four separate observations: touch, wick, completed 15m close, subsequent acceptance. Only the completed 15m close grants access; touch/wick alone do not. Acceptance is a manual structure note, not another signal.</div>
+      <div class="toggle-q">Half-IB level touch hua?</div><div class="toggle-group" id="tg_halfIbTouch"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">Half-IB ke paar wick bani?</div><div class="toggle-group" id="tg_halfIbWick"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">Completed 15m candle close Half-IB ke paar hua? (access permission)</div><div class="toggle-group" id="tg_halfIbCloseAudit"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">15m close ke baad subsequent acceptance observe hui?</div><div class="toggle-group" id="tg_halfIbAcceptance"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+    </div>
 
 <div class="card">
       <div class="card-title">PRICE ACCEPTANCE SIGNALS</div>
@@ -758,7 +768,7 @@ This is a complete HTML document stored with .txt extension for portability.
         <button data-val="no">Nahi</button>
       </div>
 
-      <div class="toggle-q">Koi period (C se aage) PREVIOUS session ke value area ke 20%+ andar close hua?</div>
+      <div class="toggle-q">Koi post-IB 15-minute candle PREVIOUS session ke Value Area ke 20%+ andar CLOSE hua?</div>
       <div class="toggle-group" id="tg_value20pct">
         <button data-val="yes">Haan</button>
         <button data-val="no">Nahi</button>
@@ -772,7 +782,9 @@ This is a complete HTML document stored with .txt extension for portability.
       </div>
       <div class="hint-box" style="padding:8px 14px">[v24 evidence gate] 80% VA setup ko tabhi valid mark karo jab open VA ke bahar tha, price re-enter karke reject/acceptance evidence dikhaye, aur 20% penetration ke andar 15-min CLOSE hua ho. Missing evidence = WAIT; 80% rule ko standalone fresh entry mat samjho.</div>
       <div class="toggle-q">Session open previous VA ke bahar tha?</div><div class="toggle-group" id="tg_valueOpenedOutsideVA"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
-      <div class="toggle-q">VA mein re-entry ke baad acceptance/rejection confirm hua?</div><div class="toggle-group" id="tg_valueReentryRejected"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">VA mein re-entry ke baad acceptance confirm hui? (rejection nahi, acceptance evidence record karo)</div><div class="toggle-group" id="tg_valueReentryRejected"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">Multiple TPO letters / periods ne VA ke andar acceptance confirm ki?</div><div class="toggle-group" id="tg_valueTpoAcceptance"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="hint-box" style="padding:4px 14px 10px">80% Rule audit: A+B / IB complete + opening prior VA ke bahar + post-IB 15m close with 20%+ penetration + multi-letter TPO acceptance. Missing evidence = UNRESOLVED / WAIT; Half-IB close is not a substitute.</div>
 
       <div class="toggle-q">Kal violent 3IB tha (Normal Variation day, extreme pe close)?</div>
       <div class="toggle-group" id="tg_prevDay3IBHighClose">
@@ -817,7 +829,8 @@ This is a complete HTML document stored with .txt extension for portability.
       <!-- Coach: "First watch options strike ITM as per Fibonacci value area... for confidence we need other process to follow." -->
       <div class="hint-box" style="padding:0 14px 6px"><span class="muted">Engine ka plan ITM Anchor direction se banta hai — Signals Count card se alag hai.</span></div>
       <div class="result-box" id="patternWarnBox" style="margin-top:8px">Pattern warning: Trade log bharo (TRADES tab)</div>
-      <div class="hint-box" style="padding:0 14px 12px">Signals: Opening Type, Half-IB Break, VA Access, Tick Acceptance, Time Confirmation. Coach ka rule: "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." — ye ek holy-grail count nahi hai, sirf ek synthesis tool hai jo already-filled toggles se count karta hai.</div>
+      <div class="hint-box" style="padding:0 14px 8px">Legacy 5-item map: Opening Type, Half-IB Break, VA 80% acceptance, Tick Acceptance, Time Confirmation. Coach ka 2/5 aur 3+/5 threshold source mein hai, lekin yeh exact five-item mapping Coach ne independently define nahi ki. Direction mismatch, missing evidence aur same-event overlap ko count nahi kiya jayega.</div>
+      <div class="toggle-q">Independent time-confirmation direction (separate 15m event; manual)</div><div class="toggle-group" id="tg_timeConfirmationSide"><button data-val="up">UP</button><button data-val="down">DOWN</button><button data-val="none">No separate confirmation</button></div>
     </div>
 
     <div class="ci-card" id="coachContextCard">
@@ -868,6 +881,11 @@ This is a complete HTML document stored with .txt extension for portability.
       <div class="field-row"><span class="lbl">Actual spot entry / fill</span><input id="t_sEntry" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Spot SL</span><input id="t_sSL" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Spot target zone (T1)</span><input id="t_sT1" inputmode="text" placeholder="22850 ya 22850-22870"></div>
+      <div class="field-row"><span class="lbl">Spot extended target zone (T2, optional)</span><input id="t_sT2" inputmode="text" placeholder="22950 ya 22950-22970"></div>
+      <div class="toggle-q">T1 hit hua?</div><div class="toggle-group" id="tg_t1Reached"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="field-row"><span class="lbl">T1 partial booking (%)</span><input id="t_partialPct" type="number" min="0" max="100" inputmode="numeric" placeholder="70"></div>
+      <div class="field-row"><span class="lbl">Remaining runner SL shifted to</span><select id="t_runnerShift" class="of-tag-select"><option value="">-- choose --</option><option value="cost">Cost / Entry</option><option value="vwap">VWAP</option><option value="other">Other structural trail</option><option value="no">Not shifted</option><option value="na">Not applicable (T1 not hit)</option></select></div>
+      <div class="field-row"><span class="lbl">Execution status</span><select id="t_executionStatus" class="of-tag-select"><option value="">-- choose --</option><option value="triggered">Triggered / entered</option><option value="partial_booked">T1 partial booked</option><option value="runner_active">Runner active</option><option value="closed">Fully closed</option></select></div>
       <div class="field-row"><span class="lbl">Spot exit (jahan nikle)</span><input id="t_sExit" inputmode="decimal"></div>
       <div class="hint-box" id="tradeRRHint" style="padding:0 14px 10px"></div>
       <div class="field-row"><span class="lbl">Premium entry (optional)</span><input id="t_entry" inputmode="decimal"></div>
@@ -940,7 +958,7 @@ This is a complete HTML document stored with .txt extension for portability.
       <div class="hint-box" style="padding:8px 0 0">Selected date ke answers alag save honge. Date badalne par us din ke saved answers load honge.</div>
     </div>
     <div class="hint-box" style="padding:12px 4px 14px">Is tab mein chart ko observe karke options select karo. Yeh test nahi hai: koi answer ko zabardasti sahi/galat nahi kaha jayega. “Not observed / unclear” valid answer hai. Analysis Coach ke source rules, audit-derived logic aur tumhari observation ko alag rakhega.</div>
-    <div class="card"><div class="card-title">SESSION CONTEXT · MARKET PROFILE (60% PRIMARY CONTEXT)</div>
+    <div class="card"><div class="card-title">SESSION CONTEXT · MARKET PROFILE (PRIMARY CONTEXT · COACH-STATED 60% FRAMEWORK ALLOCATION; NOT A SIGNAL SCORE)</div>
       <div class="toggle-q">1. Aaj ka opening structure kya bana?</div><div class="field-row"><span class="lbl">Opening type</span><select id="ll_q1" class="of-tag-select"><option value="">Select karo</option><option>OAIR</option><option>OAOR</option><option>Open Drive</option><option>OTD</option><option>ORR</option><option>Mixed / changing</option><option>Not observed / unclear</option></select></div>
       <div class="toggle-q">2. A+B (10:15 AM) ke baad price kis structure mein tha?</div><div class="field-row"><span class="lbl">Price location</span><select id="ll_q2" class="of-tag-select"><option value="">Select karo</option><option>IB ke andar rotation</option><option>Half-IB Upper ke upar 15m close</option><option>Half-IB Lower ke neeche 15m close</option><option>Value Area ke andar re-entry</option><option>VA ke bahar sustain</option><option>Structure unclear / observe nahi kiya</option></select></div>
       <div class="toggle-q">3. VAH/VAL acceptance ka evidence kya tha?</div><div class="field-row"><span class="lbl">VA acceptance</span><select id="ll_q3" class="of-tag-select"><option value="">Select karo</option><option>VAH ke upar 2–3 consecutive candles sustain</option><option>VAL ke neeche 2–3 consecutive candles sustain</option><option>Sirf ek 15m close mila</option><option>Price VA ke andar wapas aa gaya</option><option>Acceptance nahi dikha</option><option>Not observed / unclear</option></select></div>
@@ -1027,7 +1045,7 @@ This is a complete HTML document stored with .txt extension for portability.
     <button class="settings-toggle" id="rulesToggle">⚙ Edit Thresholds ▾</button>
     <div class="card" id="rulesCard" style="display:none">
       <div class="weight-note">Coach ke rules fixed nahi hain — VIX/momentum ke hisaab se badalte hain. Yahan se adjust kar sakte ho.</div>
-      <div class="field-row"><span class="lbl">OAOR gap threshold (pts)</span><input id="rule_flat" inputmode="decimal"></div>
+      <div class="field-row"><span class="lbl">OAOR gap threshold (pts; source floor 70)</span><input id="rule_flat" inputmode="decimal"></div><div class="hint-box" style="padding:0 14px 8px">Source bands: flat/OAIR under about 40–50 pts; 50–70 pts is borderline; OAOR begins at 70–80 pts. This control can raise the OAOR boundary, but the app will not lower it below 70 pts.</div>
       <div class="field-row"><span class="lbl">Drive side max (pts)</span><input id="rule_drive" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Drive MIN length (pts)</span><input id="rule_driveMin" inputmode="decimal"></div>
       <div class="field-row"><span class="lbl">Test tolerance (pts)</span><input id="rule_test" inputmode="decimal"></div>
@@ -1087,16 +1105,19 @@ const COL = { green:"#3DDC84", red:"#F2545B", amber:"#E8A93E", sub:"#7C8896", cy
 const STORAGE_PREFIX = "tj_";
 const WEIGHTS_KEY = "tj_weights";
 const RULES_KEY = "tj_rules";
-const JOURNAL_SCHEMA_VERSION = "2.0.0";
+const JOURNAL_SCHEMA_VERSION = "2.1.0";
 const ANALYSIS_RULES_VERSION = "1.0.0";
 // Source-aware starter rulebook. Status describes evidence quality, not trading strength.
 const ANALYSIS_RULES = [
   {ruleId:"R-MP-OPEN-01",category:"Market Profile",ruleName:"Opening Type provides initial context",originalCoachStatement:"Opening type se initial bias milta hai.",interpretation:"Opening Type is one Market Profile indication when a directional sub-type is actually detected.",applicability:"When calcOpening returns a directional sub-type",sourceFile:"Coach Framework Prompt v16.pdf; Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Do not count missing/undetermined opening as a bearish or bullish indication."},
   {ruleId:"R-MP-HIB-01",category:"Market Profile",ruleName:"Half-IB access requires 15-minute close",originalCoachStatement:"IB ke baad jab Half-IB ke upar/neeche 15-minute candle CLOSE de deti hai, tab aapko uss side access ka permission mil jata hai.",interpretation:"Touch or wick alone is not access; direction comes from the recorded side.",applicability:"After IB completion",sourceFile:"Coach Framework Prompt v16.pdf; Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Same Half-IB event should not be counted again as a separate VA event."},
-  {ruleId:"R-MP-VA-01",category:"Market Profile",ruleName:"Value Area 80% rule",originalCoachStatement:"Jab price previous VA mein 20%+ enter karti hai, to 80% probability hai ki wo previous VAL/VAH tak travel karegi.",interpretation:"The journal's VAH/VAL sustained flags are treated as a directional VA indication; half-IB close and HH/HL structure are not separately added to this count.",applicability:"When a VA acceptance flag is explicitly recorded",sourceFile:"Coach Framework Prompt v16.pdf; Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Do not count overlapping Half-IB flags as a second VA indication."},
-  {ruleId:"R-COACH-SIGNAL-01",category:"Signal interpretation",ruleName:"2–3 indications; probability not perfection",originalCoachStatement:"Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo. Trading is about PROBABILITY, not PERFECTION.",interpretation:"The existing five-signal model remains distinct; this statement does not establish a new denominator or independent-tool requirement.",applicability:"Signal evaluation",sourceFile:"Coach Framework Prompt v16.pdf; Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Existing 2/5 and 3+/5 model is not silently replaced."},
+  {ruleId:"R-MP-VA-01",category:"Market Profile",ruleName:"Value Area 80% rule",originalCoachStatement:"Jab price previous VA mein 20%+ enter karti hai, to 80% probability hai ki wo previous VAL/VAH tak travel karegi.",interpretation:"The 80% VA direction is recorded only when AB/IB is complete, the session opened outside prior VA, a post-IB 15m close penetrates at least 20% into prior VA, and multi-letter TPO acceptance is recorded.",applicability:"After AB completion and all VA evidence fields are recorded",sourceFile:"Master_Coach_Playbook_Audit.pdf; Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.1.0",conflicts:[],notes:"Half-IB access is a separate Market Profile indication; Half-IB flags/HH-HL do not substitute for VA 80% acceptance."},
+   {ruleId:"R-MP-HIB-EVENT-02",category:"Market Profile",ruleName:"Half-IB event components recorded separately",originalCoachStatement:"Touch or wick does not grant access; access strictly requires a 15-minute completed candle CLOSE beyond Half-IB.",interpretation:"Touch, wick, completed 15m close and subsequent acceptance are stored separately. Only the completed 15m close grants access; subsequent acceptance is a manual structure note, not an additional score.",applicability:"After IB completion",sourceFile:"Combined_Master_Source.pdf; Master_Coach_Playbook_Audit.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Legacy halfIbAccess remains the backward-compatible 15m close/access field."},
+   {ruleId:"R-PART-COMPLETE-01",category:"Participation",ruleName:"Incomplete 12-stock sample is provisional",originalCoachStatement:"12 me se 7-8 stocks ek taraf = conviction",interpretation:"A 7+ directional count is provisional while fewer than 12 stocks are entered; final breadth status is shown only when the complete 12-stock sample is available.",applicability:"Participation checkpoints",sourceFile:"Combined_Master_Source.pdf; Master_Coach_Playbook_Audit.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"DERIVED",version:"1.0.0",conflicts:[],notes:"Completeness gate is an audit safeguard, not an additional Coach threshold."},
+   {ruleId:"R-COACH-SIGNAL-01",category:"Signal interpretation",ruleName:"2–3 indications; probability not perfection",originalCoachStatement:"Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo. Trading is about PROBABILITY, not PERFECTION.",interpretation:"The existing five-signal model remains distinct; this statement does not establish a new denominator or independent-tool requirement.",applicability:"Signal evaluation",sourceFile:"Coach Framework Prompt v16.pdf; Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Existing 2/5 and 3+/5 model is not silently replaced."},
   {ruleId:"R-COACH-QA-INDICATION-01",category:"Signal interpretation / Context confidence",ruleName:"Same-tool indications may count; Order Flow gives context confidence",originalCoachStatement:"Hanji bilkul jaha max indication ho uske saath hi Jana hain Orderflow gives confidence in context. So context ka confidence jaruri hain",interpretation:"Multiple aligned indications from Market Profile may count individually. Order Flow is shown as context/execution evidence and is not mandatory independent confirmation for every setup. No numerical weightage or confidence percentage is defined by this answer.",applicability:"Directional indication and context review",sourceFile:"Direct Coach WhatsApp answer supplied by user; not present in attached WhatsApp ZIP export",sourceDate:"04 November 2026",verificationStatus:"COACH_QA_USER_REPORTED",version:"1.0.0",conflicts:[],notes:"Exact wording preserved. Upgrade status only after independent original-message verification."},
-  {ruleId:"R-OF-COMBO-01",category:"Order Flow",ruleName:"Order Flow combinations",originalCoachStatement:"RB + IB; IB + IB; RS + IS; IS + IS; RS + RB; IB + IS",interpretation:"Use recognized combinations as evidence; a single tag is not independently treated as a complete combination signal.",applicability:"When at least two tagged OF activities exist",sourceFile:"Combined_Master_Source.pdf; Coach Framework Prompt v16.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Combo meaning is preserved from existing app map; source transcript completeness caveat remains."},
+  {ruleId:"R-SYS-WEIGHT-01",category:"Framework allocation",ruleName:"Market Profile 60% / Order Flow 20% / Momentum 20%",originalCoachStatement:"Market profile has 60% weightage, 20% orderflow, rest 20%",interpretation:"Coach-stated framework allocation for tool emphasis; do not convert it into an invented numeric signal-score formula or percentage confidence.",applicability:"Overall framework context",sourceFile:"WhatsApp Chat - Visvas Yadav.zip",sourceDate:"24 July 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Displayed as framework allocation only, not an algorithmic weighting of each indication."},
+   {ruleId:"R-OF-COMBO-01",category:"Order Flow",ruleName:"Order Flow combinations",originalCoachStatement:"RB + IB; IB + IB; RS + IS; IS + IS; RS + RB; IB + IS",interpretation:"Use recognized combinations as evidence; a single tag is not independently treated as a complete combination signal.",applicability:"When at least two tagged OF activities exist",sourceFile:"Combined_Master_Source.pdf; Coach Framework Prompt v16.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Combo meaning is preserved from existing app map; source transcript completeness caveat remains."},
   {ruleId:"R-PART-01",category:"Participation",ruleName:"7–8 of 12 stocks aligned",originalCoachStatement:"12 me se 7-8 stocks ek taraf = conviction",interpretation:"Use only populated stock values and disclose sample count; existing app thresholds remain visible as implementation logic.",applicability:"Participation checkpoints",sourceFile:"Combined_Master_Source.pdf; Coach Framework Prompt v16.pdf",sourceDate:"04 August 2026 as recorded in master source",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Percentage basis for participation is not established in source; do not invent it."},
   {ruleId:"R-PART-FLAT-01",category:"Participation",ruleName:"Flat zone",originalCoachStatement:"In % 0.05 to 0.10% is flat",interpretation:"Retain source wording; do not silently change to a different flat band.",applicability:"Individual stock percentage change",sourceFile:"Combined_Master_Source.pdf",sourceDate:"04 August 2026 as recorded in master source",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Current app calculation thresholds differ; flagged as implementation/source mismatch requiring review."},
   {ruleId:"R-TARGET-01",category:"Targets / Exit",ruleName:"T1 partial booking",originalCoachStatement:"First, secure the target daily. Lock the partial quantity here... 50-70% partial exit zaroor karo",interpretation:"Master source records compulsory 70% as the operational rule; preserve exact quote and attribution.",applicability:"When T1 target zone is reached",sourceFile:"Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Existing app trade log does not yet enforce or independently capture partial quantity."},
@@ -1141,11 +1162,11 @@ function blankDay() {
     opening: {
       open:"", vix:"", callIV:"", putIV:"", ivFrozen:null, momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
       ibTouchedBothSides: null, closeInsideIB: null,
-      halfIbAccess: null, halfIbSide: null, vwapFrozenHHLL: null,
+      halfIbAccess: null, halfIbSide: null, halfIbTouch: null, halfIbWick: null, halfIbAcceptance: null, vwapFrozenHHLL: null,
       failedAuction: null, threeIB: null, threeIBFast: null,
       cPeriodRejected: null, cPeriodBluffDir: null, cCloseNearVwap: null, abVolumeLow: null,
       ofReality: null, newsDistortion: null,
-      value20pct: null, value20pctSide: null, valueOpenedOutsideVA: null, valueReentryRejected: null,
+      value20pct: null, value20pctSide: null, valueOpenedOutsideVA: null, valueReentryRejected: null, valueTpoAcceptance: null,
       prevDay3IBHighClose: null, prevDay3IBDirection: null, prevSpikeHad: null, prevSpikeHigh: "", prevSpikeLow: "", prevDayType: null,
       cVolumeStrong: null, cPriceAboveAvg: null, cVolumeAboveAvg: null, oaorTimingConfirmed: null, pmFib: false, pmOpen: false, cVol: "", cRange: "",
       nlm: { done: {}, lastTrig: "" },
@@ -1158,6 +1179,7 @@ function blankDay() {
       shortHalfIBClose: false, shortVALSustained: false, shortLHLL: false,
       // [NEW FEATURE 2: Opening Tick Acceptance — this session]
       tickAcceptance: null, // 'accepted' | 'rejected'
+      tickAcceptanceSide: null, tickAcceptanceIndependent: null, timeConfirmationSide: null,
       vwapTestCount: null, slChoice: null, vwapReaction: null,
       strikeDist: "",
       fibP1: "", fibP2: "", fibP3: "", fibHHLLConfirmed: null,
@@ -1400,17 +1422,19 @@ function calcOpening() {
   // Value Area (VAH/VAL) is explicitly NOT used for this classification — coach's "value area is more
   // important" remark (per NotebookLM's ["Core market profile terms1.m4a"] reference) applies to
   // INTRADAY TRADE BIAS (e.g. the 80% Rule / value20pct block in selectStrategy()), not to OAIR/OAOR.
-  // Gap threshold raised 40 -> 70pts (RULES.flatThresh, editable in Thresholds panel): a gap outside
-  // PDH/PDL under 70pts now folds into OAIR ("flat opening") instead of a separate excluded "FLAT"
-  // category — this matters because downstream checks like the 45-Degree Rule gate on `base === 'OAIR'`
-  // and previously silently excluded small-gap opens from that logic.
+  // Source bands conflict: flat/OAIR is described as <40–50 pts, while OAOR is described as >=70–80 pts.
+  // Therefore 50–69 pts (or the configured higher OAOR boundary) stays BORDERLINE; do not force OAIR/OAOR.
+  // This also prevents a borderline gap from silently activating OAIR/OAOR-only 45-degree/Drive rules.
   let base;
   let gapDist = 0;
   if (open >= pdl && open <= pdh) {
     base = "OAIR";
   } else {
     gapDist = open > pdh ? open - pdh : pdl - open;
-    base = gapDist >= RULES.flatThresh ? "OAOR" : "OAIR"; // was: "FLAT" — folded into OAIR
+    const oaorThreshold = Math.max(70, Number(RULES.flatThresh) || 70);
+    if (gapDist < 50) base = "OAIR";
+    else if (gapDist < oaorThreshold) base = "BORDERLINE";
+    else base = "OAOR";
   }
 
   const ER = effectiveRules();
@@ -1425,7 +1449,7 @@ function calcOpening() {
   // Close dono extreme se check: driven-extreme ke paas hona chahiye AUR doosre extreme se door
   const MIN_CLOSE_AWAY = 10;
   const CLOSE_NEAR_EXTREME = 15;
-  if (!bigGapOAOR && !isNaN(Ah) && !isNaN(Al) && !isNaN(Ac)) {
+  if (!bigGapOAOR && base !== 'BORDERLINE' && !isNaN(Ah) && !isNaN(Al) && !isNaN(Ac)) {
     const upMove = Ah - open, downMove = open - Al;
     const closeNearLow = (Ac - Al) <= CLOSE_NEAR_EXTREME;
     const closeNearHigh = (Ah - Ac) <= CLOSE_NEAR_EXTREME;
@@ -1438,7 +1462,7 @@ function calcOpening() {
       sub = { type:"DRIVE", dir:"up" };
     }
   }
-  if (!sub && !isNaN(Ac) && !bigGapOAOR) {
+  if (!sub && !isNaN(Ac) && !bigGapOAOR && base !== 'BORDERLINE') {
     const OTD_TEST = 10, OTD_PROBE = 25, OTD_BREAK = 20;
     const levels = [["PDH",pdh],["PDL",pdl],["PDC",parseFloat(L.pdc)],["VAH",parseFloat(L.vah)],["VAL",parseFloat(L.val)],["POC",parseFloat(L.poc)],["PSYCH",parseFloat(L.psych)]].filter(x=>!isNaN(x[1]));
     if (L.naked) {
@@ -1463,7 +1487,7 @@ function calcOpening() {
     if (crossed >= ER.orrMinCross) orr = { dir: aDir === "down" ? "up" : "down", cross: crossed };
   }
 
-  return { base, sub, orr, waitForB: !sub, bFilled, ER, bigGapOAOR, gapDist };
+  return { base, sub, orr, waitForB: !sub, bFilled, ER, bigGapOAOR, gapDist, gapBand:gapDist>=50 && gapDist<Math.max(70,Number(RULES.flatThresh)||70)?'BORDERLINE 50–70 / USER THRESHOLD BAND':(gapDist>=70?'OAOR SOURCE BAND (70–80+ pts)':'FLAT / OAIR SOURCE BAND (<40–50 pts)') };
 }
 
 function effectiveRules() {
@@ -1726,17 +1750,17 @@ function calcDayType() {
 
 function openingLabel(res) {
   if (!res) return "Levels + Open + A bharo";
-  let parts = [res.base + (res.base === 'OAIR' && res.gapDist > 0 ? ' (flat gap, <' + RULES.flatThresh + 'pts)' : '')];
-  let extra = "";
+  let parts = [res.base + (res.base === 'OAIR' && res.gapDist > 0 ? ' (flat gap, <50pts source band)' : '')];
+  let extra = res.base === 'BORDERLINE' ? 'PDC gap 50–70+ band: source thresholds conflict; no forced OAIR/OAOR or Drive/OTD label. Wait for clearer structure.' : "";
   if (res.sub) {
     if (res.sub.type === "DRIVE") parts.push("Open Drive " + (res.sub.dir === "up" ? "Up" : "Down"));
     else parts.push("OTD " + (res.sub.dir === "up" ? "Up" : "Down") + " (near " + res.sub.level + ")");
   } else if (res.orr) {
     parts.push("ORR " + (res.orr.dir === "up" ? "Up" : "Down"));
   } else if (res.bFilled) {
-    extra = "B check ho gaya — ORR ke conditions nahi bane (" + res.ER.orrMinCross + "+ pts cross chahiye). Koi named sub-type confirm nahi hota, sirf " + res.base + " hai.";
+    extra += (extra ? " " : "") + "B check ho gaya — ORR ke conditions nahi bane (" + res.ER.orrMinCross + "+ pts cross chahiye). Koi named sub-type confirm nahi hota, sirf " + res.base + " hai.";
   } else {
-    extra = "Ambiguous — B period ka wait karo, ORR possible.";
+    extra += (extra ? " " : "") + "Ambiguous — B period ka wait karo, ORR possible.";
   }
   if (res.sub && res.ER && getMomentum() === 'fast') {
     extra = "(Fast momentum — tolerance " + res.ER.testThresh + " pts tak widen kiya)";
@@ -1911,6 +1935,10 @@ function renderOpening() {
   renderToggleGroup('tg_ibBoth', DAY.opening.ibTouchedBothSides);
   renderToggleGroup('tg_closeInside', DAY.opening.closeInsideIB);
   renderToggleGroup('tg_halfAccess', DAY.opening.halfIbAccess);
+  renderToggleGroup('tg_halfIbTouch', DAY.opening.halfIbTouch);
+  renderToggleGroup('tg_halfIbWick', DAY.opening.halfIbWick);
+  renderToggleGroup('tg_halfIbAcceptance', DAY.opening.halfIbAcceptance);
+  renderToggleGroup('tg_halfIbCloseAudit', DAY.opening.halfIbAccess);
   renderToggleGroup('tg_halfSide', DAY.opening.halfIbSide);
   renderToggleGroup('tg_vwapTrend', DAY.opening.vwapFrozenHHLL);
   renderToggleGroup('tg_failedAuction', DAY.opening.failedAuction);
@@ -1936,6 +1964,10 @@ function renderOpening() {
   renderToggleGroup('tg_value20pctSide', DAY.opening.value20pctSide);
   renderToggleGroup('tg_valueOpenedOutsideVA', DAY.opening.valueOpenedOutsideVA);
   renderToggleGroup('tg_valueReentryRejected', DAY.opening.valueReentryRejected);
+  renderToggleGroup('tg_valueTpoAcceptance', DAY.opening.valueTpoAcceptance);
+  renderToggleGroup('tg_tickAcceptanceSide', DAY.opening.tickAcceptanceSide);
+  renderToggleGroup('tg_tickAcceptanceIndependent', DAY.opening.tickAcceptanceIndependent);
+  renderToggleGroup('tg_timeConfirmationSide', DAY.opening.timeConfirmationSide);
   renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
   renderToggleGroup('tg_prevDay3IBDirection', DAY.opening.prevDay3IBDirection);
   document.getElementById('q_prevDay3IBDir').style.display = (DAY.opening.prevDay3IBHighClose === 'yes') ? 'block' : 'none';
@@ -2204,8 +2236,8 @@ function selectStrategyBase() {
       };
     }
     if (o.value20pct === 'yes') {
-      if (o.valueOpenedOutsideVA !== 'yes' || o.valueReentryRejected !== 'yes' || !o.value20pctSide) {
-        return { name: "80% VA Rule — WAIT (Evidence Incomplete)", entry: "Fresh entry MAT LO — opening outside VA, re-entry/acceptance evidence aur entry side verify karo", sl: "—", target: "No target until all required evidence is recorded", note: "[v24 evidence gate] Coach source describes the 80% VA setup with outside-VA opening and re-entry/20% penetration acceptance. Missing any field means WAIT; do not infer the setup from a simple yes toggle." };
+      if (!ib || o.valueOpenedOutsideVA !== 'yes' || o.valueReentryRejected !== 'yes' || o.valueTpoAcceptance !== 'yes' || !o.value20pctSide) {
+        return { name: "80% VA Rule — WAIT (Evidence Incomplete)", entry: "Fresh entry MAT LO — AB/IB completion, outside-VA open, post-IB 15m close with 20%+ depth, re-entry aur multi-letter TPO acceptance verify karo", sl: "—", target: "No target until all required evidence is recorded", note: "Coach/audit source: 80% Rule requires AB completion, 15m close inside prior VA with 20%+ depth and multi-letter TPO acceptance. Missing any field = WAIT; Half-IB access does not substitute for VA acceptance." };
       }
       const targetLevel = o.value20pctSide === 'down' ? L.val : L.vah;
       return {
@@ -2334,44 +2366,51 @@ function renderDoubleDZones() {
 });
 
 // [NEW FEATURE 3: Signals Count — this session]
-// 5 signals checked against the day's bias direction (DAY.opening.halfIbSide: 'up'/'down', set in the
-// Day Type Ladder). Coach's rule (per this session's request): "Sab signals har din align nahi honge.
+// 5 signals checked against the locked 09:30 ITM CE/PE Fibonacci anchor direction. Half-IB is one of
+// the five indications, not the reference bias. Coach's rule: "Sab signals har din align nahi honge.
 // Jo 2-3 indication mile, unpe kaam karo." — this is a synthesis/count tool, not a new standalone rule.
 function computeSignalsCount() {
-  const o = DAY.opening;
-  const res = calcOpening();
-  const bias = o.halfIbSide; // 'up' | 'down' | null
-  if (!bias) return null;
-
-  const s1_openingType = !!(res && (res.sub || res.orr) && (
-    (bias === 'up' && ((res.sub && res.sub.dir === 'up') || (res.orr && res.orr.dir === 'up'))) ||
-    (bias === 'down' && ((res.sub && res.sub.dir === 'down') || (res.orr && res.orr.dir === 'down')))
-  ));
-  const s2_halfIBBreak = (o.halfIbAccess === 'yes' && o.halfIbSide === bias);
-  const s3_vaAccess = (bias === 'up' && (o.longVAHSustained || o.longHalfIBClose || o.longHHHL)) ||
-                       (bias === 'down' && (o.shortVALSustained || o.shortHalfIBClose || o.shortLHLL));
-  const s4_tickAcceptance = (getTickAcceptance() === 'rejected'); // rejected tick = drive = directional signal
-  const s5_timeConfirmation = (o.oaorTimingConfirmed === 'yes') || !!o.vwapTestCount || (o.cPeriodRejected === 'yes' && !!o.cPeriodBluffDir);
-
-  const flags = { s1_openingType, s2_halfIBBreak, s3_vaAccess, s4_tickAcceptance, s5_timeConfirmation };
-  const count = Object.values(flags).filter(Boolean).length;
-  return { count, flags, bias };
+  const o = DAY.opening, res = calcOpening(), bias = itmAnchor930();
+  if (bias !== 'up' && bias !== 'down') return null;
+  const same = d => d === bias;
+  const opposite = d => d && d !== bias;
+  const ib = calcIB();
+  const vaComplete = !!(ib && o.value20pct === 'yes' && o.valueOpenedOutsideVA === 'yes' &&
+    o.valueReentryRejected === 'yes' && o.valueTpoAcceptance === 'yes' &&
+    (o.value20pctSide === 'up' || o.value20pctSide === 'down'));
+  const openDir = res && (res.sub || res.orr) ? (res.sub ? res.sub.dir : res.orr.dir) : null;
+  const vaDir = vaComplete ? o.value20pctSide : null;
+  const tickDir = ((o.tickAcceptance === 'rejected' || o.tickAcceptance === 'accepted') && o.tickAcceptanceIndependent === 'yes') ? o.tickAcceptanceSide : null;
+  const timeDir = (o.timeConfirmationSide === 'up' || o.timeConfirmationSide === 'down') ? o.timeConfirmationSide : null;
+  const defs = [
+    {key:'s1_openingType',label:'Opening Type',dir:openDir,available:!!(res && (res.bFilled || res.sub || res.orr)),detail:openDir?'Directional opening subtype':(res && res.bFilled?'Opening classified; no directional subtype':'Opening / B-period classification incomplete')},
+    {key:'s2_halfIBBreak',label:'Half-IB 15m access',dir:o.halfIbAccess==='yes'?o.halfIbSide:null,available:o.halfIbAccess==='no'||(o.halfIbAccess==='yes'&&(o.halfIbSide==='up'||o.halfIbSide==='down')),detail:o.halfIbAccess==='yes'?(o.halfIbSide?'Completed 15m close beyond Half-IB':'Access marked but direction/side missing'):(o.halfIbAccess==='no'?'No access recorded':'Access not recorded')},
+    {key:'s3_va80Acceptance',label:'VA 80% acceptance',dir:vaDir,available:vaComplete || o.value20pct==='no',detail:vaComplete?'AB complete + outside open + 20% close + TPO acceptance':(o.value20pct==='no'?'80% penetration not recorded':'VA evidence incomplete')},
+    {key:'s4_tickAcceptance',label:'Independent tick acceptance',dir:tickDir,available:o.tickAcceptanceIndependent==='no'||!!tickDir,detail:o.tickAcceptanceIndependent==='no'?'Overlaps opening-type evidence; excluded':(tickDir?'Independent directional tick evidence':'No independent directional tick evidence')},
+    {key:'s5_timeConfirmation',label:'Independent time confirmation',dir:timeDir,available:!!timeDir || o.timeConfirmationSide==='none',detail:timeDir?'Manual distinct time-confirmation direction':(o.timeConfirmationSide==='none'?'No separate time confirmation recorded':'No distinct directional time confirmation recorded')}
+  ];
+  const flags = {};
+  defs.forEach(x=>{flags[x.key]=!!(x.dir && same(x.dir));});
+  const count = defs.filter(x=>x.dir && same(x.dir)).length;
+  const conflicts = defs.filter(x=>x.dir && opposite(x.dir)).map(x=>x.label);
+  const available = defs.filter(x=>x.available).length;
+  const missing = defs.filter(x=>!x.available).map(x=>x.label);
+  return {count,flags,bias,available,missing,conflicts,details:defs,provisional:available<5,scoreLabel:available<5?'PROVISIONAL':(count>=3?'STRONG':(count===2?'VALID / CAUTIOUS':'NO TRADE'))};
 }
 function renderSignalsCount() {
-  const box = document.getElementById('signalsCountBox');
-  if (!box) return;
+  const box = document.getElementById('signalsCountBox'); if (!box) return;
   const r = computeSignalsCount();
-  if (!r) {
-    box.innerHTML = '<div class="big-num">– / 5</div><div class="sub">Half-IB Side toggle (Day Type Ladder, MORNING) bharo pehle — bias direction chahiye signals count ke liye</div>';
-    return;
-  }
-  const names = { s1_openingType:'Opening Type', s2_halfIBBreak:'Half-IB Break', s3_vaAccess:'VA Access', s4_tickAcceptance:'Tick Acceptance', s5_timeConfirmation:'Time Confirmation' };
+  if (!r) { box.innerHTML = '<div class="big-num">– / 5</div><div class="sub">Locked 09:30 ITM CE/PE Fibonacci anchor se directional bias establish karo. 5-item map derived hai, Coach ki exact signal-list nahi.</div>'; return; }
+  const names = {s1_openingType:'Opening Type',s2_halfIBBreak:'Half-IB 15m access',s3_va80Acceptance:'VA 80% acceptance',s4_tickAcceptance:'Independent tick acceptance',s5_timeConfirmation:'Independent time confirmation'};
   const list = Object.keys(r.flags).map(k => (r.flags[k] ? '✅ ' : '⬜ ') + names[k]).join(' · ');
-  const color = r.count >= 4 ? '#3DDC84' : (r.count >= 2 ? '#E8A93E' : '#7C8896');
-  box.innerHTML = '<div class="big-num" style="color:' + color + '">' + r.count + ' / 5</div><div class="sub">Bias: ' + r.bias.toUpperCase() + ' · ' + list + '</div>';
+  const color = r.provisional ? '#E8A93E' : (r.count>=3?'#3DDC84':(r.count===2?'#E8A93E':'#7C8896'));
+  const status = r.provisional ? 'PROVISIONAL — '+r.available+'/5 evaluable; missing evidence ko negative nahi maana' : r.scoreLabel;
+  box.innerHTML = '<div class="big-num" style="color:'+color+'">'+r.count+' / 5</div><div class="sub">Bias: '+r.bias.toUpperCase()+' · '+status+'</div><div class="sub" style="margin-top:6px">'+list+'</div>'+
+    (r.conflicts.length?'<div class="sub" style="color:#F2545B;margin-top:6px">Opposite evidence: '+r.conflicts.join(', ')+'</div>':'')+
+    (r.missing.length?'<div class="sub" style="margin-top:6px">Not evaluated: '+r.missing.join(', ')+'</div>':'')+
+    '<div class="sub" style="margin-top:6px">Only same-direction, distinct evidence counts. Half-IB close is not counted again as VA; HH/HL and acceptance notes are supporting structure, not extra signals.</div>';
   try { renderCoachContext(); } catch(e) {}
 }
-
 function renderToggleGroup(id, val) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -2501,6 +2540,10 @@ document.getElementById('resetMomentumBtn').onclick = () => { DAY.opening.moment
 wireToggle('tg_ibBoth', { get:()=>DAY.opening.ibTouchedBothSides, set:(v)=>DAY.opening.ibTouchedBothSides=v });
 wireToggle('tg_closeInside', { get:()=>DAY.opening.closeInsideIB, set:(v)=>DAY.opening.closeInsideIB=v });
 wireToggle('tg_halfAccess', { get:()=>DAY.opening.halfIbAccess, set:(v)=>DAY.opening.halfIbAccess=v });
+wireToggle('tg_halfIbTouch', { get:()=>DAY.opening.halfIbTouch, set:(v)=>DAY.opening.halfIbTouch=v });
+wireToggle('tg_halfIbWick', { get:()=>DAY.opening.halfIbWick, set:(v)=>DAY.opening.halfIbWick=v });
+wireToggle('tg_halfIbAcceptance', { get:()=>DAY.opening.halfIbAcceptance, set:(v)=>DAY.opening.halfIbAcceptance=v });
+wireToggle('tg_halfIbCloseAudit', { get:()=>DAY.opening.halfIbAccess, set:(v)=>DAY.opening.halfIbAccess=v });
 wireToggle('tg_halfSide', { get:()=>DAY.opening.halfIbSide, set:(v)=>DAY.opening.halfIbSide=v });
 wireToggle('tg_vwapTrend', { get:()=>DAY.opening.vwapFrozenHHLL, set:(v)=>DAY.opening.vwapFrozenHHLL=v });
 wireToggle('tg_failedAuction', { get:()=>DAY.opening.failedAuction, set:(v)=>DAY.opening.failedAuction=v });
@@ -2516,6 +2559,10 @@ wireToggle('tg_value20pct', { get:()=>DAY.opening.value20pct, set:(v)=>DAY.openi
 wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>DAY.opening.value20pctSide=v });
 wireToggle('tg_valueOpenedOutsideVA', { get:()=>DAY.opening.valueOpenedOutsideVA, set:(v)=>DAY.opening.valueOpenedOutsideVA=v });
 wireToggle('tg_valueReentryRejected', { get:()=>DAY.opening.valueReentryRejected, set:(v)=>DAY.opening.valueReentryRejected=v });
+wireToggle('tg_valueTpoAcceptance', { get:()=>DAY.opening.valueTpoAcceptance, set:(v)=>DAY.opening.valueTpoAcceptance=v });
+wireToggle('tg_tickAcceptanceSide', { get:()=>DAY.opening.tickAcceptanceSide, set:(v)=>DAY.opening.tickAcceptanceSide=v });
+wireToggle('tg_tickAcceptanceIndependent', { get:()=>DAY.opening.tickAcceptanceIndependent, set:(v)=>DAY.opening.tickAcceptanceIndependent=v });
+wireToggle('tg_timeConfirmationSide', { get:()=>DAY.opening.timeConfirmationSide, set:(v)=>DAY.opening.timeConfirmationSide=v });
 wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
 wireToggle('tg_prevDay3IBDirection', { get:()=>DAY.opening.prevDay3IBDirection, set:(v)=>DAY.opening.prevDay3IBDirection=v });
 wireToggle('tg_cVolumeStrong', { get:()=>DAY.opening.cVolumeStrong, set:(v)=>DAY.opening.cVolumeStrong=v });
@@ -2576,10 +2623,12 @@ function computeFromValues(values, nifty, cp) {
   const legVals = STOCKS.filter(s => s.leg).map(s => parseFloat(values[s.name][cp])).filter(v => !isNaN(v));
   const legUp = legVals.filter(v => v >= 0.5).length, legDown = legVals.filter(v => v <= -0.5).length;
   const legSignal = legVals.length === 0 ? null : (legUp >= 3 ? "BULL" : legDown >= 3 ? "BEAR" : "MIXED");
-  let signal = "MIXED / NO CONVICTION";
-  if (alignedBull >= 7 && alignedBull > alignedBear) signal = "BUY";
-  else if (alignedBear >= 7 && alignedBear > alignedBull) signal = "SELL";
-  return { up, down, flat, mid, positive, negative, zero, alignedBull, alignedBear, strongBull, strongBear, coachFlatZoneCandidates, pullPct, points, legSignal, signal, total: entries.length, bucketNote: "UP/DOWN are >=+0.50% / <=-0.50% display buckets; MID is remaining non-zero non-strong values; FLAT is exact 0.00%. Coach flat wording (0.05 to 0.10%) is preserved separately and not reinterpreted." };
+  let direction = null, signal = "MIXED / NO CONVICTION", signalStatus = entries.length===12 ? "COMPLETE" : "INCOMPLETE";
+  if (alignedBull >= 7 && alignedBull > alignedBear) direction = "BUY";
+  else if (alignedBear >= 7 && alignedBear > alignedBull) direction = "SELL";
+  if (direction) signal = entries.length===12 ? direction : "PROVISIONAL " + direction;
+  else if (entries.length < 12) signal = "INCOMPLETE SAMPLE";
+  return { up, down, flat, mid, positive, negative, zero, alignedBull, alignedBear, strongBull, strongBear, coachFlatZoneCandidates, pullPct, points, legSignal, signal, direction, signalStatus, total: entries.length, coverage: entries.length+'/12', bucketNote: "UP/DOWN are >=+0.50% / <=-0.50% display buckets; MID is remaining non-zero non-strong values; FLAT is exact 0.00%. Coach flat wording (0.05 to 0.10%) is preserved separately and not reinterpreted." };
 }
 function computeCheckpoint(cp) {
   const nifty = parseFloat(document.getElementById('niftyPrice').value) || 0;
@@ -2589,8 +2638,9 @@ function checkpointFillCount(values, cp) {
   return STOCKS.filter(s => !isNaN(parseFloat(values[s.name][cp]))).length;
 }
 function signalColor(sig) {
-  if (sig === "BUY") return COL.green; if (sig === "SELL") return COL.red;
-  if (sig === "FLAT" || sig === "NO CONVICTION" || sig === "MIXED / NO CONVICTION") return COL.amber; return COL.sub;
+  if (sig === "BUY" || sig === "SELL") return sig === "BUY" ? COL.green : COL.red;
+  if (String(sig||'').startsWith('PROVISIONAL')) return COL.amber;
+  if (sig === "FLAT" || sig === "NO CONVICTION" || sig === "MIXED / NO CONVICTION" || sig === "INCOMPLETE SAMPLE") return COL.amber; return COL.sub;
 }
 function legColor(leg) {
   if (leg === "BULL") return COL.green; if (leg === "BEAR") return COL.red;
@@ -2658,7 +2708,7 @@ function renderResult() {
   const r = computeCheckpoint(activeCP);
   if (!r) { body.innerHTML = '<div class="empty-msg">Enter at least one stock % to see the signal.</div>'; return; }
   body.innerHTML = `
-    <div class="entered-line">Entered: ${r.total} / 12</div>
+    <div class="entered-line">Coverage: ${r.total} / 12 · ${r.signalStatus==='COMPLETE'?'COMPLETE SAMPLE':'PROVISIONAL / INCOMPLETE SAMPLE'}</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="val" style="color:${COL.green}">${r.up}</div><div class="lbl">STRONG UP</div></div>
       <div class="stat-box"><div class="val" style="color:${COL.red}">${r.down}</div><div class="lbl">STRONG DOWN</div></div>
@@ -2666,6 +2716,7 @@ function renderResult() {
       <div class="stat-box"><div class="val" style="color:${COL.sub}">${r.flat}</div><div class="lbl">EXACT ZERO</div></div>
     </div>
     <div class="kv-row"><span>Directional count (+ / − / exact 0)</span><b>${r.positive} / ${r.negative} / ${r.zero}</b></div>
+    <div class="kv-row"><span>7/12 alignment</span><b>${r.direction ? (r.signalStatus==='COMPLETE'?'CONFIRMED ':'PROVISIONAL ')+r.direction : 'NOT ESTABLISHED'}</b></div>
     <div class="kv-row"><span>Coach flat-zone candidates (0.05–0.10%; interpretation unresolved)</span><b>${r.coachFlatZoneCandidates}</b></div>
     <div class="kv-row"><span>Strong directional (≥+0.50 / ≤−0.50)</span><b>${r.strongBull} / ${r.strongBear}</b></div>
     <div class="kv-row"><span>Pull</span><b>${r.pullPct>=0?'+':''}${r.pullPct.toFixed(3)}%</b></div>
@@ -3182,7 +3233,7 @@ const MISTAKES = [
 ];
 const MIN_SAMPLE = 5;      // itne trades se kam = "kam sample", bharosa mat karo
 const WARN_WINRATE = 0.35; // is se kam win% + negative ₹ = warning
-let TF = { dir:null, plan:null, pre:null, perr:null, mist:[] };
+let TF = { dir:null, plan:null, pre:null, perr:null, t1Reached:null, mist:[] };
 let TRADES_CACHE = [], CVOL_CACHE = [];
 
 function parseMoney(v) {
@@ -3353,7 +3404,7 @@ const _origRenderSignalsCount = renderSignalsCount;
 renderSignalsCount = function () { _origRenderSignalsCount(); try { renderPatternWarn(); } catch (e) {} };
 
 function renderTradeForm() {
-  renderToggleGroup('tg_tDir', TF.dir); renderToggleGroup('tg_tPlan', TF.plan); renderToggleGroup('tg_tPre', TF.pre); renderToggleGroup('tg_tPerr', TF.perr);
+  renderToggleGroup('tg_tDir', TF.dir); renderToggleGroup('tg_tPlan', TF.plan); renderToggleGroup('tg_tPre', TF.pre); renderToggleGroup('tg_tPerr', TF.perr); renderToggleGroup('tg_t1Reached', TF.t1Reached);
   const box = document.getElementById('t_mist');
   box.innerHTML = MISTAKES.map(m => '<button class="chip' + (TF.mist.indexOf(m.id) >= 0 ? ' on' : '') + '" data-id="' + m.id + '">' + m.label + '</button>').join('');
   box.querySelectorAll('.chip').forEach(b => b.onclick = () => {
@@ -3369,16 +3420,18 @@ function renderTradeForm() {
 }
 function updateRRHint() {
   try { tradeLockUpdate(); } catch (e) {}
-  const el = document.getElementById('tradeRRHint'); if (!el) return;
-  const g = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
-  const up = TF.dir !== 'down';
-  const e = g('t_sEntry'), s = g('t_sSL'), tgo = parseTarget(document.getElementById('t_sT1').value, up), tg = tgo ? tgo.edge : null;
-  if (e == null || s == null) { el.innerHTML = 'Spot entry + SL bharo — risk aur RR yahan dikhega.'; return; }
-  const risk = up ? e - s : s - e;
-  if (!(risk > 0)) { el.innerHTML = '<span class="neg">SL galat side par hai (' + (up ? 'CE: SL entry se neeche' : 'PE: SL entry se upar') + ' hona chahiye).</span>'; return; }
-  let h = 'Risk: ' + risk.toFixed(0) + ' pts';
-  if (tg != null) { const rew = up ? tg - e : e - tg; const rr = rew / risk; h += ' · Planned RR 1:' + rr.toFixed(2) + (rr < 1 ? ' <span class="neg">(1:1 se kam — trade/size dobara socho)</span>' : ''); }
-  el.innerHTML = h;
+  const el=document.getElementById('tradeRRHint'); if(!el)return;
+  const g=id=>{const v=parseFloat(document.getElementById(id).value);return Number.isFinite(v)?v:null;};
+  const up=TF.dir!=='down',e=g('t_sEntry'),sl=g('t_sSL');
+  const t1=parseTarget(document.getElementById('t_sT1').value,up),t2=parseTarget(document.getElementById('t_sT2').value,up);
+  if(e==null||sl==null){el.innerHTML='Spot entry + SL bharo — risk aur RR yahan dikhega.';return;}
+  const risk=up?e-sl:sl-e;if(!(risk>0)){el.innerHTML='<span class="neg">SL galat side par hai ('+(up?'CE: SL entry se neeche':'PE: SL entry se upar')+' hona chahiye).</span>';return;}
+  const rr=(target)=>{if(!target)return null;const reward=up?target.edge-e:e-target.edge;return reward>0?reward/risk:null;};
+  const r1=rr(t1),r2=rr(t2);let h='Risk: '+risk.toFixed(0)+' pts';
+  if(r1!=null)h+=' · T1 planned RR 1:'+r1.toFixed(2)+(r1<1?' <span class="neg">(below 1:1)</span>':'');
+  if(r2!=null)h+=' · T2 planned RR 1:'+r2.toFixed(2);
+  if(!t1&&!t2)h+=' · T1/T2 target zone fill karo';
+  el.innerHTML=h;
 }
 function updateLotHint() {
   const el = document.getElementById('tradeLotHint'); if (!el) return;
@@ -3391,8 +3444,12 @@ function updateLotHint() {
   el.innerHTML = h;
 }
 ['t_lots'].forEach(id => document.getElementById(id).oninput = updateLotHint);
-['t_sEntry','t_sSL','t_sT1'].forEach(id => document.getElementById(id).oninput = updateRRHint);
+document.getElementById('t_partialPct').oninput = tradeLockUpdate;
+document.getElementById('t_runnerShift').onchange = tradeLockUpdate;
+document.getElementById('t_executionStatus').onchange = tradeLockUpdate;
+['t_sEntry','t_sSL','t_sT1','t_sT2'].forEach(id => document.getElementById(id).oninput = updateRRHint);
 wireTradeToggle('tg_tDir', 'dir'); wireTradeToggle('tg_tPlan', 'plan'); wireTradeToggle('tg_tPre', 'pre'); wireTradeToggle('tg_tPerr', 'perr');
+wireTradeToggle('tg_t1Reached', 't1Reached');
 function wireTradeToggle(id, key) {
   document.getElementById(id).querySelectorAll('button').forEach(b => b.onclick = () => { TF[key] = (TF[key] === b.dataset.val ? null : b.dataset.val); renderToggleGroup(id, TF[key]); updateRRHint(); });
 }
@@ -3437,12 +3494,18 @@ document.getElementById('addTradeBtn').onclick = async () => {
   const up = TF.dir === 'up';
   const sE = num('t_sEntry'), sS = num('t_sSL'), sX = num('t_sExit');
   const tgo = parseTarget(document.getElementById('t_sT1').value, up), sT = tgo ? tgo.edge : null;
+  const t2go = parseTarget(document.getElementById('t_sT2').value, up), sT2 = t2go ? t2go.edge : null;
+  const partialRaw = num('t_partialPct'), partialPct = partialRaw!=null && partialRaw>=0 && partialRaw<=100 ? partialRaw : null;
+  const t1Reached = (document.querySelector('#tg_t1Reached button.active') || {}).dataset?.val || TF.t1Reached || null;
+  const runnerShift = document.getElementById('t_runnerShift').value || null;
+  const executionStatus = document.getElementById('t_executionStatus').value || null;
+  const runnerPct = partialPct==null ? null : Math.max(0,100-partialPct);
   const r2 = x => Math.round(100 * x) / 100;
   const risk = (sE != null && sS != null) ? (up ? sE - sS : sS - sE) : null;
   const ctx = tradeContext();
   const trade = {
     id: Date.now(), time: document.getElementById('t_time').value.trim(), dir: TF.dir,
-    strike: document.getElementById('t_strike').value.trim(), triggerTime, triggerSpot, sEntry: sE, sSL: sS, sT1: sT, sT1Zone: (tgo && tgo.lo !== tgo.hi) ? [tgo.lo, tgo.hi] : null, sExit: sX, entry: pE, exit: pX, lots, pnl,
+    tradeManagementVersion: "1.0.0", strike: document.getElementById('t_strike').value.trim(), triggerTime, triggerSpot, sEntry: sE, sSL: sS, sT1: sT, sT1Zone: (tgo && tgo.lo !== tgo.hi) ? [tgo.lo, tgo.hi] : null, sT2: sT2, sT2Zone: (t2go && t2go.lo !== t2go.hi) ? [t2go.lo, t2go.hi] : null, sExit: sX, entry: pE, exit: pX, lots, pnl, t1Reached, partialPct, runnerPct, runnerShift, executionStatus,
     exitReason: document.getElementById('t_reason').value, exitBasis: document.getElementById('t_exitBasis').value, tradeType: document.getElementById('t_tradeType').value, plan: TF.plan, mistakes: TF.mist.slice(),
     note: document.getElementById('t_note').value.trim(), ctx,
     psychology: { confidence: (parseInt(document.getElementById('t_confidence').value,10) >= 1 && parseInt(document.getElementById('t_confidence').value,10) <= 10) ? parseInt(document.getElementById('t_confidence').value,10) : null, before: document.getElementById('t_psychBefore').value || null, after: document.getElementById('t_psychAfter').value || null, wentWell: document.getElementById('t_wentWell').value.trim(), wentWrong: document.getElementById('t_wentWrong').value.trim(), learning: document.getElementById('t_learning').value.trim() },
@@ -3450,6 +3513,8 @@ document.getElementById('addTradeBtn').onclick = async () => {
     risk: risk > 0 ? risk : null,
     r: (risk > 0 && sX != null) ? r2((up ? sX - sE : sE - sX) / risk) : null,
     rr: (risk > 0 && sT != null) ? r2((up ? sT - sE : sE - sT) / risk) : null,
+    rrT1: (risk > 0 && sT != null) ? r2((up ? sT - sE : sE - sT) / risk) : null,
+    rrT2: (risk > 0 && sT2 != null) ? r2((up ? sT2 - sE : sE - sT2) / risk) : null,
     slBreach: (sS != null && sX != null) ? (up ? sX < sS : sX > sS) : null,
     premPct: (pE > 0 && pX != null) ? Math.round(1000 * (pX - pE) / pE) / 10 : null,
     over: (lots != null && ctx.recLots != null) ? lots > ctx.recLots + 0.0001 : null
@@ -3461,10 +3526,12 @@ document.getElementById('addTradeBtn').onclick = async () => {
   const ps = computeProcessScore(trade); trade.checks = ps.checks; trade.processScore = ps.score;
   DAY.trades = (DAY.trades || []).concat([trade]);
   await saveDay(true);
-  ['t_strike','t_triggerTime','t_triggerSpot','t_sEntry','t_sSL','t_sT1','t_sExit','t_entry','t_exit','t_lots','t_pnl','t_note','t_time','t_confidence','t_wentWell','t_wentWrong','t_learning'].forEach(id => document.getElementById(id).value = '');
+  ['t_strike','t_triggerTime','t_triggerSpot','t_sEntry','t_sSL','t_sT1','t_sT2','t_sExit','t_entry','t_exit','t_lots','t_pnl','t_note','t_time','t_confidence','t_wentWell','t_wentWrong','t_learning','t_partialPct'].forEach(id => document.getElementById(id).value = '');
+  ['t_runnerShift','t_executionStatus'].forEach(id=>document.getElementById(id).value='');
+  renderToggleGroup('tg_t1Reached',null);
   ['t_psychBefore','t_psychAfter'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('t_reason').value = ''; document.getElementById('t_exitBasis').value = ''; document.getElementById('t_tradeType').value = ''; ['t_tsl','t_trig','t_emo'].forEach(id => document.getElementById(id).value = '');
-  TF = { dir:null, plan:null, pre:null, perr:null, mist:[] };
+  TF = { dir:null, plan:null, pre:null, perr:null, t1Reached:null, mist:[] };
   msg.innerHTML = trade.mistakeKick ? '<span class="neg">🚨 MISTAKE KICK: profit hua par process galat tha (' + (errs.join(', ') || 'manual') + '). Isse jeet mat maano.</span>' : '<span class="pos">Trade add ho gaya ✓ · Process score ' + ps.score + '%</span>';
   await refreshTradesCache(); renderTradeSection();
 };
@@ -3476,7 +3543,7 @@ function renderTodayTrades() {
   box.innerHTML = trs.map(t => {
     const ms = (t.mistakes || []).map(id => (MISTAKES.filter(m => m.id === id)[0] || {}).label).filter(Boolean).join(', ');
     return '<div class="tr-item' + (t.mistakeKick ? ' kick' : '') + '"><div>' + (t.mistakeKick ? '<b class="neg">🚨 MISTAKE KICK (RED ALERT)</b><br>' : '') + '<b>' + (t.time || '--:--') + '</b> · ' + (t.dir === 'up' ? 'CE' : 'PE') + (t.strike ? ' ' + t.strike : '') +
-      ' · <b class="' + (t.pnl >= 0 ? 'pos' : 'neg') + '">' + fmtR(t.pnl) + '</b>' + (t.triggerTime ? ' · trigger ' + t.triggerTime : '') + (t.triggerSpot != null ? ' @ ' + t.triggerSpot : '') + (t.sEntry != null && t.sExit != null ? ' · spot ' + t.sEntry + '→' + t.sExit : '') + (t.sT1Zone ? ' · tgt ' + t.sT1Zone[0] + '-' + t.sT1Zone[1] : '') + (t.r != null ? ' · ' + t.r + 'R' : '') + (t.premPct != null ? ' · prem ' + t.premPct + '%' : '') + (t.slBreach ? ' · <span class="neg">SL ke paar</span>' : '') +
+      ' · <b class="' + (t.pnl >= 0 ? 'pos' : 'neg') + '">' + fmtR(t.pnl) + '</b>' + (t.triggerTime ? ' · trigger ' + t.triggerTime : '') + (t.triggerSpot != null ? ' @ ' + t.triggerSpot : '') + (t.sEntry != null && t.sExit != null ? ' · spot ' + t.sEntry + '→' + t.sExit : '') + (t.sT1Zone ? ' · T1 ' + t.sT1Zone[0] + '-' + t.sT1Zone[1] : (t.sT1!=null?' · T1 '+t.sT1:'')) + (t.sT2Zone ? ' · T2 ' + t.sT2Zone[0] + '-' + t.sT2Zone[1] : (t.sT2!=null?' · T2 '+t.sT2:'')) + (t.partialPct!=null?' · partial '+t.partialPct+'% / runner '+t.runnerPct+'%':'') + (t.executionStatus?' · status '+t.executionStatus:'') + (t.runnerShift?' · runner SL '+t.runnerShift:'') + (t.r != null ? ' · ' + t.r + 'R' : '') + (t.premPct != null ? ' · prem ' + t.premPct + '%' : '') + (t.slBreach ? ' · <span class="neg">SL ke paar</span>' : '') +
       (t.exitReason ? ' · ' + t.exitReason : '') + (t.tradeType ? ' · ' + ({ counter: 'counter', momentum: 'momentum', mp: 'MP' })[t.tradeType] : '') + (t.exitBasis ? ' · basis ' + ({ wick: 'wick', c15: '15m close', c30: '30m close', vwap: 'VWAP reject', target: 'target' })[t.exitBasis] : '') + (t.plan ? (t.plan === 'yes' ? ' · plan ✓' : ' · <span class="neg">plan ✗</span>') : '') +
       (t.over ? ' · <span class="neg">size > tier</span>' : '') + ' · proc ' + computeProcessScore(t).score + '%' +
       (t.ctx && t.ctx.signals != null ? '<br><span class="muted">' + t.ctx.signals + '/5 · ' + (t.ctx.dayType || '?') + (t.ctx.opening ? ' · ' + t.ctx.opening : '') + '</span>' : '') +
@@ -4086,13 +4153,13 @@ function renderPmCheck() {
   box.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { DAY.opening[b.dataset.pm] = !DAY.opening[b.dataset.pm]; scheduleAutoSave(); renderPmCheck(); });
 }
 // 2) TRADE ENTRY LOCK. Coach: "Before the trade, you have a predefined position sizing." / "First question should not be the target. First question should be how much the minimum risk I can take right after the entry."
-function tradeLockMissing() { const g = id => nlmF(document.getElementById(id).value), m = []; if (!g('t_sEntry')) m.push('Entry'); if (!g('t_sSL')) m.push('SL'); if (!g('t_sT1')) m.push('T1'); if (TF.pre !== 'yes') m.push('Plan = Haan'); return m; }
+function tradeLockMissing() { const g = id => nlmF(document.getElementById(id).value), m = []; if (!g('t_sEntry')) m.push('Entry'); if (!g('t_sSL')) m.push('SL'); if (!g('t_sT1')) m.push('T1'); if (TF.pre !== 'yes') m.push('Plan = Haan'); if (!TF.t1Reached) m.push('T1 hit?'); if (!g('t_executionStatus')) m.push('Execution status'); if (TF.t1Reached === 'yes' && !g('t_partialPct')) m.push('T1 partial %'); if (TF.t1Reached === 'yes' && !g('t_runnerShift')) m.push('Runner SL shift'); return m; }
 function tradeLockOk() { return tradeLockMissing().length === 0; }
 function tradeLockUpdate() {
   const btn = document.getElementById('addTradeBtn'), msg = document.getElementById('tradeFormMsg'); if (!btn) return; const m = tradeLockMissing();
   btn.disabled = m.length > 0; btn.style.opacity = m.length ? 0.45 : 1;
-  if (m.length) msg.innerHTML = '<span class="neg">Plan incomplete (' + m.join(', ') + ') — coach rule: No trade without a plan</span>';
-  else if (/Plan incomplete/.test(msg.textContent)) msg.innerHTML = '';
+  if (m.length) msg.innerHTML = '<span class="neg">Trade log incomplete (' + m.join(', ') + ') — pehle required execution fields complete karo</span>';
+  else if (/Trade log incomplete/.test(msg.textContent)) msg.innerHTML = '';
   const e = parseFloat(document.getElementById('t_sEntry').value), s = parseFloat(document.getElementById('t_sSL').value), lots = parseFloat(document.getElementById('t_lots').value), ls = parseFloat(document.getElementById('t_lotsize').value), ri = document.getElementById('tradeRiskInfo');
   if (ri) { if (!isNaN(e) && !isNaN(s)) { const pts = Math.abs(e - s); ri.innerHTML = 'Risk: ' + pts.toFixed(0) + ' spot pts' + (!isNaN(lots) && !isNaN(ls) ? ' · ≈ ₹' + Math.round(pts * lots * ls).toLocaleString('en-IN') + ' (index-pt basis, upper bound — info only)' : ' · lots + lot size se ₹ risk dikhega'); } else ri.innerHTML = ''; }
 }
@@ -4168,20 +4235,21 @@ function computeCoachContext(checkpointOverride){
   const halfDir=(o.halfIbAccess==='yes' && (o.halfIbSide==='up'||o.halfIbSide==='down'))?o.halfIbSide:(o.halfIbAccess==='no'?'neutral':null);
   items.push({id:'mp_halfib',tool:'Market Profile',label:'Half-IB Access',direction:halfDir,status:halfDir==='neutral'?'not-accessed':(halfDir?'recorded':'unavailable'),detail:halfDir==='neutral'?'No access recorded':(halfDir?'15m close access recorded':'Access/side not fully recorded')});
   if(halfDir)evidence.push('Half-IB access '+ciDirectionLabel(halfDir));
-  const vaUp=!!o.longVAHSustained, vaDn=!!o.shortVALSustained;
-  const vaDir=vaUp&&!vaDn?'up':(vaDn&&!vaUp?'down':(vaUp&&vaDn?'neutral':null));
-  items.push({id:'mp_va',tool:'Market Profile',label:'VA Acceptance',direction:vaDir,status:vaDir?'recorded':'unavailable',detail:vaUp&&vaDn?'Both bullish and bearish VA flags set':(vaUp?'Bullish VAH sustained; value20pct='+String(o.value20pct||'not recorded'):(vaDn?'Bearish VAL sustained; value20pct='+String(o.value20pct||'not recorded'):'VAH/VAL sustained flag not recorded'))});
+  const vaValid=!!(calcIB() && o.value20pct==='yes' && o.valueOpenedOutsideVA==='yes' && o.valueReentryRejected==='yes' && o.valueTpoAcceptance==='yes' && (o.value20pctSide==='up'||o.value20pctSide==='down'));
+  const vaUp=vaValid && o.value20pctSide==='up', vaDn=vaValid && o.value20pctSide==='down';
+  const vaDir=vaUp&&!vaDn?'up':(vaDn&&!vaUp?'down':null);
+  items.push({id:'mp_va',tool:'Market Profile',label:'VA Acceptance',direction:vaDir,status:vaDir?'recorded':'unavailable',detail:vaValid?'80% Rule evidence complete: AB + outside open + 20% 15m close + TPO acceptance; direction '+ciDirectionLabel(vaDir):(o.value20pct==='yes'?'80% Rule evidence incomplete; missing AB / outside open / re-entry / 20% close / TPO acceptance':'80% Rule trigger not recorded')});
   if(vaDir)evidence.push('VA acceptance '+ciDirectionLabel(vaDir));
   // Half-IB close / HH-HL and LH-LL are shown as supporting structure, not double-counted as separate core indications.
   const structure=[];
-  if(o.longHalfIBClose||o.longHHHL)structure.push('Bullish price-acceptance/structure flags');
-  if(o.shortHalfIBClose||o.shortLHLL)structure.push('Bearish price-acceptance/structure flags');
+  if(o.longHalfIBClose||o.longHHHL||o.longVAHSustained)structure.push('Bullish Half-IB / HH-HL / VAH-sustain supporting structure (not a separate 80% Rule signal)');
+  if(o.shortHalfIBClose||o.shortLHLL||o.shortVALSustained)structure.push('Bearish Half-IB / LH-LL / VAL-sustain supporting structure (not a separate 80% Rule signal)');
   const itm=itmAnchor930();
   items.push({id:'options_itm',tool:'Momentum / Options',label:'ITM Fibonacci Anchor (locked 09:30 p930)',direction:(itm==='up'||itm==='down')?itm:null,status:itm==='none'?'neutral':(itm?'recorded':'unavailable'),detail:itm==='none'?'Locked CE/PE p930 anchor is mixed or inside':(itm?('Locked 09:30 p930 anchor '+ciDirectionLabel(itm)):'Locked 09:30 p930 anchor not established')});
   if(itm==='up'||itm==='down')evidence.push('ITM Fibonacci anchor '+ciDirectionLabel(itm));
   let part=null; try{part=computeFromValues(DAY.participation,parseFloat(DAY.niftyPrice)||0,contextCP);}catch(e){}
-  const pDir=part&&part.signal==='BUY'?'up':(part&&part.signal==='SELL'?'down':(part?'neutral':null));
-  items.push({id:'participation',tool:'Participation',label:'12-stock Participation ('+contextCP+')',direction:pDir,status:pDir?'recorded':'unavailable',detail:part?(part.signal+'; '+part.total+'/12 populated; raw +/−/0 = '+part.positive+'/'+part.negative+'/'+part.zero+'; strong +/− = '+part.strongBull+'/'+part.strongBear):'No usable values at '+contextCP+' checkpoint'});
+  const pDir=part&&part.signalStatus==='COMPLETE'&&part.direction==='BUY'?'up':(part&&part.signalStatus==='COMPLETE'&&part.direction==='SELL'?'down':(part&&part.signalStatus==='COMPLETE'?'neutral':null));
+  items.push({id:'participation',tool:'Participation',label:'12-stock Participation ('+contextCP+')',direction:pDir,status:part?(part.signalStatus==='COMPLETE'?'recorded':'provisional'):'unavailable',detail:part?(part.signal+'; '+part.total+'/12 populated; raw +/−/0 = '+part.positive+'/'+part.negative+'/'+part.zero+'; strong +/− = '+part.strongBull+'/'+part.strongBear):'No usable values at '+contextCP+' checkpoint'});
   if(pDir)evidence.push('Participation '+ciDirectionLabel(pDir)+' ('+part.total+'/12 values at '+contextCP+')');
   const of=detectOfCombos(); const last=of.found.length?of.found[of.found.length-1]:null;
   let ofStatus='unavailable', ofDir=null, ofDetail='No recognized combination available';
@@ -4218,12 +4286,13 @@ function renderCoachContext(){
 
 function ciDataQuality(day, key){
  const issues=[], missing=[], warnings=[]; const d=day||DAY; const seen=new Set();
- (d.trades||[]).forEach((t,i)=>{const id=String(t.id||'');if(id&&seen.has(id))issues.push('Duplicate trade id: '+id);if(id)seen.add(id);if(t.time&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.time))issues.push('Invalid trade timestamp at row '+(i+1)+': '+t.time);if(t.triggerTime&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.triggerTime))issues.push('Invalid trigger timestamp at trade '+(i+1)+': '+t.triggerTime);if(typeof t.pnl!=='number'||!Number.isFinite(t.pnl))issues.push('Invalid/missing numeric P&L at trade '+(i+1));if(t.entry!=null&&t.exit!=null&&(!Number.isFinite(+t.entry)||!Number.isFinite(+t.exit)))issues.push('Invalid premium entry/exit at trade '+(i+1));});
+  (d.trades||[]).forEach((t,i)=>{const id=String(t.id||'');if(id&&seen.has(id))issues.push('Duplicate trade id: '+id);if(id)seen.add(id);if(t.time&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.time))issues.push('Invalid trade timestamp at row '+(i+1)+': '+t.time);if(t.triggerTime&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.triggerTime))issues.push('Invalid trigger timestamp at trade '+(i+1)+': '+t.triggerTime);if(typeof t.pnl!=='number'||!Number.isFinite(t.pnl))issues.push('Invalid/missing numeric P&L at trade '+(i+1));if(t.entry!=null&&t.exit!=null&&(!Number.isFinite(+t.entry)||!Number.isFinite(+t.exit)))issues.push('Invalid premium entry/exit at trade '+(i+1));if(t.partialPct!=null&&(!Number.isFinite(+t.partialPct)||+t.partialPct<0||+t.partialPct>100))issues.push('Invalid partial-booking percentage at trade '+(i+1));if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct==null)warnings.push('Trade '+(i+1)+' T1 reached but partial booking % is not recorded.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct!=null&&(+t.partialPct<50||+t.partialPct>70))warnings.push('Trade '+(i+1)+' partial booking is outside the source 50–70% band; 70% is the operational default.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct>0&&(!t.runnerShift||t.runnerShift==='no'||t.runnerShift==='na'))warnings.push('Trade '+(i+1)+' partial booked but runner SL was not shifted to Cost/VWAP.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct>0&&t.runnerShift==='other')warnings.push('Trade '+(i+1)+' runner uses a non-standard structural trail; verify whether Cost/VWAP shift rule was followed.');if(t.tradeManagementVersion&&t.t1Reached==='no'&&t.partialPct!=null&&t.partialPct>0)warnings.push('Trade '+(i+1)+' records partial booking even though T1 is marked not reached.');if(t.tradeManagementVersion&&!t.executionStatus)warnings.push('Trade '+(i+1)+' execution status is not recorded.');});
  if(!d.levels||!d.levels.pdh||!d.levels.pdl)missing.push('Previous-day PDH/PDL');
  if(!d.opening||!d.opening.open)missing.push('Opening price');
  const so=d.opening&&d.opening.spot930||{}; if(!['o','h','l','c'].every(k=>String(so[k]||'').trim()!==''))missing.push('Exact 09:15–09:30 Spot OHLC'); if(!(d.opening&&d.opening.fibCE&&d.opening.fibCE.p930))missing.push('Locked CE p930 premium close'); if(!(d.opening&&d.opening.fibPE&&d.opening.fibPE.p930))missing.push('Locked PE p930 premium close');
  const populated=STOCKS.filter(st=>d.participation&&d.participation[st.name]&&CHECKPOINTS.some(cp=>String(d.participation[st.name][cp.key]||'').trim()!=='')).length;
  if(populated<12)missing.push('Participation coverage: '+populated+'/12 stocks have at least one checkpoint');
+ CHECKPOINTS.forEach(cp=>{const n=STOCKS.filter(st=>d.participation&&d.participation[st.name]&&String(d.participation[st.name][cp.key]||'').trim()!=='').length;if(n<12)warnings.push('Participation '+cp.label+' checkpoint is provisional: '+n+'/12 stocks entered.');});
  if(!(d.orderflow||[]).length)missing.push('Order Flow entries');
  if(!String(d.opening&&d.opening.callIV||'').trim())missing.push('Call IV — IV skew comparison unavailable');
  if(!String(d.opening&&d.opening.putIV||'').trim())missing.push('Put IV — IV skew comparison unavailable');
@@ -4239,7 +4308,10 @@ function ciDataQuality(day, key){
  if(full15){const O=num(spotFields.o),H=num(spotFields.h),L=num(spotFields.l),C=num(spotFields.c);if(H<Math.max(O,C)||L>Math.min(O,C)||H<L)issues.push('Invalid 09:30 spot OHLC geometry');}
  if(full5)bars.forEach((b,i)=>{const O=num(b.o),H=num(b.h),L=num(b.l),C=num(b.c);if(H<Math.max(O,C)||L>Math.min(O,C)||H<L)issues.push('Invalid opening 5m candle geometry at candle '+(i+1));});
  if(full5)for(let i=1;i<3;i++){const prev=num(bars[i-1].c),next=num(bars[i].o);if(Math.abs(prev-next)>tol)warnings.push('Opening 5m continuity gap between candle '+i+' close ('+prev+') and candle '+(i+1)+' open ('+next+'); verify timestamps/feed alignment.');}
- if(op.halfIbAccess==='yes'&&!op.halfIbSide)warnings.push('Half-IB access marked yes but direction/side is missing.');
+  if(op.halfIbAccess==='yes'&&!op.halfIbSide)warnings.push('Half-IB 15m close access marked yes but direction/side is missing.');
+  if(op.halfIbAccess!=='yes'&&op.halfIbTouch==='yes')warnings.push('Half-IB touch recorded without 15m close access; touch alone is not access.');
+  if(op.halfIbAccess!=='yes'&&op.halfIbWick==='yes')warnings.push('Half-IB wick recorded without 15m close access; wick alone is not access.');
+  if(op.value20pct==='yes'&&(!op.valueOpenedOutsideVA||!op.valueReentryRejected||!op.valueTpoAcceptance))warnings.push('80% VA Rule selected but outside-open / re-entry / multi-letter TPO acceptance evidence is incomplete.');
  if(op.halfIbAccess==='no')warnings.push('Half-IB access is recorded as no; export has no candle-by-candle 15m close series to independently re-audit that flag.');
  (d.orderflow||[]).forEach((e,i)=>{if(!['IB','IS','RB','RS'].includes(e.tag))return;const du=parseDeltaK(e.du),dd=parseDeltaK(e.dd),dom=Math.max(Number.isFinite(du)?du:0,Number.isFinite(dd)?dd:0);if(dom<75000)warnings.push('Order Flow row '+(i+1)+' tagged '+e.tag+' but dominant delta '+dom+' is below 75K; treat as Not-useful unless source rule exception applies.');});
  const bad=[]; ['pdh','pdl','vah','val','poc'].forEach(k=>{const v=d.levels&&d.levels[k];if(v!==''&&v!=null&&!Number.isFinite(parseFloat(v)))bad.push('Invalid level '+k);});
@@ -4250,16 +4322,20 @@ function ciRulebookForExport(){return {version:ANALYSIS_RULES_VERSION,rules:ANAL
 const CI_AI_INSTRUCTIONS=[
 'Treat source-verified Coach rules as the primary framework, but preserve each rule verificationStatus.',
 'Use raw journal fields as factual record; never invent missing values or assume missing fields are negative/positive signals.',
+'For every trade report Entry, SL, T1, optional T2, planned R:R to T1 and T2, actual exit/R, T1 partial percentage, runner remainder, runner SL shift, and execution status. Missing values remain Missing/Unrecorded.',
 'For Setup 4 (09:30), use only fibCE.p930 / fibPE.p930, participation c930, and separately captured 09:15–09:30 spot OHLC. Validate spot930 OHLC against opening.open and the aggregation of opening5m; if they conflict, mark opening-structure classification UNRESOLVED and do not silently choose or overwrite either feed. Never substitute fibCE.p / fibPE.p latest premiums or A.close (09:45).',
 'Keep 09:30 Setup 4 separate from post-10:15 IB / Market Profile / Order Flow analysis. Do not use future checkpoints to validate an earlier decision.',
-'Show participation raw positive, negative and exact-zero counts separately from strong bullish >=+0.50% and strong bearish <=-0.50% counts. Coach 7–8/12 alignment is based on directional alignment; do not replace it with the implementation strong threshold. Preserve the Coach flat wording exactly and mark its interpretation unresolved rather than inventing a band.',
+'Show participation raw positive, negative and exact-zero counts separately from strong bullish >=+0.50% and strong bearish <=-0.50% counts. Coach 7–8/12 alignment is based on directional alignment; if fewer than 12 stocks are entered, label a 7+ directional candidate PROVISIONAL and disclose coverage. Do not replace directional alignment with the implementation strong threshold. Preserve Coach flat wording exactly and mark signed-band interpretation unresolved.',
 'Treat triggerSpot / triggerTime as the exact trigger candle reference; distinguish it from current live spot and actual trade fill sEntry.',
 'Distinguish same-tool indications from cross-tool evidence. Multiple distinct Market Profile indications may count individually under the user-reported 04-Nov-2026 Coach clarification.',
 'Identify maximum indication direction and show bullish, bearish, neutral and unavailable counts separately. Daily export coachContext uses c930 explicitly; do not confuse c908/c920 participation with c930 Setup 4 participation.',
 'The 04-Nov-2026 Coach answer is COACH_QA_USER_REPORTED; do not upgrade it to independently verified from the attached ZIP because that answer is not present in the supplied export. Coach flat wording is exactly 0.05 to 0.10%; until its signed-band interpretation is confirmed, show candidates separately and do not silently alter directional counts.',
+'80% VA Rule requires completed A+B / IB, open outside prior VA, post-IB 15-minute close with >=20% penetration, and multi-letter TPO acceptance. Do not infer missing evidence.',
+'Half-IB touch, wick, completed 15m close and subsequent acceptance are four separate observations. Only the completed 15m close grants access; touch/wick alone never count.',
+'At T1, record actual partial booking percentage and runner management. Source says 50–70% partial (operational default 70%); remaining runner SL should shift to Cost/VWAP. T2 is an optional structural/extension target, not mandatory for every setup.',
 'Order Flow is contextual/execution confidence evidence, not mandatory independent confirmation in every setup; distinguish unavailable data from conflicting evidence.',
 'Do not infer a numerical confidence percentage or new weighting formula.',
-'Keep the existing five-signal score separate from the directional indication view. Do not change its denominator or thresholds without source-backed justification.',
+'Keep the legacy five-item map separate from the broader directional indication view. Its exact five-item mapping is derived, not independently Coach-defined. Count only same-direction, distinct evidence; exclude Half-IB duplicates from VA, exclude tick evidence that overlaps Opening Type, and show missing evidence as provisional rather than negative.',
 'Never confuse directional bias with a valid setup or entry trigger. Empty trades array means zero trades recorded, not missing trade data and not proof of 100% rule compliance.',
 'Distinguish facts, calculations, interpretations and uncertainties; cite ruleIds and source field names for conclusions. Report dataQuality.issues and warnings separately; do not call conflicting OHLC simply missing. A null five-signal score is not zero and must not be replaced by a custom denominator.',
 'A profitable trade is not automatically good execution; a losing trade is not automatically bad execution.',
@@ -4269,7 +4345,7 @@ const CI_AI_INSTRUCTIONS=[
 function participationAuditForDay(day,cp){let positive=0,negative=0,zero=0,strongBull=0,strongBear=0,entered=0;STOCKS.forEach(st=>{const raw=day&&day.participation&&day.participation[st.name]?day.participation[st.name][cp]:'';if(raw===''||raw==null||!Number.isFinite(parseFloat(raw)))return;const v=parseFloat(raw);entered++;if(v>0)positive++;else if(v<0)negative++;else zero++;if(v>=0.5)strongBull++;if(v<=-0.5)strongBear++;});return {checkpoint:cp,entered,positive,negative,zero,strongBull,strongBear,strongThreshold:'>=+0.50% / <=-0.50% implementation display; not a Coach-defined participation threshold'};}
 function ciBaseExport(type, key, day, trades, stats){
  const c=type==='history'?null:computeCoachContext('c930'); const quality=ciDataQuality(day,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v26 + integrity validation / raw participation alignment / locked 09:30 anchor / trigger audit',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor setup evidence; no later A/B/10:15 data used',ceFibState:(()=>{const o=(day||DAY).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(day||DAY).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((day||DAY),'c930'),spotCandle0915to0930:((day||DAY).opening||{}).spot930||null,opening5m:((day||DAY).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(day||DAY).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(day||DAY),setup4Status:(()=>{const o=(day||DAY).opening||{},p=participationAuditForDay(day||DAY,'c930');const fce=o.fibCE||{},fpe=o.fibPE||{};const h1=parseFloat(fce.h),l1=parseFloat(fce.l),pc=parseFloat(fce.p930),h2=parseFloat(fpe.h),l2=parseFloat(fpe.l),pp=parseFloat(fpe.p930);const ceState=Number.isFinite(h1)&&Number.isFinite(l1)&&Number.isFinite(pc)&&h1>l1?(pc>l1+.618*(h1-l1)?'above':(pc<l1+.382*(h1-l1)?'below':'inside')):null;const peState=Number.isFinite(h2)&&Number.isFinite(l2)&&Number.isFinite(pp)&&h2>l2?(pp>l2+.618*(h2-l2)?'above':(pp<l2+.382*(h2-l2)?'below':'inside')):null;const anchorScore=(ceState==='above'?1:ceState==='below'?-1:0)-(peState==='above'?1:peState==='below'?-1:0);const bullishAnchor=anchorScore>0;return bullishAnchor&&p.positive>=7?'BULLISH DIRECTIONAL CONDITIONS MET — ENTRY TRIGGER STILL REQUIRED':(p.entered<7?'UNRESOLVED — INSUFFICIENT PARTICIPATION SAMPLE':'CONDITIONS NOT ESTABLISHED');})(),triggerTime:((day||DAY).opening||{}).triggerTime||null,triggerSpot:((day||DAY).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Existing journal X/5 model, preserved separately; it returns null when Half-IB directional bias (halfIbSide) is not set. Do not replace null with a custom score.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. The Coach source wording In % 0.05 to 0.10% is flat is preserved verbatim; its precise signed-band interpretation is unresolved and is not silently applied.' ,legacySignalAudit:'Current five-signal logic is a legacy composite: Half-IB side is used as bias; VA Access includes Half-IB-related flags; Tick Rejected is counted without checking direction; Time Confirmation ORs several different conditions. Treat X/5 as legacy display, not five independent tools or a directional tally.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v26 + directional distinct-signal audit / provisional 12-stock participation / VA TPO gate / Half-IB event audit / T1-T2 runner management',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor setup evidence; no later A/B/10:15 data used',ceFibState:(()=>{const o=(day||DAY).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(day||DAY).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((day||DAY),'c930'),spotCandle0915to0930:((day||DAY).opening||{}).spot930||null,opening5m:((day||DAY).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(day||DAY).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(day||DAY),setup4Status:(()=>{const o=(day||DAY).opening||{},p=participationAuditForDay(day||DAY,'c930');const fce=o.fibCE||{},fpe=o.fibPE||{};const h1=parseFloat(fce.h),l1=parseFloat(fce.l),pc=parseFloat(fce.p930),h2=parseFloat(fpe.h),l2=parseFloat(fpe.l),pp=parseFloat(fpe.p930);const ceState=Number.isFinite(h1)&&Number.isFinite(l1)&&Number.isFinite(pc)&&h1>l1?(pc>l1+.618*(h1-l1)?'above':(pc<l1+.382*(h1-l1)?'below':'inside')):null;const peState=Number.isFinite(h2)&&Number.isFinite(l2)&&Number.isFinite(pp)&&h2>l2?(pp>l2+.618*(h2-l2)?'above':(pp<l2+.382*(h2-l2)?'below':'inside')):null;const anchorScore=(ceState==='above'?1:ceState==='below'?-1:0)-(peState==='above'?1:peState==='below'?-1:0);const bullishAnchor=anchorScore>0;return bullishAnchor&&p.positive>=7?'BULLISH DIRECTIONAL CONDITIONS MET — ENTRY TRIGGER STILL REQUIRED':(p.entered<7?'UNRESOLVED — INSUFFICIENT PARTICIPATION SAMPLE':'CONDITIONS NOT ESTABLISHED');})(),triggerTime:((day||DAY).opening||{}).triggerTime||null,triggerSpot:((day||DAY).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Derived five-item X/5 map; it returns null when the locked 09:30 ITM CE/PE Fibonacci anchor is not directional. The score counts only distinct same-direction evidence and remains provisional when fields are missing. Do not replace null with a custom score.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-item map is derived, not independently Coach-defined. It now counts only same-direction distinct evidence; Half-IB close is not repeated as VA, tick evidence overlapping Opening Type is excluded, and missing evidence makes score provisional. 2/5 and 3+/5 source thresholds remain unchanged.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -4279,7 +4355,7 @@ function ciToMarkdown(obj){
  let out='# Coach Trading Journal Export\n\n- Type: '+obj.metadata.exportType+'\n- Date: '+obj.metadata.date+'\n- Exported: '+obj.metadata.exportedAt+'\n- Schema: '+obj.metadata.schemaVersion+'\n\n';
  if(obj.derivedCalculations&&obj.derivedCalculations.setup4EarlyAnchor){out+='## 09:30 Setup 4 evidence snapshot\n\n```json\n'+JSON.stringify(obj.derivedCalculations.setup4EarlyAnchor,null,2)+'\n```\n\n';}
  if(c){out+='## Directional indication / context\n\n- Maximum direction: '+ciDirectionLabel(c.maximum==='tie'?'neutral':c.maximum)+'\n- Bullish: '+c.counts.bullish+'\n- Bearish: '+c.counts.bearish+'\n- Neutral: '+c.counts.neutral+'\n- Unavailable: '+c.counts.unavailable+'\n- Context confidence: '+c.confidence+'\n\n';out+='### Evidence\n'+c.items.map(x=>'- '+x.tool+' / '+x.label+': '+ciDirectionLabel(x.direction)+' — '+x.detail).join('\n')+'\n\n';}
- out+='## Trades\n\n';(obj.tradeRecords||[]).forEach((t,i)=>{out+='### Trade '+(i+1)+'\n- Time: '+(t.time||'Missing')+'\n- Trigger time: '+(t.triggerTime||'Missing')+'\n- Trigger-time spot: '+(t.triggerSpot??'Missing')+'\n- Actual spot entry/fill: '+(t.sEntry??'Missing')+'\n- Direction: '+(t.dir||'Missing')+'\n- Type: '+(t.tradeType||'Missing')+'\n- P&L: '+(t.pnl??'Missing')+'\n- R: '+(t.r??'Missing')+'\n- Exit: '+(t.exitReason||'Missing')+'\n- Context at entry: '+JSON.stringify(t.ctx||{})+'\n- Psychology: '+JSON.stringify(t.psychology||{})+'\n- Notes: '+(t.note||'')+'\n\n';});
+ out+='## Trades\n\n';(obj.tradeRecords||[]).forEach((t,i)=>{out+='### Trade '+(i+1)+'\n- Time: '+(t.time||'Missing')+'\n- Trigger time: '+(t.triggerTime||'Missing')+'\n- Trigger-time spot: '+(t.triggerSpot??'Missing')+'\n- Actual spot entry/fill: '+(t.sEntry??'Missing')+'\n- SL: '+(t.sSL??'Missing')+'\n- T1 / T2: '+(t.sT1??'Missing')+' / '+(t.sT2??'Missing')+'\n- Planned RR T1 / T2: '+(t.rrT1??'Missing')+' / '+(t.rrT2??'Missing')+'\n- T1 reached / partial % / runner %: '+(t.t1Reached??'Missing')+' / '+(t.partialPct??'Missing')+' / '+(t.runnerPct??'Missing')+'\n- Runner SL shift: '+(t.runnerShift||'Missing')+'\n- Execution status: '+(t.executionStatus||'Missing')+'\n- Direction: '+(t.dir||'Missing')+'\n- Type: '+(t.tradeType||'Missing')+'\n- P&L: '+(t.pnl??'Missing')+'\n- Actual R: '+(t.r??'Missing')+'\n- Exit: '+(t.exitReason||'Missing')+'\n- Context at entry: '+JSON.stringify(t.ctx||{})+'\n- Psychology: '+JSON.stringify(t.psychology||{})+'\n- Notes: '+(t.note||'')+'\n\n';});
  out+='## Data quality\n\n- Issues: '+(q.issues||[]).length+'\n- Missing: '+(q.missing||[]).length+'\n'+(q.issues||[]).map(x=>'- ISSUE: '+x).join('\n')+'\n'+(q.missing||[]).map(x=>'- MISSING: '+x).join('\n')+'\n\n';
  out+='## Coach rules\n\n'+(obj.analysisRules.rules||[]).map(r=>'- **'+r.ruleId+' — '+r.ruleName+'** ['+r.verificationStatus+']: '+r.interpretation).join('\n')+'\n\n';
  out+='## AI analysis instructions\n\n'+(obj.aiAnalysisInstructions||[]).map(x=>'- '+x).join('\n')+'\n\n';out+='## Complete source data (JSON)\n\n```json\n'+JSON.stringify(obj.sourceData,null,2)+'\n```\n\n## Derived calculations (JSON)\n\n```json\n'+JSON.stringify(obj.derivedCalculations,null,2)+'\n```\n'; return out;
