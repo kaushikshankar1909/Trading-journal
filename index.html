@@ -396,9 +396,10 @@ Revision adds checkpoint-isolated exports, explicit opening conflict audit, symm
         <button data-val="accepted">Accepted (Open ke paas rotation)</button>
         <button data-val="rejected">Rejected (bina ruke drive)</button>
       </div>
-      <div class="hint-box" style="padding:0 14px 8px">Accepted → OAIR/rotation expected. Rejected → Open Drive/institutional presence expected. Auto-suggestion Opening Type result se aati hai; ye apne aap directional signal nahi hai.</div>
+      <div class="hint-box" style="padding:0 14px 8px">Accepted → OAIR/rotation expected. Rejected → Open Drive/institutional presence expected. Auto-suggestion Opening Type result se aati hai; ye apne aap directional signal nahi hai. UP/DOWN sirf tab select karo jab chart par direction separately observe ki ho.</div>
       <div class="toggle-q">Tick behaviour ka separately observed directional side?</div><div class="toggle-group" id="tg_tickAcceptanceSide"><button data-val="up">UP</button><button data-val="down">DOWN</button></div>
-      <div class="toggle-q">Kya yeh Opening Type se independent evidence hai?</div><div class="toggle-group" id="tg_tickAcceptanceIndependent"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="toggle-q">Independent evidence status (auto)</div>
+      <div id="tickAcceptanceIndependentStatus" class="hint-box" style="padding:8px 14px">UP/DOWN separately observe karke select karo; status auto update hoga.</div>
     </div>
 
 <div class="card">
@@ -1986,7 +1987,13 @@ function renderOpening() {
   renderToggleGroup('tg_valueReentryRejected', DAY.opening.valueReentryRejected);
   renderToggleGroup('tg_valueTpoAcceptance', DAY.opening.valueTpoAcceptance);
   renderToggleGroup('tg_tickAcceptanceSide', DAY.opening.tickAcceptanceSide);
-  renderToggleGroup('tg_tickAcceptanceIndependent', DAY.opening.tickAcceptanceIndependent);
+  const tickIndependentStatus = document.getElementById('tickAcceptanceIndependentStatus');
+  if (tickIndependentStatus) {
+    const side = DAY.opening.tickAcceptanceSide;
+    tickIndependentStatus.textContent = (side === 'up' || side === 'down')
+      ? 'AUTO: Haan — ' + side.toUpperCase() + ' direction separately record hui. Opening Type same ho ya opposite, status Haan hi rahega.'
+      : 'AUTO: Pending — independent chart observation ke baad UP ya DOWN select karo.';
+  }
   renderToggleGroup('tg_timeConfirmationSide', DAY.opening.timeConfirmationSide);
   renderToggleGroup('tg_prevDay3IBHighClose', DAY.opening.prevDay3IBHighClose);
   renderToggleGroup('tg_prevDay3IBDirection', DAY.opening.prevDay3IBDirection);
@@ -2401,13 +2408,13 @@ function computeSignalsCount(dayOverride) {
     (o.value20pctSide === 'up' || o.value20pctSide === 'down'));
   const openDir = res && (res.sub || res.orr) ? (res.sub ? res.sub.dir : res.orr.dir) : null;
   const vaDir = vaComplete ? o.value20pctSide : null;
-  const tickDir = ((o.tickAcceptance === 'rejected' || o.tickAcceptance === 'accepted') && o.tickAcceptanceIndependent === 'yes') ? o.tickAcceptanceSide : null;
+  const tickDir = ((o.tickAcceptance === 'rejected' || o.tickAcceptance === 'accepted') && (o.tickAcceptanceSide === 'up' || o.tickAcceptanceSide === 'down')) ? o.tickAcceptanceSide : null;
   const timeDir = (o.timeConfirmationSide === 'up' || o.timeConfirmationSide === 'down') ? o.timeConfirmationSide : null;
   const defs = [
     {key:'s1_openingType',label:'Opening Type',dir:openDir,available:!!(res && (res.bFilled || res.sub || res.orr)),detail:openDir?'Directional opening subtype':(res && res.bFilled?'Opening classified; no directional subtype':'Opening / B-period classification incomplete')},
     {key:'s2_halfIBBreak',label:'Half-IB 15m access',dir:o.halfIbAccess==='yes'?o.halfIbSide:null,available:o.halfIbAccess==='no'||(o.halfIbAccess==='yes'&&(o.halfIbSide==='up'||o.halfIbSide==='down')),detail:o.halfIbAccess==='yes'?(o.halfIbSide?'Completed 15m close beyond Half-IB':'Access marked but direction/side missing'):(o.halfIbAccess==='no'?'No access recorded':'Access not recorded')},
     {key:'s3_va80Acceptance',label:'VA 80% acceptance',dir:vaDir,available:vaComplete || o.value20pct==='no',detail:vaComplete?'AB complete + outside open + 20% close + TPO acceptance':(o.value20pct==='no'?'80% penetration not recorded':'VA evidence incomplete')},
-    {key:'s4_tickAcceptance',label:'Independent tick acceptance',dir:tickDir,available:o.tickAcceptanceIndependent==='no'||!!tickDir,detail:o.tickAcceptanceIndependent==='no'?'Overlaps opening-type evidence; excluded':(tickDir?'Independent directional tick evidence':'No independent directional tick evidence')},
+    {key:'s4_tickAcceptance',label:'Independent tick acceptance',dir:tickDir,available:!!tickDir,detail:tickDir?'Separately entered directional tick observation; same/opposite to Opening Type does not change independence':'No separate directional tick observation recorded'},
     {key:'s5_timeConfirmation',label:'Independent time confirmation',dir:timeDir,available:!!timeDir || o.timeConfirmationSide==='none',detail:timeDir?'Manual distinct time-confirmation direction':(o.timeConfirmationSide==='none'?'No separate time confirmation recorded':'No distinct directional time confirmation recorded')}
   ];
   const flags = {};
@@ -2581,8 +2588,7 @@ wireToggle('tg_value20pctSide', { get:()=>DAY.opening.value20pctSide, set:(v)=>D
 wireToggle('tg_valueOpenedOutsideVA', { get:()=>DAY.opening.valueOpenedOutsideVA, set:(v)=>DAY.opening.valueOpenedOutsideVA=v });
 wireToggle('tg_valueReentryRejected', { get:()=>DAY.opening.valueReentryRejected, set:(v)=>DAY.opening.valueReentryRejected=v });
 wireToggle('tg_valueTpoAcceptance', { get:()=>DAY.opening.valueTpoAcceptance, set:(v)=>DAY.opening.valueTpoAcceptance=v });
-wireToggle('tg_tickAcceptanceSide', { get:()=>DAY.opening.tickAcceptanceSide, set:(v)=>DAY.opening.tickAcceptanceSide=v });
-wireToggle('tg_tickAcceptanceIndependent', { get:()=>DAY.opening.tickAcceptanceIndependent, set:(v)=>DAY.opening.tickAcceptanceIndependent=v });
+wireToggle('tg_tickAcceptanceSide', { get:()=>DAY.opening.tickAcceptanceSide, set:(v)=>{ DAY.opening.tickAcceptanceSide=v; DAY.opening.tickAcceptanceIndependent=(v==='up'||v==='down')?'yes':null; } });
 wireToggle('tg_timeConfirmationSide', { get:()=>DAY.opening.timeConfirmationSide, set:(v)=>DAY.opening.timeConfirmationSide=v });
 wireToggle('tg_prevDay3IBHighClose', { get:()=>DAY.opening.prevDay3IBHighClose, set:(v)=>DAY.opening.prevDay3IBHighClose=v });
 wireToggle('tg_prevDay3IBDirection', { get:()=>DAY.opening.prevDay3IBDirection, set:(v)=>DAY.opening.prevDay3IBDirection=v });
