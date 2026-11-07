@@ -1,8 +1,8 @@
 <!--
-TRADING JOURNAL v26 — LEARNING LAB DATE SELECTOR
-Base: user-provided V21.8 complete source.
+TRADING JOURNAL v26 — COACH ROOT-CAUSE ALIGNED REVISION
+Base: latest user-supplied updated v26 code (Final_Deliverable(2)).
 Changes: preserved prior v26 features and saved-day schema compatibility; retained exact 09:15–09:30 Spot OHLC, locked CE/PE p930 anchors, separate Setup 4 evidence audit, and exact trigger-time spot capture. Added directional distinct-evidence 5-item audit, provisional 12-stock completeness, explicit VA 80% TPO acceptance gate, separate Half-IB touch/wick/15m-close/acceptance records, T1/T2 RR and partial/runner execution logging, and source-status clarifications. No look-ahead into A/B or post-10:15 data for Setup 4.
-This is a complete HTML document stored with .txt extension for portability.
+Revision adds checkpoint-isolated exports, explicit opening conflict audit, symmetrical Setup 4 status, strict VA evidence validation, and timestamped Half-IB event records. Existing saved-day fields remain backward-compatible. This is a complete HTML document stored with .txt extension for portability.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -62,6 +62,12 @@ This is a complete HTML document stored with .txt extension for portability.
     font-size:14px; font-weight:700; text-align:center; height:38px; padding:0 4px; outline:none; font-family:inherit;
     width:100%; min-width:0; box-sizing:border-box;
   }
+  .hib-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0 14px 10px; }
+  .hib-grid > div { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .hib-grid label { font-size:10px; color:#7C8896; }
+  .hib-grid input,.hib-grid select { width:100%; min-width:0; height:38px; padding:0 7px; background:#0E141A; border:1px solid #232B36; border-radius:8px; color:#E6EDF3; font-family:inherit; font-size:12px; }
+  .hib-action { margin:0 14px 12px; padding:9px 12px; border:1px solid #3FD5E0; border-radius:8px; background:#16323A; color:#3FD5E0; font-family:inherit; font-size:11px; font-weight:700; }
+  .hib-remove { padding:5px 8px; border:1px solid #526070; border-radius:6px; background:#12181F; color:#E6EDF3; font-family:inherit; font-size:11px; }
 
   .result-box { margin:0 14px 14px; padding:12px; border-radius:10px; background:#0E141A; border:1px solid #232B36; font-size:13px; line-height:1.8; }
   .result-box .big { font-size:16px; font-weight:800; color:#3FD5E0; }
@@ -656,6 +662,20 @@ This is a complete HTML document stored with .txt extension for portability.
       <div class="toggle-q">Half-IB ke paar wick bani?</div><div class="toggle-group" id="tg_halfIbWick"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
       <div class="toggle-q">Completed 15m candle close Half-IB ke paar hua? (access permission)</div><div class="toggle-group" id="tg_halfIbCloseAudit"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
       <div class="toggle-q">15m close ke baad subsequent acceptance observe hui?</div><div class="toggle-group" id="tg_halfIbAcceptance"><button data-val="yes">Haan</button><button data-val="no">Nahi</button></div>
+      <div class="hint-box" style="padding:10px 14px 4px"><b>Timestamped event ledger</b> — har event ka time, timeframe, Half-IB level aur candle OHLC record karo. Legacy yes/no fields backward compatibility ke liye rahenge.</div>
+      <div class="hib-grid" style="padding:0 14px 10px">
+        <div><label>Event time (HH:MM)</label><input id="hib_event_time" type="time"></div>
+        <div><label>Timeframe</label><select id="hib_event_tf"><option value="15m">15m</option><option value="5m">5m</option><option value="30m TPO">30m TPO</option></select></div>
+        <div><label>Event type</label><select id="hib_event_type"><option value="touch">Touch</option><option value="wick">Wick beyond</option><option value="close_access">Completed 15m close beyond (access)</option><option value="acceptance">Subsequent acceptance</option></select></div>
+        <div><label>Side</label><select id="hib_event_side"><option value="up">Above / Up</option><option value="down">Below / Down</option></select></div>
+        <div><label>Half-IB level</label><input id="hib_event_level" type="number" step="0.05" placeholder="e.g. 24815.5"></div>
+        <div><label>Open</label><input id="hib_event_o" type="number" step="0.05"></div>
+        <div><label>High</label><input id="hib_event_h" type="number" step="0.05"></div>
+        <div><label>Low</label><input id="hib_event_l" type="number" step="0.05"></div>
+        <div><label>Close</label><input id="hib_event_c" type="number" step="0.05"></div>
+      </div>
+      <div style="padding:0 14px 12px"><button type="button" class="hib-action" id="hib_add_event">＋ Add Half-IB event</button></div>
+      <div id="hib_event_list" style="padding:0 14px 12px"></div>
     </div>
 
 <div class="card">
@@ -1105,7 +1125,7 @@ const COL = { green:"#3DDC84", red:"#F2545B", amber:"#E8A93E", sub:"#7C8896", cy
 const STORAGE_PREFIX = "tj_";
 const WEIGHTS_KEY = "tj_weights";
 const RULES_KEY = "tj_rules";
-const JOURNAL_SCHEMA_VERSION = "2.1.0";
+const JOURNAL_SCHEMA_VERSION = "2.2.0";
 const ANALYSIS_RULES_VERSION = "1.0.0";
 // Source-aware starter rulebook. Status describes evidence quality, not trading strength.
 const ANALYSIS_RULES = [
@@ -1162,7 +1182,7 @@ function blankDay() {
     opening: {
       open:"", vix:"", callIV:"", putIV:"", ivFrozen:null, momentum:null, A:{h:"",l:"",c:""}, B:{h:"",l:"",c:""},
       ibTouchedBothSides: null, closeInsideIB: null,
-      halfIbAccess: null, halfIbSide: null, halfIbTouch: null, halfIbWick: null, halfIbAcceptance: null, vwapFrozenHHLL: null,
+      halfIbAccess: null, halfIbSide: null, halfIbTouch: null, halfIbWick: null, halfIbAcceptance: null, halfIbEvents: [], vwapFrozenHHLL: null,
       failedAuction: null, threeIB: null, threeIBFast: null,
       cPeriodRejected: null, cPeriodBluffDir: null, cCloseNearVwap: null, abVolumeLow: null,
       ofReality: null, newsDistortion: null,
@@ -2369,7 +2389,8 @@ function renderDoubleDZones() {
 // 5 signals checked against the locked 09:30 ITM CE/PE Fibonacci anchor direction. Half-IB is one of
 // the five indications, not the reference bias. Coach's rule: "Sab signals har din align nahi honge.
 // Jo 2-3 indication mile, unpe kaam karo." — this is a synthesis/count tool, not a new standalone rule.
-function computeSignalsCount() {
+function computeSignalsCount(dayOverride) {
+  if(dayOverride&&dayOverride!==DAY)return withJournalDay(dayOverride,()=>computeSignalsCount());
   const o = DAY.opening, res = calcOpening(), bias = itmAnchor930();
   if (bias !== 'up' && bias !== 'down') return null;
   const same = d => d === bias;
@@ -3689,6 +3710,30 @@ function classifyOpeningAt930(dayData) {
   result.orr='NOT CLASSIFIABLE AT 09:30 — requires early A/B rejection sequence and 7–8/12 heavyweight confirmation.';
   return result;
 }
+function halfIbEventEscape(x){return String(x==null?'':x).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function renderHalfIbEvents(){
+ const el=document.getElementById('hib_event_list'); if(!el)return;
+ const events=Array.isArray(DAY.opening.halfIbEvents)?DAY.opening.halfIbEvents:[];
+ if(!events.length){el.innerHTML='<span class="muted">Abhi koi timestamped event record nahi hua.</span>';return;}
+ el.innerHTML=events.map((e,i)=>'<div class="row" style="border-top:1px solid #232B36;padding:7px 0;gap:8px"><span><b>'+(i+1)+'. '+halfIbEventEscape(e.time||'Time missing')+' · '+halfIbEventEscape(e.type||'event')+'</b><br><span class="muted">'+halfIbEventEscape(e.timeframe||'TF?')+' · '+halfIbEventEscape(e.side||'side?')+' · Level '+halfIbEventEscape(e.level??'—')+' · O/H/L/C '+['o','h','l','c'].map(k=>halfIbEventEscape(e[k]??'—')).join('/')+'</span></span><button type="button" data-hib-remove="'+i+'" class="hib-remove">Remove</button></div>').join('');
+ el.querySelectorAll('[data-hib-remove]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.getAttribute('data-hib-remove'));DAY.opening.halfIbEvents.splice(i,1);scheduleAutoSave();renderHalfIbEvents();}));
+}
+function addHalfIbEvent(){
+ const val=id=>{const e=document.getElementById(id);return e?e.value:'';};
+ const time=val('hib_event_time'),timeframe=val('hib_event_tf'),type=val('hib_event_type'),side=val('hib_event_side'),level=val('hib_event_level');
+ const nums={o:val('hib_event_o'),h:val('hib_event_h'),l:val('hib_event_l'),c:val('hib_event_c')};
+ if(!time){alert('Event time (HH:MM) bharo.');return;}
+ if(level===''||!Number.isFinite(Number(level))){alert('Half-IB level bharo.');return;}
+ if(type==='close_access'&&timeframe!=='15m'){alert('Access event ke liye completed 15m candle hi select karo.');return;}
+ if(type==='close_access'&&!['o','h','l','c'].every(k=>nums[k]!==''&&Number.isFinite(Number(nums[k])))){alert('15m close-access event ke liye poora candle OHLC required hai.');return;}
+ if(type==='close_access'){const O=Number(nums.o),H=Number(nums.h),L=Number(nums.l),C=Number(nums.c);if(H<Math.max(O,C)||L>Math.min(O,C)||H<L){alert('Candle OHLC geometry invalid hai.');return;}if((side==='up'&&C<=Number(level))||(side==='down'&&C>=Number(level))){alert('Close declared direction mein Half-IB level ke paar nahi hai.');return;}}
+ if(!Array.isArray(DAY.opening.halfIbEvents))DAY.opening.halfIbEvents=[];
+ DAY.opening.halfIbEvents.push({time,timeframe,type,side,level:Number(level),o:nums.o===''?null:Number(nums.o),h:nums.h===''?null:Number(nums.h),l:nums.l===''?null:Number(nums.l),c:nums.c===''?null:Number(nums.c)});DAY.opening.halfIbEvents.sort((a,b)=>String(a.time).localeCompare(String(b.time)));DAY.opening.halfIbEvents.forEach((e,i)=>e.sequence=i+1);
+ ['hib_event_time','hib_event_level','hib_event_o','hib_event_h','hib_event_l','hib_event_c'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+ scheduleAutoSave();renderHalfIbEvents();
+}
+const halfIbAddButton=document.getElementById('hib_add_event');if(halfIbAddButton)halfIbAddButton.addEventListener('click',addHalfIbEvent);
+
 function renderOpeningClassifierInputs(){
   const arr=DAY.opening.opening5m||[{},{},{}];
   ['1','2','3'].forEach(n=>['o','h','l','c'].forEach(k=>{const el=document.getElementById('op_5m'+n+k);if(el&&document.activeElement!==el)el.value=(arr[Number(n)-1]||{})[k]||'';}));
@@ -3697,6 +3742,7 @@ function renderOpeningClassifierInputs(){
 function renderOpeningClassifier(){
   const el=document.getElementById('openingClassifierBox');if(!el)return;
   const r=classifyOpeningAt930();
+  renderHalfIbEvents();
   const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   el.innerHTML='<b>09:30 AUTO CLASSIFIER · '+esc(r.status)+'</b><br>Base opening: <b>'+esc(r.base)+'</b> · Sub-type: <b>'+esc(r.subtype)+'</b>'+(r.direction?' · Direction: <b>'+esc(r.direction)+'</b>':'')+'<br>Open vs previous range: '+esc(r.openLocation||'MISSING')+'<br>PDC gap: '+(r.gapPoints===null?'MISSING':esc(r.gapPoints+' pts'))+' · '+esc(r.gapBand||'')+(r.referenceTest?'<br>Prior level test: '+esc(r.referenceTest.name+' '+r.referenceTest.level+' · 5m candle '+r.referenceTest.bar):'')+'<br>'+r.notes.map(esc).join('<br>')+'<br>Data integrity: <b>'+esc(r.dataIntegrity||'UNVERIFIED')+'</b><br><b>ORR:</b> '+esc(r.orr)+'<br><span class="muted">Auto classification is a data-based context label, not a trade signal. OAOR/OAIR gap thresholds have source conflict; 50–70 pts is left borderline.</span>';
 }
@@ -3708,7 +3754,7 @@ function renderSetup4Audit() {
   const spotReady=['o','h','l','c'].every(k=>String(c[k]??'').trim()!=='' && Number.isFinite(parseFloat(c[k])));
   const p930Ready=!!(o.fibCE?.p930 && o.fibPE?.p930);
   const direction=alignedBull?'BULLISH DIRECTIONAL EVIDENCE':(alignedBear?'BEARISH DIRECTIONAL EVIDENCE':'NOT ESTABLISHED'); const openingRead=classifyOpeningAt930();
-  const setupState=(p930Ready&&p.entered>=7&&((a==='up'&&p.positive>=7)||(a==='down'&&p.negative>=7)))?'DIRECTIONAL CONDITIONS MET — TRIGGER STILL REQUIRED':'CONDITIONS INCOMPLETE / UNRESOLVED';
+  const setupCandidate=p930Ready&&p.entered>=7&&((a==='up'&&p.positive>=7)||(a==='down'&&p.negative>=7)); const setupState=setupCandidate?(p.entered<12?'DIRECTIONAL CANDIDATE — PROVISIONAL ('+p.entered+'/12); TRIGGER STILL REQUIRED':'DIRECTIONAL CONDITIONS MET — TRIGGER STILL REQUIRED'):'CONDITIONS INCOMPLETE / UNRESOLVED';
   const trigger=(o.triggerTime&&o.triggerSpot)?('Recorded trigger '+o.triggerTime+' @ '+o.triggerSpot):'Exact triggerTime / triggerSpot not recorded';
   el.innerHTML='<b>SETUP 4 · EARLY ITM OPTION ANCHOR (09:30)</b><br>CE p930 state: <b>'+(v.ce||'MISSING')+'</b> · PE p930 state: <b>'+(v.pe||'MISSING')+'</b> · Combined anchor: <b>'+(a||'MISSING')+'</b><br>Participation c930: positive '+p.positive+' · negative '+p.negative+' · exact zero '+p.zero+' · entered '+p.entered+'/12<br>Strong display only: bullish ≥0.50% '+p.strongBull+' · bearish ≤−0.50% '+p.strongBear+'<br>Coach alignment count (raw direction): bullish '+p.positive+'/12 · bearish '+p.negative+'/12<br>Setup evidence status: <b>'+setupState+'</b><br>09:15–09:30 Spot OHLC: '+(spotReady?'O '+c.o+' · H '+c.h+' · L '+c.l+' · C '+c.c:'INCOMPLETE — exact candle OHLC missing')+'<br>Opening classifier: <b>'+openingRead.base+' / '+openingRead.subtype+'</b> · '+(openingRead.dataIntegrity||'Integrity not checked')+'<br>'+trigger+'<br><b>'+direction+'</b><br><span class="muted">Only locked p930 and c930 are used for Setup 4. No latest option premium or A/B close is substituted. Directional evidence is not an entry trigger.</span>';
 }
@@ -4225,7 +4271,7 @@ if (typeof setInterval === 'function') setInterval(() => { try { renderExitRule(
 ============================================================ */
 function ciDirectionLabel(d){ return d==='up'?'Bullish':(d==='down'?'Bearish':(d==='neutral'?'Neutral / unclear':'Unavailable')); }
 function ciDirCount(items){ return {bullish:items.filter(x=>x.direction==='up').length,bearish:items.filter(x=>x.direction==='down').length,neutral:items.filter(x=>x.direction==='neutral').length,unavailable:items.filter(x=>x.direction==null).length}; }
-function computeCoachContext(checkpointOverride){
+function computeCoachContextFull(checkpointOverride){
   const o=DAY.opening, items=[], evidence=[];
   const contextCP=checkpointOverride||activeCP;
   let openingDir=null, openingLabel='Unavailable';
@@ -4245,10 +4291,10 @@ function computeCoachContext(checkpointOverride){
   if(o.longHalfIBClose||o.longHHHL||o.longVAHSustained)structure.push('Bullish Half-IB / HH-HL / VAH-sustain supporting structure (not a separate 80% Rule signal)');
   if(o.shortHalfIBClose||o.shortLHLL||o.shortVALSustained)structure.push('Bearish Half-IB / LH-LL / VAL-sustain supporting structure (not a separate 80% Rule signal)');
   const itm=itmAnchor930();
-  items.push({id:'options_itm',tool:'Momentum / Options',label:'ITM Fibonacci Anchor (locked 09:30 p930)',direction:(itm==='up'||itm==='down')?itm:null,status:itm==='none'?'neutral':(itm?'recorded':'unavailable'),detail:itm==='none'?'Locked CE/PE p930 anchor is mixed or inside':(itm?('Locked 09:30 p930 anchor '+ciDirectionLabel(itm)):'Locked 09:30 p930 anchor not established')});
+  items.push({id:'options_itm',tool:'Momentum / Options',label:'ITM Fibonacci Anchor (locked 09:30 p930)',direction:(itm==='up'||itm==='down')?itm:(itm==='none'?'neutral':null),status:itm==='none'?'neutral':(itm?'recorded':'unavailable'),detail:itm==='none'?'Locked CE/PE p930 anchor is mixed or inside':(itm?('Locked 09:30 p930 anchor '+ciDirectionLabel(itm)):'Locked 09:30 p930 anchor not established')});
   if(itm==='up'||itm==='down')evidence.push('ITM Fibonacci anchor '+ciDirectionLabel(itm));
   let part=null; try{part=computeFromValues(DAY.participation,parseFloat(DAY.niftyPrice)||0,contextCP);}catch(e){}
-  const pDir=part&&part.signalStatus==='COMPLETE'&&part.direction==='BUY'?'up':(part&&part.signalStatus==='COMPLETE'&&part.direction==='SELL'?'down':(part&&part.signalStatus==='COMPLETE'?'neutral':null));
+  const pDir=part&&part.direction==='BUY'?'up':(part&&part.direction==='SELL'?'down':(part&&part.signalStatus==='COMPLETE'?'neutral':null));
   items.push({id:'participation',tool:'Participation',label:'12-stock Participation ('+contextCP+')',direction:pDir,status:part?(part.signalStatus==='COMPLETE'?'recorded':'provisional'):'unavailable',detail:part?(part.signal+'; '+part.total+'/12 populated; raw +/−/0 = '+part.positive+'/'+part.negative+'/'+part.zero+'; strong +/− = '+part.strongBull+'/'+part.strongBear):'No usable values at '+contextCP+' checkpoint'});
   if(pDir)evidence.push('Participation '+ciDirectionLabel(pDir)+' ('+part.total+'/12 values at '+contextCP+')');
   const of=detectOfCombos(); const last=of.found.length?of.found[of.found.length-1]:null;
@@ -4264,18 +4310,39 @@ function computeCoachContext(checkpointOverride){
   const counts=ciDirCount(items);
   const max=counts.bullish>counts.bearish?'up':(counts.bearish>counts.bullish?'down':(counts.bullish===0&&counts.bearish===0?(counts.neutral?'neutral':null):'tie'));
   const mpCounts=ciDirCount(mpItems);
-  const partStatus=pDir==='up'?'supporting':(pDir==='down'?'supporting':(pDir==='neutral'?'mixed':'unavailable'));
+  const partStatus=pDir==='up'||pDir==='down'?(part&&part.signalStatus==='COMPLETE'?'supporting':'provisional'):(pDir==='neutral'?'mixed':'unavailable');
   const momentumStatus=(itm==='up'||itm==='down')?'recorded':(itm==='none'?'mixed':'unavailable');
   let confidence='Insufficient recorded evidence';
   const active=items.filter(x=>x.direction==='up'||x.direction==='down').length;
-  if(active>=3 && max==='up' && counts.bearish===0 && ofStatus!=='conflicting')confidence='Directional evidence is aligned bullish; still require a valid setup and entry trigger.';
-  else if(active>=3 && max==='down' && counts.bullish===0 && ofStatus!=='conflicting')confidence='Directional evidence is aligned bearish; still require a valid setup and entry trigger.';
+  if(active>=3 && max==='up' && counts.bearish===0 && ofStatus!=='conflicting' && partStatus!=='provisional')confidence='Directional evidence is aligned bullish; still require a valid setup and entry trigger.';
+  else if(active>=3 && max==='down' && counts.bullish===0 && ofStatus!=='conflicting' && partStatus!=='provisional')confidence='Directional evidence is aligned bearish; still require a valid setup and entry trigger.';
   else if(max==='tie'||counts.bullish&&counts.bearish)confidence='Mixed context: both bullish and bearish evidence are present.';
   else if(active>=2)confidence='Some directional evidence is present; review tool agreement and missing evidence before deciding.';
+  if(partStatus==='provisional')confidence+=' Participation direction is provisional because fewer than 12 stocks are populated.';
   if(ofStatus==='conflicting')confidence+=' Order Flow shows conflicting activity.';
   if(ofStatus==='unavailable'||ofStatus==='recorded_no_combo')confidence+=' Order Flow has not supplied a recognized confirming combination.';
   return {checkpoint:contextCP,items,counts,maximum:max,marketProfileCounts:mpCounts,orderFlow:{status:ofStatus,direction:ofDir,detail:ofDetail},participation:{status:partStatus,direction:pDir,detail:items.find(x=>x.id==='participation').detail},momentum:{status:momentumStatus,direction:itm,detail:items.find(x=>x.id==='options_itm').detail},confidence,evidence,structureNotes:structure,legacySignals:computeSignalsCount()};
 }
+// A temporary day scope keeps historical exports bound to the requested day, never the currently open day.
+function withJournalDay(day, fn){const prior=DAY;if(day&&day!==DAY)DAY=day;try{return fn();}finally{DAY=prior;}}
+function computeCoachContext(checkpointOverride, dayOverride){
+ return withJournalDay(dayOverride,()=>{
+  const cp=checkpointOverride||activeCP;
+  if(cp!=='c930')return computeCoachContextFull(cp);
+  const d=DAY, early=classifyOpeningAt930(d), p=computeFromValues(d.participation||{},parseFloat(d.niftyPrice)||0,'c930');
+  const itm=itmAnchor930();
+  const earlyDir=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);
+  const partDir=p&&p.direction==='BUY'?'up':(p&&p.direction==='SELL'?'down':(p&&p.signalStatus==='COMPLETE'?'neutral':null));
+  const items=[
+   {id:'opening_930',tool:'Market Profile',label:'09:30 Opening candidate (cutoff-safe)',direction:earlyDir,status:earlyDir?'provisional':'unavailable',detail:early.subtype+'; '+early.base+'; '+early.dataIntegrity+'; ORR deliberately unresolved at 09:30'},
+   {id:'options_itm',tool:'Momentum / Options',label:'Locked ITM Fibonacci Anchor (p930)',direction:(itm==='up'||itm==='down')?itm:(itm==='none'?'neutral':null),status:itm==='none'?'neutral':(itm?'recorded':'unavailable'),detail:itm==='none'?'Locked CE/PE p930 anchor is mixed or inside':(itm?'Locked 09:30 p930 anchor '+ciDirectionLabel(itm):'Locked 09:30 p930 anchor not established')},
+   {id:'participation',tool:'Participation',label:'12-stock Participation (c930)',direction:partDir,status:p?(p.signalStatus==='COMPLETE'?'recorded':'provisional'):'unavailable',detail:p?(p.signal+'; '+p.total+'/12 populated; raw +/−/0 = '+p.positive+'/'+p.negative+'/'+p.zero):'No usable c930 values'}
+  ];
+  const counts=ciDirCount(items), max=counts.bullish>counts.bearish?'up':(counts.bearish>counts.bullish?'down':(counts.bullish===0&&counts.bearish===0?'neutral':'tie'));
+  return {checkpoint:'c930',cutoff:'09:30',items,counts,maximum:max,marketProfileCounts:ciDirCount(items.filter(x=>x.tool==='Market Profile'&&x.direction)),orderFlow:{status:'not_in_scope_at_0930',direction:null,detail:'Post-09:30 Order Flow excluded from this snapshot'},participation:{status:p&&p.signalStatus==='COMPLETE'?'recorded':'provisional',direction:partDir,detail:items[2].detail},momentum:{status:itm==='none'?'mixed':(itm==='up'||itm==='down'?'recorded':'unavailable'),direction:itm==='none'?'neutral':itm,detail:items[1].detail},confidence:'09:30 cutoff snapshot only. Later A/B, Half-IB, VA and Order Flow evidence is intentionally excluded; this is not an entry decision.',evidence:items.filter(x=>x.direction).map(x=>x.label+' '+ciDirectionLabel(x.direction)),structureNotes:[],legacySignals:null};
+ });
+}
+
 function renderCoachContext(){
  const el=document.getElementById('coachContextView'); if(!el)return; const c=computeCoachContext();
  const max=c.maximum==='tie'?'Tie / mixed':ciDirectionLabel(c.maximum);
@@ -4311,8 +4378,12 @@ function ciDataQuality(day, key){
   if(op.halfIbAccess==='yes'&&!op.halfIbSide)warnings.push('Half-IB 15m close access marked yes but direction/side is missing.');
   if(op.halfIbAccess!=='yes'&&op.halfIbTouch==='yes')warnings.push('Half-IB touch recorded without 15m close access; touch alone is not access.');
   if(op.halfIbAccess!=='yes'&&op.halfIbWick==='yes')warnings.push('Half-IB wick recorded without 15m close access; wick alone is not access.');
-  if(op.value20pct==='yes'&&(!op.valueOpenedOutsideVA||!op.valueReentryRejected||!op.valueTpoAcceptance))warnings.push('80% VA Rule selected but outside-open / re-entry / multi-letter TPO acceptance evidence is incomplete.');
- if(op.halfIbAccess==='no')warnings.push('Half-IB access is recorded as no; export has no candle-by-candle 15m close series to independently re-audit that flag.');
+  if(op.value20pct==='yes'&&(op.valueOpenedOutsideVA!=='yes'||op.valueReentryRejected!=='yes'||op.valueTpoAcceptance!=='yes'||!['up','down'].includes(op.value20pctSide)))warnings.push('80% VA Rule selected but outside-open / re-entry / 20% close direction / multi-letter TPO acceptance evidence is incomplete.');
+ const hibEvents=Array.isArray(op.halfIbEvents)?op.halfIbEvents:[]; const hasHibCloseEvent=hibEvents.some(e=>e&&e.type==='close_access');
+ if(op.halfIbAccess==='no'&&!hasHibCloseEvent)warnings.push('Half-IB access is recorded as no; no timestamped completed-15m close event is available for independent re-audit.');
+ if(op.halfIbAccess==='yes'&&!hasHibCloseEvent)warnings.push('Legacy Half-IB access flag is yes, but no timestamped 15m close_access event is logged.');
+ if(op.halfIbAccess!=='yes'&&hasHibCloseEvent)warnings.push('Timestamped Half-IB close_access event exists while legacy halfIbAccess is not yes; reconcile the two records.');
+ hibEvents.forEach((e,i)=>{if(!e.time||!/^([01]?\d|2[0-3]):[0-5]\d$/.test(e.time))issues.push('Half-IB event '+(i+1)+' has missing/invalid timestamp.');if(!['touch','wick','close_access','acceptance'].includes(e.type))issues.push('Half-IB event '+(i+1)+' has unknown event type.');if(e.type==='close_access'&&e.timeframe!=='15m')issues.push('Half-IB event '+(i+1)+' claims access without 15m timeframe.');if(e.type==='close_access'&&(!['o','h','l','c'].every(k=>Number.isFinite(+e[k]))||!Number.isFinite(+e.level)))issues.push('Half-IB access event '+(i+1)+' is missing full candle OHLC or Half-IB level.');if(e.type==='close_access'&&['o','h','l','c'].every(k=>Number.isFinite(+e[k]))&&(+e.h<Math.max(+e.o,+e.c)||+e.l>Math.min(+e.o,+e.c)||+e.h<+e.l))issues.push('Half-IB access event '+(i+1)+' has invalid candle OHLC geometry.');if(e.type==='close_access'&&Number.isFinite(+e.c)&&Number.isFinite(+e.level)&&((e.side==='up'&&+e.c<=+e.level)||(e.side==='down'&&+e.c>=+e.level)))issues.push('Half-IB access event '+(i+1)+' close is not beyond the recorded level in the declared direction.');});
  (d.orderflow||[]).forEach((e,i)=>{if(!['IB','IS','RB','RS'].includes(e.tag))return;const du=parseDeltaK(e.du),dd=parseDeltaK(e.dd),dom=Math.max(Number.isFinite(du)?du:0,Number.isFinite(dd)?dd:0);if(dom<75000)warnings.push('Order Flow row '+(i+1)+' tagged '+e.tag+' but dominant delta '+dom+' is below 75K; treat as Not-useful unless source rule exception applies.');});
  const bad=[]; ['pdh','pdl','vah','val','poc'].forEach(k=>{const v=d.levels&&d.levels[k];if(v!==''&&v!=null&&!Number.isFinite(parseFloat(v)))bad.push('Invalid level '+k);});
  if(bad.length)issues.push(...bad);
@@ -4320,6 +4391,9 @@ function ciDataQuality(day, key){
 }
 function ciRulebookForExport(){return {version:ANALYSIS_RULES_VERSION,rules:ANALYSIS_RULES.map(r=>Object.assign({},r)),statusLegend:{VERIFIED:'Supported by source material as represented in the supplied source set',COACH_QA_USER_REPORTED:'User-reported Coach answer; original WhatsApp message not found in attached ZIP',DERIVED:'AI/application interpretation, not a direct Coach rule',UNCONFIRMED:'Not independently verified',CONFLICT:'Source conflict',SUPERSEDED:'Replaced by a later verified rule'}};}
 const CI_AI_INSTRUCTIONS=[
+'Write every daily/trade analysis in this exact order: CONTEXT → ALIGNMENT → SETUP → EXECUTION → ROOT CAUSE → LEARNING. If a section has no evidence, state Not recorded / Unresolved rather than skipping it.',
+'Chronology is mandatory: evaluate each checkpoint only with information available by that timestamp. A 09:30 snapshot must exclude A/B close, 10:15 IB completion, later Half-IB events, later VA acceptance, later Order Flow and later participation checkpoints. Show later evidence in a separate later-context section; never backfill it into the earlier decision.',
+'When 09:30 opening candidate and post-A/B opening classification disagree, preserve both with their timestamps and mark an explicit CONFLICT. Do not let later ORR classification overwrite an earlier OAIR/OAOR / Open Drive / OTD candidate.',
 'Treat source-verified Coach rules as the primary framework, but preserve each rule verificationStatus.',
 'Use raw journal fields as factual record; never invent missing values or assume missing fields are negative/positive signals.',
 'For every trade report Entry, SL, T1, optional T2, planned R:R to T1 and T2, actual exit/R, T1 partial percentage, runner remainder, runner SL shift, and execution status. Missing values remain Missing/Unrecorded.',
@@ -4331,7 +4405,7 @@ const CI_AI_INSTRUCTIONS=[
 'Identify maximum indication direction and show bullish, bearish, neutral and unavailable counts separately. Daily export coachContext uses c930 explicitly; do not confuse c908/c920 participation with c930 Setup 4 participation.',
 'The 04-Nov-2026 Coach answer is COACH_QA_USER_REPORTED; do not upgrade it to independently verified from the attached ZIP because that answer is not present in the supplied export. Coach flat wording is exactly 0.05 to 0.10%; until its signed-band interpretation is confirmed, show candidates separately and do not silently alter directional counts.',
 '80% VA Rule requires completed A+B / IB, open outside prior VA, post-IB 15-minute close with >=20% penetration, and multi-letter TPO acceptance. Do not infer missing evidence.',
-'Half-IB touch, wick, completed 15m close and subsequent acceptance are four separate observations. Only the completed 15m close grants access; touch/wick alone never count.',
+'Half-IB touch, wick, completed 15m close and subsequent acceptance are four separate observations. Use halfIbEvents as the timestamped event ledger (time, timeframe, type, side, level, candle OHLC, sequence). Only a completed 15m close beyond the level grants access; touch/wick alone never count. Later acceptance is not a second access event or an additional directional signal.',
 'At T1, record actual partial booking percentage and runner management. Source says 50–70% partial (operational default 70%); remaining runner SL should shift to Cost/VWAP. T2 is an optional structural/extension target, not mandatory for every setup.',
 'Order Flow is contextual/execution confidence evidence, not mandatory independent confirmation in every setup; distinguish unavailable data from conflicting evidence.',
 'Do not infer a numerical confidence percentage or new weighting formula.',
@@ -4340,12 +4414,13 @@ const CI_AI_INSTRUCTIONS=[
 'Distinguish facts, calculations, interpretations and uncertainties; cite ruleIds and source field names for conclusions. Report dataQuality.issues and warnings separately; do not call conflicting OHLC simply missing. A null five-signal score is not zero and must not be replaced by a custom denominator.',
 'A profitable trade is not automatically good execution; a losing trade is not automatically bad execution.',
 'For historical comparisons, state sample size and distinguish correlation from causation; avoid strong claims on small samples.',
+'For the documented 06-Nov-2026 case, preserve the reported verdict WAIT FOR CONFIRMATION: mixed 09:30 evidence, 7 bullish / 4 bearish / 1 zero participation, both CE/PE p930 inside Fib VA, no Setup 4 trigger, later V-period close above Upper Half-IB = access only (not acceptance/entry), no recognized Order Flow combination, VA/C-period unresolved, and zero trades recorded. Treat this as a documented regression fixture, not a replay of raw JSON unless the raw JSON is supplied.',
 'Never promise future profitability.'
 ];
 function participationAuditForDay(day,cp){let positive=0,negative=0,zero=0,strongBull=0,strongBear=0,entered=0;STOCKS.forEach(st=>{const raw=day&&day.participation&&day.participation[st.name]?day.participation[st.name][cp]:'';if(raw===''||raw==null||!Number.isFinite(parseFloat(raw)))return;const v=parseFloat(raw);entered++;if(v>0)positive++;else if(v<0)negative++;else zero++;if(v>=0.5)strongBull++;if(v<=-0.5)strongBear++;});return {checkpoint:cp,entered,positive,negative,zero,strongBull,strongBear,strongThreshold:'>=+0.50% / <=-0.50% implementation display; not a Coach-defined participation threshold'};}
 function ciBaseExport(type, key, day, trades, stats){
- const c=type==='history'?null:computeCoachContext('c930'); const quality=ciDataQuality(day,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v26 + directional distinct-signal audit / provisional 12-stock participation / VA TPO gate / Half-IB event audit / T1-T2 runner management',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount();}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((day||DAY).participation||{},parseFloat((day||DAY).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor setup evidence; no later A/B/10:15 data used',ceFibState:(()=>{const o=(day||DAY).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(day||DAY).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((day||DAY),'c930'),spotCandle0915to0930:((day||DAY).opening||{}).spot930||null,opening5m:((day||DAY).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(day||DAY).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(day||DAY),setup4Status:(()=>{const o=(day||DAY).opening||{},p=participationAuditForDay(day||DAY,'c930');const fce=o.fibCE||{},fpe=o.fibPE||{};const h1=parseFloat(fce.h),l1=parseFloat(fce.l),pc=parseFloat(fce.p930),h2=parseFloat(fpe.h),l2=parseFloat(fpe.l),pp=parseFloat(fpe.p930);const ceState=Number.isFinite(h1)&&Number.isFinite(l1)&&Number.isFinite(pc)&&h1>l1?(pc>l1+.618*(h1-l1)?'above':(pc<l1+.382*(h1-l1)?'below':'inside')):null;const peState=Number.isFinite(h2)&&Number.isFinite(l2)&&Number.isFinite(pp)&&h2>l2?(pp>l2+.618*(h2-l2)?'above':(pp<l2+.382*(h2-l2)?'below':'inside')):null;const anchorScore=(ceState==='above'?1:ceState==='below'?-1:0)-(peState==='above'?1:peState==='below'?-1:0);const bullishAnchor=anchorScore>0;return bullishAnchor&&p.positive>=7?'BULLISH DIRECTIONAL CONDITIONS MET — ENTRY TRIGGER STILL REQUIRED':(p.entered<7?'UNRESOLVED — INSUFFICIENT PARTICIPATION SAMPLE':'CONDITIONS NOT ESTABLISHED');})(),triggerTime:((day||DAY).opening||{}).triggerTime||null,triggerSpot:((day||DAY).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula.',legacySignals:'Derived five-item X/5 map; it returns null when the locked 09:30 ITM CE/PE Fibonacci anchor is not directional. The score counts only distinct same-direction evidence and remains provisional when fields are missing. Do not replace null with a custom score.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-item map is derived, not independently Coach-defined. It now counts only same-direction distinct evidence; Half-IB close is not repeated as VA, tick evidence overlapping Opening Type is excluded, and missing evidence makes score provisional. 2/5 and 3+/5 source thresholds remain unchanged.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ const d=day||DAY; const c=type==='history'?null:computeCoachContext('c930',d); const quality=ciDataQuality(d,key);
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'local',date:key||dateKey,journalVersion:'v26 + directional distinct-signal audit / provisional 12-stock participation / VA TPO gate / Half-IB event audit / T1-T2 runner management',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,legacySignals:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:(()=>{const o=(d).opening||{},p=participationAuditForDay(d,'c930');const fce=o.fibCE||{},fpe=o.fibPE||{};const h1=parseFloat(fce.h),l1=parseFloat(fce.l),pc=parseFloat(fce.p930),h2=parseFloat(fpe.h),l2=parseFloat(fpe.l),pp=parseFloat(fpe.p930);const ceState=Number.isFinite(h1)&&Number.isFinite(l1)&&Number.isFinite(pc)&&h1>l1?(pc>l1+.618*(h1-l1)?'above':(pc<l1+.382*(h1-l1)?'below':'inside')):null;const peState=Number.isFinite(h2)&&Number.isFinite(l2)&&Number.isFinite(pp)&&h2>l2?(pp>l2+.618*(h2-l2)?'above':(pp<l2+.382*(h2-l2)?'below':'inside')):null;const anchorScore=(ceState==='above'?1:ceState==='below'?-1:0)-(peState==='above'?1:peState==='below'?-1:0);const bullishAnchor=anchorScore>0;const bullish=bullishAnchor&&p.positive>=7, bearish=anchorScore<0&&p.negative>=7;const candidate=bullish?'BULLISH':(bearish?'BEARISH':null);if(!candidate)return p.entered<12?'UNRESOLVED — INSUFFICIENT PARTICIPATION SAMPLE / DIRECTION NOT ESTABLISHED':'CONDITIONS NOT ESTABLISHED';return p.entered<12?candidate+' DIRECTIONAL CANDIDATE — PROVISIONAL ('+p.entered+'/12); ENTRY TRIGGER STILL REQUIRED':candidate+' DIRECTIONAL CONDITIONS MET — ENTRY TRIGGER STILL REQUIRED';})(),triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'Derived five-item X/5 map; it returns null when the locked 09:30 ITM CE/PE Fibonacci anchor is not directional. The score counts only distinct same-direction evidence and remains provisional when fields are missing. Do not replace null with a custom score.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-item map is derived, not independently Coach-defined. It now counts only same-direction distinct evidence; Half-IB close is not repeated as VA, tick evidence overlapping Opening Type is excluded, and missing evidence makes score provisional. 2/5 and 3+/5 source thresholds remain unchanged.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
