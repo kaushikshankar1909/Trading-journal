@@ -4621,15 +4621,24 @@ function v29DateKey(t){
 }
 function v29NormalizeTimestamp(t){
  const z=String(t??'').trim();if(!z)return null;
- // This journal stores exchange-local candle starts in Asia/Kolkata. Do not
- // reinterpret an explicit UTC/offset timestamp as IST: reject timezone-bearing
- // inputs until an explicit conversion policy is implemented.
- if(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(z))return null;
- const dk=v29DateKey(z);if(!dk)return null;
- let m=z.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?/);
+ // Zerodha's newer export embeds exchange-local IST in a JavaScript-style
+ // string. Extract its wall-clock date/time directly; never shift it via UTC.
+ const months={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+ const zm=z.match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2}) GMT\+0530 \(India Standard Time\)$/);
+ let dateText=z,timeText=z;
+ if(zm){
+  const month=months[zm[1]];if(!month)return null;
+  dateText=zm[3]+'-'+month+'-'+String(Number(zm[2])).padStart(2,'0');
+  timeText=zm[4]+':'+zm[5]+':'+zm[6];
+ }else{
+  // Other explicit zones remain unsupported; only the exact Zerodha IST form above is accepted.
+  if(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(z)||/\b(?:GMT|UTC)\b/i.test(z))return null;
+ }
+ const dk=v29DateKey(dateText);if(!dk)return null;
+ let m=timeText.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?/);
  if(!m){
   // Date and time may be supplied in separate CSV columns and joined with a space.
-  m=z.match(/^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/);
+  m=timeText.match(/^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/);
  }
  if(!m)return null;
  const hh=Number(m[1]),mm=Number(m[2]),ss=Number(m[3]||0),fraction=m[4]||'';
@@ -4655,11 +4664,12 @@ function v29CsvRows(text){
  const h=rows[0].map(norm),find=names=>h.findIndex(x=>names.includes(x));
  const ts=find(['timestamp','datetime','dateandtime','datetimeist']);
  const di=find(['date','tradedate','sessiondate']),ti=find(['time','candletime','starttime']);
+ const dateTimeColumn=ts<0&&di>=0&&ti<0?di:-1;
  const oi=find(['open','o']),hi=find(['high','h']),li=find(['low','l']),ci=find(['close','c','ltp']),vi=find(['volume','vol','v']);
- if([oi,hi,li,ci].some(x=>x<0)||(ts<0&&(di<0||ti<0)))throw new Error('Required columns: Timestamp OR Date + Time, Open, High, Low, Close. Volume optional.');
+ if([oi,hi,li,ci].some(x=>x<0)||(ts<0&&dateTimeColumn<0&&(di<0||ti<0)))throw new Error('Required columns: Timestamp OR complete Date OR Date + Time, Open, High, Low, Close. Volume optional.');
  return rows.slice(1).map((r,i)=>{
   const rowNo=i+2;
-  const stamp=ts>=0?(r[ts]||''):(String(r[di]||'').trim()+' '+String(r[ti]||'').trim()).trim();
+  const stamp=ts>=0?(r[ts]||''):dateTimeColumn>=0?(r[dateTimeColumn]||''):(String(r[di]||'').trim()+' '+String(r[ti]||'').trim()).trim();
   const normalized=v29NormalizeTimestamp(stamp);
   if(!normalized)throw new Error('Invalid/missing timestamp at CSV row '+rowNo+': "'+stamp+'". Expected YYYY-MM-DD HH:MM or DD-MM-YYYY HH:MM.');
   const vals={open:v29Num(r[oi]),high:v29Num(r[hi]),low:v29Num(r[li]),close:v29Num(r[ci])};
