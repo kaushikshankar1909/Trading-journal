@@ -999,10 +999,10 @@ V33 additions: Morning tab A/B periods are the authoritative IB source (A 09:15�
 
     <div class="card" id="v29AutoScanCard">
       <div class="card-title">V33 · COACH 9-SETUP CANDLE SCANNER</div>
-      <div class="hint-box" style="padding:0 14px 10px">15-minute OHLC CSV import karo (Volume optional). Mixed-date CSV mein sirf selected journal date ki candles use hongi. Timestamps candle-START hone chahiye (09:15 = 09:15–09:30). 30-minute OHLC candles isi 15m data se aligned pairs mein banengi. Scanner evidence dikhata hai; automatic order execution nahi.</div>
+      <div class="hint-box" style="padding:0 14px 10px">15-minute OHLC CSV import karo (Volume optional). New imports merge with saved candles by normalized timestamp: new times add, overlapping times update, untouched saved times remain. Mixed-date CSV mein sirf selected journal date ki candles use hongi. Timestamps candle-START hone chahiye (09:15 = 09:15–09:30). 30-minute OHLC candles isi 15m data se aligned pairs mein banengi. Scanner evidence dikhata hai; automatic order execution nahi.</div>
       <div class="check-row"><input type="checkbox" id="v29AutoScan" checked><label for="v29AutoScan">Auto-scan after import / input change</label></div>
       <div class="check-row"><input type="checkbox" id="v29AutoIB" checked><label for="v29AutoIB">Auto-calculate IB and Half-IB from Morning tab A+B period High/Low</label></div>
-      <div class="check-row"><input type="checkbox" id="v29StrictData" checked><label for="v29StrictData">Strict data validation (duplicates, gaps, OHLC, chronology)</label></div>
+      <div class="check-row"><input type="checkbox" id="v29StrictData" checked><label for="v29StrictData">Show strict gap / chronology audit (does not block valid partial imports)</label></div>
       <div class="field-row"><span class="lbl">Import 15m OHLC CSV (Volume optional)</span><input type="file" id="v29CsvFile" accept=".csv,.txt,text/csv" style="width:190px;font-size:11px"></div>
       <div class="textarea-wrap"><span class="lbl">Or paste CSV (Date/Time or Timestamp, Open, High, Low, Close; Volume optional)</span><textarea id="v29CsvText" rows="5" placeholder="timestamp,open,high,low,close,volume&#10;2026-11-13 09:15,25210,25235,25190,25200"></textarea></div>
       <div class="candidate-actions"><button type="button" id="v29ImportBtn">Import / Scan candles</button><button type="button" id="v29ClearBtn" style="border-color:#526070;background:#12181F;color:#E6EDF3">Clear candle data</button></div>
@@ -4505,7 +4505,7 @@ const CI_AI_INSTRUCTIONS=[
 'Treat source-verified Coach rules as the primary framework, but preserve each rule verificationStatus.',
 'Use raw journal fields as factual record; never invent missing values or assume missing fields are negative/positive signals.',
 'For every trade report Entry, SL, T1, optional T2, planned R:R to T1 and T2, actual exit/R, T1 partial percentage, runner remainder, runner SL shift, and execution status. Missing values remain Missing/Unrecorded.',
-'V33 candle scanner: CSV timestamps are interpreted as 15-minute candle start times. Morning tab A (09:15–09:45) and B (09:45–10:15) period High/Low are the authoritative IB source; IB/Half-IB are calculated from those fields and do not require the first four 15m CSV candles. CSV remains necessary for post-IB completed 15m close checks and other candle-dependent rules. Missing/invalid CSV must not suppress independent Morning-tab/manual evidence; only setups requiring unavailable candle evidence remain INSUFFICIENT_DATA. TPO acceptance, Order Flow, option anchor, visual failed auction, participation, VWAP and POC behaviour remain unknown unless explicitly supplied. Never promote TRIGGERED to trade permission. Evaluate all nine setups independently; no look-ahead.\nFor Setup 4 (09:30), use only fibCE.p930 / fibPE.p930, participation c930, and separately captured 09:15–09:30 spot OHLC. Validate spot930 OHLC against opening.open and the aggregation of opening5m; if they conflict, mark opening-structure classification UNRESOLVED and do not silently choose or overwrite either feed. Never substitute fibCE.p / fibPE.p latest premiums or A.close (09:45).',
+'V33 candle scanner: CSV timestamps are normalized to date + candle-start minute and merged cumulatively; incoming duplicate timestamps / invalid OHLC are rejected. CSV timestamps are interpreted as 15-minute candle start times. Morning tab A (09:15–09:45) and B (09:45–10:15) period High/Low are the authoritative IB source; IB/Half-IB are calculated from those fields and do not require the first four 15m CSV candles. CSV remains necessary for post-IB completed 15m close checks and other candle-dependent rules. Missing/invalid CSV must not suppress independent Morning-tab/manual evidence; only setups requiring unavailable candle evidence remain INSUFFICIENT_DATA. TPO acceptance, Order Flow, option anchor, visual failed auction, participation, VWAP and POC behaviour remain unknown unless explicitly supplied. Never promote TRIGGERED to trade permission. Evaluate all nine setups independently; no look-ahead.\nFor Setup 4 (09:30), use only fibCE.p930 / fibPE.p930, participation c930, and separately captured 09:15–09:30 spot OHLC. Validate spot930 OHLC against opening.open and the aggregation of opening5m; if they conflict, mark opening-structure classification UNRESOLVED and do not silently choose or overwrite either feed. Never substitute fibCE.p / fibPE.p latest premiums or A.close (09:45).',
 'Keep 09:30 Setup 4 separate from post-10:15 IB / Market Profile / Order Flow analysis. Do not use future checkpoints to validate an earlier decision.',
 'Show participation raw positive, negative and exact-zero counts separately from strong bullish >=+0.50% and strong bearish <=-0.50% counts. Coach 7–8/12 alignment is based on directional alignment; if fewer than 12 stocks are entered, label a 7+ directional candidate PROVISIONAL and disclose coverage. Do not replace directional alignment with the implementation strong threshold. Preserve Coach flat wording exactly and mark signed-band interpretation unresolved.',
 'Treat triggerSpot / triggerTime as the exact trigger candle reference; distinguish it from current live spot and actual trade fill sEntry.',
@@ -4604,44 +4604,88 @@ const V29_SETUP_NAMES = [
 ];
 function v29Esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function v29Num(v){const n=Number(String(v??'').replace(/,/g,'').trim());return String(v??'').trim()!==''&&Number.isFinite(n)?n:null;}
-function v29Time(t){const m=String(t||'').match(/(?:T|\s)?(\d{1,2}):(\d{2})(?::\d{2})?/);return m?Number(m[1])*60+Number(m[2]):null;}
+function v29Time(t){const n=v29NormalizeTimestamp(t);return n?n.minute:null;}
 function v29DateKey(t){
- const z=String(t||'').trim();if(!z)return null;
- const iso=z.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);if(iso)return iso[1]+'-'+String(iso[2]).padStart(2,'0')+'-'+String(iso[3]).padStart(2,'0');
- const d=new Date(z);if(!Number.isNaN(d.getTime())){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const o={};parts.forEach(x=>o[x.type]=x.value);return o.year+'-'+o.month+'-'+o.day;}
- return null;
+ const z=String(t??'').trim();if(!z)return null;
+ let m=z.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/),y,mo,d;
+ if(m){y=+m[1];mo=+m[2];d=+m[3];}
+ else if((m=z.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/))){d=+m[1];mo=+m[2];y=+m[3];}
+ else {
+  const dt=new Date(z);if(Number.isNaN(dt.getTime()))return null;
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt),o={};parts.forEach(x=>o[x.type]=x.value);
+  y=+o.year;mo=+o.month;d=+o.day;
+ }
+ const test=new Date(Date.UTC(y,mo-1,d));
+ if(!y||test.getUTCFullYear()!==y||test.getUTCMonth()!==mo-1||test.getUTCDate()!==d)return null;
+ return String(y).padStart(4,'0')+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 }
-function v29StampKey(t){const d=v29DateKey(t),m=v29Time(t);return d&&m!=null?d+'T'+String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'):String(t||'').trim();}
+function v29NormalizeTimestamp(t){
+ const z=String(t??'').trim();if(!z)return null;
+ // This journal stores exchange-local candle starts in Asia/Kolkata. Do not
+ // reinterpret an explicit UTC/offset timestamp as IST: reject timezone-bearing
+ // inputs until an explicit conversion policy is implemented.
+ if(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(z))return null;
+ const dk=v29DateKey(z);if(!dk)return null;
+ let m=z.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?/);
+ if(!m){
+  // Date and time may be supplied in separate CSV columns and joined with a space.
+  m=z.match(/^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/);
+ }
+ if(!m)return null;
+ const hh=Number(m[1]),mm=Number(m[2]),ss=Number(m[3]||0),fraction=m[4]||'';
+ if(hh>23||mm>59||mm%15!==0||ss>59||ss!==0||/[1-9]/.test(fraction))return null;
+ return {date:dk,minute:hh*60+mm,key:dk+'T'+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'),timestamp:dk+' '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')};
+}
+function v29Time(t){const n=v29NormalizeTimestamp(t);return n?n.minute:null;}
+function v29StampKey(t){const n=v29NormalizeTimestamp(t);return n?n.key:String(t??'').trim();}
 function v29CsvRows(text){
  const rows=[];let row=[],cell='',q=false;
- for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'&&text[i+1]==='"'&&q){cell+='"';i++;}else if(c==='"'){q=!q;}else if(c===','&&!q){row.push(cell.trim());cell='';}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell.trim());if(row.some(x=>x!==''))rows.push(row);row=[];cell='';}else cell+=c;}
+ for(let i=0;i<text.length;i++){
+  const c=text[i];
+  if(c==='"'&&text[i+1]==='"'&&q){cell+='"';i++;}
+  else if(c==='"'){q=!q;}
+  else if(c===','&&!q){row.push(cell.trim());cell='';}
+  else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell.trim());if(row.some(x=>x!==''))rows.push(row);row=[];cell='';}
+  else cell+=c;
+ }
+ if(q)throw new Error('CSV mein quoted field ka closing double-quote missing hai.');
  row.push(cell.trim());if(row.some(x=>x!==''))rows.push(row);
  if(rows.length<2)throw new Error('CSV mein header + kam se kam ek candle chahiye.');
  const norm=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const h=rows[0].map(norm),find=names=>h.findIndex(x=>names.includes(x));
  const ts=find(['timestamp','datetime','dateandtime','datetimeist']);
- const di=find(['date','tradedate','sessiondate']),ti=find(['time','candle time','starttime']);
+ const di=find(['date','tradedate','sessiondate']),ti=find(['time','candletime','starttime']);
  const oi=find(['open','o']),hi=find(['high','h']),li=find(['low','l']),ci=find(['close','c','ltp']),vi=find(['volume','vol','v']);
- if([oi,hi,li,ci].some(x=>x<0)|| (ts<0&&di<0&&ti<0))throw new Error('Required columns: Date/Time or Timestamp + Open + High + Low + Close. Volume optional.');
+ if([oi,hi,li,ci].some(x=>x<0)||(ts<0&&(di<0||ti<0)))throw new Error('Required columns: Timestamp OR Date + Time, Open, High, Low, Close. Volume optional.');
  return rows.slice(1).map((r,i)=>{
-  let stamp=ts>=0?(r[ts]||''):(di>=0&&ti>=0?(r[di]+' '+r[ti]):(di>=0?(r[di]||''):(r[ti]||'')));
-  return {timestamp:stamp,open:v29Num(r[oi]),high:v29Num(r[hi]),low:v29Num(r[li]),close:v29Num(r[ci]),volume:vi>=0?v29Num(r[vi]):null,_row:i+2};
- }).filter(x=>x.timestamp);
+  const rowNo=i+2;
+  const stamp=ts>=0?(r[ts]||''):(String(r[di]||'').trim()+' '+String(r[ti]||'').trim()).trim();
+  const normalized=v29NormalizeTimestamp(stamp);
+  if(!normalized)throw new Error('Invalid/missing timestamp at CSV row '+rowNo+': "'+stamp+'". Expected YYYY-MM-DD HH:MM or DD-MM-YYYY HH:MM.');
+  const vals={open:v29Num(r[oi]),high:v29Num(r[hi]),low:v29Num(r[li]),close:v29Num(r[ci])};
+  const bad=Object.keys(vals).filter(k=>vals[k]===null);
+  if(bad.length)throw new Error('Malformed/missing OHLC value at CSV row '+rowNo+' ('+normalized.timestamp+'): '+bad.join(', ')+'.');
+  const {open,high,low,close}=vals;
+  if(high<Math.max(open,close)||low>Math.min(open,close)||high<low)throw new Error('Invalid OHLC geometry at CSV row '+rowNo+' ('+normalized.timestamp+').');
+  const volume=vi>=0&&String(r[vi]??'').trim()!==''?v29Num(r[vi]):null;
+  return {timestamp:normalized.timestamp,open,high,low,close,volume,_row:rowNo};
+ });
 }
 function v29Validate(bars){
  const issues=[],missing=[];const seen=new Set();let prev=null;
  bars.forEach(b=>{
-  const k=v29StampKey(b.timestamp);if(seen.has(k))issues.push('Duplicate candle timestamp: '+b.timestamp);seen.add(k);
-  if([b.open,b.high,b.low,b.close].some(x=>x==null))missing.push('Incomplete OHLC row '+b._row+' ('+b.timestamp+')');
-  if([b.open,b.high,b.low,b.close].every(x=>x!=null)){
-   if(b.high<Math.max(b.open,b.close))issues.push('High integrity error: '+b.timestamp);
-   if(b.low>Math.min(b.open,b.close))issues.push('Low integrity error: '+b.timestamp);
-   if(b.high<b.low)issues.push('High below Low: '+b.timestamp);
+  const n=v29NormalizeTimestamp(b.timestamp),k=n?n.key:null;
+  if(!n)issues.push('Timestamp/date unreadable: '+b.timestamp);
+  if(k&&seen.has(k))issues.push('Duplicate candle timestamp: '+b.timestamp);if(k)seen.add(k);
+  if([b.open,b.high,b.low,b.close].some(x=>x==null||!Number.isFinite(Number(x))))missing.push('Incomplete/malformed OHLC row '+(b._row??'?')+' ('+b.timestamp+')');
+  if([b.open,b.high,b.low,b.close].every(x=>x!=null&&Number.isFinite(Number(x)))){
+   const o=Number(b.open),h=Number(b.high),l=Number(b.low),c=Number(b.close);
+   if(h<Math.max(o,c))issues.push('High integrity error: '+b.timestamp);
+   if(l>Math.min(o,c))issues.push('Low integrity error: '+b.timestamp);
+   if(h<l)issues.push('High below Low: '+b.timestamp);
   }
-  const tm=v29Time(b.timestamp),dk=v29DateKey(b.timestamp);if(tm==null||!dk)issues.push('Timestamp/date unreadable: '+b.timestamp);
-  const order=dk&&tm!=null?dk+'T'+String(Math.floor(tm/60)).padStart(2,'0')+':'+String(tm%60).padStart(2,'0'):null;
-  if(prev&&order&&prev.order){if(order<=prev.order)issues.push('Out-of-order timestamp: '+b.timestamp);else if(dk===prev.dk&&tm-prev.tm>15&&tm>615)issues.push('Post-IB candle gap '+(tm-prev.tm)+' minutes before '+b.timestamp);}
-  prev={order,dk,tm};
+  if(n&&prev){if(n.key<=prev.key)issues.push('Out-of-order timestamp: '+b.timestamp);else if(n.date===prev.date&&n.minute-prev.minute>15&&n.minute>615)issues.push('Post-IB candle gap '+(n.minute-prev.minute)+' minutes before '+b.timestamp);}
+  if(n)prev=n;
  });
  return {issues,missing,valid:issues.length===0&&missing.length===0};
 }
@@ -4673,11 +4717,9 @@ function v29IB(){
 }
 function v29Status(status,detail,bar){return {status,detail,bar:bar?bar.timestamp:null};}
 function v29SessionComplete(bars){
- const seen=new Set(bars.map(b=>v29Time(b.timestamp)));
- // Candle-dependent MP checks begin only after A+B IB locks at 10:15.
- // Require the 21 post-IB 15m candle starts (10:15 through 15:15).
- // The first four 09:15–10:15 candles are not required: Morning A+B is the authoritative IB source.
- for(let t=615;t<=915;t+=15)if(!seen.has(t))return false;
+ const required=new Set();for(let t=615;t<=915;t+=15)required.add(t);
+ const seen=new Set((bars||[]).filter(v29BarIsUsable).map(b=>v29Time(b.timestamp)));
+ for(const t of required)if(!seen.has(t))return false;
  return true;
 }
 function v29BarIsUsable(b){
@@ -4774,11 +4816,11 @@ function v29Scan(){
  else results.push({id:6,name:V29_SETUP_NAMES[5],status:'DEVELOPING',detail:'Opening subtype '+x.v29Subtype+' and c930 participation align ('+aligned6+'/'+part6.entered+'). '+(part6.entered<12?'PROVISIONAL: incomplete 12-stock coverage. ':'')+'Confirm exact completed 15m trigger close and subtype-specific conditions; no automatic entry.'});
  // Setup 7: mechanical Half-IB access after IB lock.
  if(!ib.ready)results.push({id:7,name:V29_SETUP_NAMES[6],status:'INSUFFICIENT_DATA',detail:ib.reason||'IB not ready.'});
- else {const later=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&b.close!=null;});const hit=later.find(b=>b.close>ib.upper||b.close<ib.lower);results.push(hit?{id:7,name:V29_SETUP_NAMES[6],status:'TRIGGERED',detail:'Completed 15m close beyond Half-IB '+(hit.close>ib.upper?'Upper':'Lower')+'. This grants directional access only, not an automatic trade. Coach risk/SL execution remains separate.',bar:hit.timestamp}:{id:7,name:V29_SETUP_NAMES[6],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session candle coverage shows no post-10:15 15m close beyond Half-IB Upper/Lower.':'No Half-IB close found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});}
+ else {const later=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<=915&&b.close!=null;});const hit=later.find(b=>b.close>ib.upper||b.close<ib.lower);results.push(hit?{id:7,name:V29_SETUP_NAMES[6],status:'TRIGGERED',detail:'Completed 15m close beyond Half-IB '+(hit.close>ib.upper?'Upper':'Lower')+'. This grants directional access only, not an automatic trade. Coach risk/SL execution remains separate.',bar:hit.timestamp}:{id:7,name:V29_SETUP_NAMES[6],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session candle coverage shows no post-10:15 15m close beyond Half-IB Upper/Lower.':'No Half-IB close found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});}
  // Setup 8: open outside VA, post-IB close >=20% depth, TPO acceptance.
  if(vah==null||val==null||vah<=val)results.push({id:8,name:V29_SETUP_NAMES[7],status:'INSUFFICIENT_DATA',detail:'Prior-session VAH/VAL required.'});
  else if(!ib.ready)results.push({id:8,name:V29_SETUP_NAMES[7],status:'INSUFFICIENT_DATA',detail:'A+B IB must be complete before evaluation.'});
- else {const first=bars.find(b=>v29Time(b.timestamp)===555);const open=first?.open??v29Num(DAY.opening.open);const outside=open!=null&&(open>vah||open<val);const hit=bars.find(b=>{const t=v29Time(b.timestamp);if(t==null||t<615||b.close==null)return false;const inside=b.close>=val&&b.close<=vah;const depth=(b.close-val)/(vah-val);return inside&&(open>vah?depth<=.80:open<val?depth>=.20:false);});
+ else {const first=bars.find(b=>v29Time(b.timestamp)===555);const open=first?.open??v29Num(DAY.opening.open);const outside=open!=null&&(open>vah||open<val);const hit=bars.find(b=>{const t=v29Time(b.timestamp);if(t==null||t<615||t>915||b.close==null)return false;const inside=b.close>=val&&b.close<=vah;const depth=(b.close-val)/(vah-val);return inside&&(open>vah?depth<=.80:open<val?depth>=.20:false);});
  if(!outside)results.push({id:8,name:V29_SETUP_NAMES[7],status:open==null?'INSUFFICIENT_DATA':'DID_NOT_FORM',detail:'Session opening price is not verified outside prior VA.'});
  else if(!hit)results.push({id:8,name:V29_SETUP_NAMES[7],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session coverage shows no post-IB completed 15m close inside prior VA with >=20% penetration depth.':'No qualifying VA re-entry found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});
  else if(x.v29TPO!=='yes')results.push({id:8,name:V29_SETUP_NAMES[7],status:x.v29TPO==='no'?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:'Price penetration observed at '+hit.timestamp+' but multi-period TPO acceptance is not confirmed. Price-only is not a valid 80% setup.'});
@@ -4791,7 +4833,9 @@ function v29Scan(){
 function v29Render(){
  const el=document.getElementById('v29DataQuality'),ibEl=document.getElementById('v29IBResult'),out=document.getElementById('v29ScanResults'),tbl=document.getElementById('v29CandleTables');if(!el||!out)return;
  const r=v29Scan(),n=(r.rawBars||r.bars).length,thirty=v29Build30m(r.bars);
- el.innerHTML='<b>CSV DATA AUDIT · SELECTED DAY '+v29Esc(dateKey)+'</b><br>15m candles: '+n+' · Post-IB valid candles: '+(r.q.postIB?.validCount??0)+'/21 (raw '+(r.q.postIB?.count??0)+') · Post-IB window: '+(r.q.postIB?.complete?'COMPLETE':'INCOMPLETE')+' · Derived complete 30m OHLC candles: '+thirty.length+' · Structural issues: <span style="color:'+(r.q.issues.length?'#F2545B':'#3DDC84')+'">'+r.q.issues.length+'</span> · Missing OHLC rows: '+r.q.missing.length+'<br>'+(r.q.issues.concat(r.q.missing).map(v29Esc).join('<br>')||'No structural issues detected. Volume is optional; missing Volume does not block candle import.')+(r.q.postIB?.issues?.length?'<br>Post-IB issues: '+r.q.postIB.issues.map(v29Esc).join(' · '):'')+(r.q.postIB?.missing?.length?'<br>Post-IB missing rows: '+r.q.postIB.missing.map(v29Esc).join(' · '):'')+(r.q.sourceOrderIssues.length?'<br><span style="color:#E5B454">Source CSV row-order warnings (sorted for chronology): '+r.q.sourceOrderIssues.map(v29Esc).join(' · ')+'</span>':'');
+ const strictAudit=document.getElementById('v29StrictData')?.checked!==false;
+ const auditIssues=strictAudit?r.q.issues:r.q.issues.filter(x=>!/^Out-of-order timestamp|^Post-IB candle gap/.test(x));
+ el.innerHTML='<b>CSV DATA AUDIT · SELECTED DAY '+v29Esc(dateKey)+'</b><br>15m candles: '+n+' · Post-IB valid candles: '+(r.q.postIB?.validCount??0)+'/21 (raw '+(r.q.postIB?.count??0)+') · Post-IB window: '+(r.q.postIB?.complete?'COMPLETE':'INCOMPLETE')+' · Derived complete 30m OHLC candles: '+thirty.length+' · Structural issues: <span style="color:'+(r.q.issues.length?'#F2545B':'#3DDC84')+'">'+r.q.issues.length+'</span> · Missing OHLC rows: '+r.q.missing.length+'<br>'+(auditIssues.concat(r.q.missing).map(v29Esc).join('<br>')||'No structural issues detected. Volume is optional; missing Volume does not block candle import.')+(r.q.postIB?.issues?.length&&strictAudit?'<br>Post-IB issues: '+r.q.postIB.issues.map(v29Esc).join(' · '):'')+(r.q.postIB?.missing?.length?'<br>Post-IB missing rows: '+r.q.postIB.missing.map(v29Esc).join(' · '):'')+(r.q.sourceOrderIssues.length&&strictAudit?'<br><span style="color:#E5B454">Source CSV row-order warnings (sorted for chronology): '+r.q.sourceOrderIssues.map(v29Esc).join(' · ')+'</span>':'');
  ibEl.innerHTML=r.ib.ready?'<b>IB LOCK · 10:15 · SOURCE: MORNING A+B</b><br>A: 09:15–09:45 · B: 09:45–10:15<br>IBH: '+r.ib.ibh+' · IBL: '+r.ib.ibl+' · Length: '+r.ib.len+'<br>Midpoint: '+r.ib.mid+' · Half-IB Upper: '+r.ib.upper+' · Half-IB Lower: '+r.ib.lower:'<b>IB NOT READY</b><br>'+v29Esc(r.ib.reason||'IB calculation disabled.');
  const table=(title,arr)=>'<div style="font-weight:800;margin:8px 0 5px">'+title+'</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px;white-space:nowrap"><thead><tr>'+['Time','Open','High','Low','Close'].map(x=>'<th style="padding:5px;border-bottom:1px solid #34404d;text-align:right">'+x+'</th>').join('')+'</tr></thead><tbody>'+arr.map(b=>'<tr>'+[''+(String(b.timestamp).match(/(?:T|\s)(\d{1,2}:\d{2})/)||[])[1]||b.timestamp,b.open,b.high,b.low,b.close].map(x=>'<td style="padding:5px;border-bottom:1px solid #202a35;text-align:right">'+v29Esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
  if(tbl)tbl.innerHTML='<b>IMPORTED / DERIVED CANDLES</b>'+table('15-MINUTE OHLC',r.bars)+table('30-MINUTE OHLC (aligned 2 × 15m)',thirty);
@@ -4799,20 +4843,56 @@ function v29Render(){
  out.innerHTML='<div class="card-title">INDEPENDENT SETUP RESULTS · '+r.results.length+'/9</div>'+r.results.sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||a.id-b.id).map(x=>'<div class="candidate-card"><div class="cc-head"><span>Setup '+x.id+' · '+v29Esc(x.name)+'</span><span class="candidate-status">'+v29Esc(x.status)+'</span></div><div class="cc-meta">'+v29Esc(x.detail)+(x.bar?'<br>Evidence candle: '+v29Esc(x.bar):'')+'</div></div>').join('');
 }
 function v29Import(text){
- const all=v29CsvRows(text),target=dateKey;const dated=all.map(b=>({bar:b,day:v29DateKey(b.timestamp)}));
- const badDates=dated.filter(x=>!x.day);if(badDates.length)throw new Error('Kuch timestamps ki date samajh nahi aayi: '+badDates.slice(0,3).map(x=>x.bar.timestamp).join(', '));
- const bars=dated.filter(x=>x.day===target).map(x=>x.bar);const ignored=dated.length-bars.length;
- if(!bars.length)throw new Error('CSV mein selected journal date '+target+' ki koi candle nahi mili. Dusri date ka data import nahi kiya.');
- // Validate source order BEFORE normalization/sorting so bad chronology is visible.
- const sourceAudit=v29Validate(bars);const sorted=bars.slice().sort((a,b)=>v29StampKey(a.timestamp).localeCompare(v29StampKey(b.timestamp)));
- const q=v29Validate(sorted);
- if(document.getElementById('v29StrictData')?.checked&&(sourceAudit.issues.length||q.issues.length||q.missing.length)){
-  const msgs=[...new Set(sourceAudit.issues.concat(q.issues,q.missing))];alert('Strict validation: import blocked. '+msgs.slice(0,8).join(' | '));return;
+ const incoming=v29CsvRows(text),target=dateKey;
+ // Reject duplicate normalized timestamps anywhere in the incoming batch before date filtering.
+ const incomingSeen=new Set();
+ incoming.forEach(b=>{
+  const n=v29NormalizeTimestamp(b.timestamp);
+  if(!n)throw new Error('Invalid timestamp in incoming batch: '+b.timestamp);
+  if(incomingSeen.has(n.key))throw new Error('Duplicate timestamp within incoming CSV: '+n.timestamp+'. Import cancelled; no saved data was changed.');
+  incomingSeen.add(n.key);
+ });
+ const selected=incoming.filter(b=>v29DateKey(b.timestamp)===target);
+ const ignored=incoming.length-selected.length;
+ if(!selected.length)throw new Error('CSV mein selected journal date '+target+' ki koi candle nahi mili. Dusri date ka data import nahi kiya.');
+ // Validate the entire selected batch before changing saved candles. Partial sessions are valid.
+ const incomingAudit=v29Validate(selected.slice().sort((a,b)=>v29StampKey(a.timestamp).localeCompare(v29StampKey(b.timestamp))));
+ if(incomingAudit.issues.some(x=>/integrity|unreadable|duplicate/i.test(x))||incomingAudit.missing.length){
+  throw new Error('Incoming CSV validation failed; no saved data was changed. '+incomingAudit.issues.concat(incomingAudit.missing).slice(0,8).join(' | '));
  }
- DAY.opening=DAY.opening||{};DAY.opening.v29Candles=sorted;DAY.opening.v29Inputs=v29GetInputs();DAY.opening.v29LastImport=new Date().toISOString();DAY.opening.v29ImportAudit={selectedDate:target,totalRows:all.length,importedRows:sorted.length,ignoredOtherDates:ignored,ignoredDates:[...new Set(dated.filter(x=>x.day!==target).map(x=>x.day))],sourceOrderIssues:sourceAudit.issues};
+ DAY.opening=DAY.opening||{};
+ const stored=Array.isArray(DAY.opening.v29Candles)?DAY.opening.v29Candles:[];
+ // Keep only the selected journal date in this day's candle store; legacy cross-date rows are isolated.
+ const existing=stored.filter(b=>v29DateKey(b.timestamp)===target);
+ const map=new Map();
+ existing.forEach(b=>{const n=v29NormalizeTimestamp(b.timestamp);if(n)map.set(n.key,Object.assign({},b,{timestamp:n.timestamp}));});
+ let added=0,replaced=0;
+ selected.forEach(b=>{
+  const n=v29NormalizeTimestamp(b.timestamp),key=n.key;
+  if(map.has(key))replaced++;else added++;
+  map.set(key,Object.assign({},b,{timestamp:n.timestamp}));
+ });
+ const merged=Array.from(map.values()).sort((a,b)=>v29StampKey(a.timestamp).localeCompare(v29StampKey(b.timestamp)));
+ const sourceOrderIssues=v29Validate(selected).issues.filter(x=>/Out-of-order/.test(x));
+ const preserved=Math.max(0,existing.length-replaced);
+ DAY.opening.v29Candles=merged;
+ DAY.opening.v29Inputs=v29GetInputs();
+ DAY.opening.v29LastImport=new Date().toISOString();
+ const previousAudit=DAY.opening.v29ImportAudit||{};
+ DAY.opening.v29ImportAudit={
+  ...previousAudit,selectedDate:target,totalRows:incoming.length,importedRows:selected.length,
+  mergedRows:merged.length,addedRows:added,replacedRows:replaced,preservedRows:preserved,
+  ignoredOtherDates:ignored,ignoredDates:[...new Set(incoming.filter(b=>v29DateKey(b.timestamp)!==target).map(b=>v29DateKey(b.timestamp)))],
+  sourceOrderIssues,importedAt:DAY.opening.v29LastImport,lastBatchRows:selected.length
+ };
  scheduleAutoSave();v29Render();
- const audit=DAY.opening.v29ImportAudit;
- const el=document.getElementById('v29DataQuality');if(el&&ignored)el.innerHTML+='<br><span style="color:#E5B454">Ignored '+ignored+' row(s) from other date(s): '+v29Esc(audit.ignoredDates.join(', '))+'</span>. Selected date '+target+' only.';
+ const el=document.getElementById('v29DataQuality');
+ if(el){
+  const audit=DAY.opening.v29ImportAudit;
+  el.innerHTML+='<br><span style="color:#3DDC84">MERGE: +'+added+' new · '+replaced+' updated · '+preserved+' previously saved preserved · '+merged.length+' cumulative candles.</span>'+
+   (ignored?'<br><span style="color:#E5B454">Ignored '+ignored+' row(s) from other date(s): '+v29Esc(audit.ignoredDates.join(', '))+'</span>. Selected date '+target+' only.':'');
+ }
+ return {added,replaced,preserved,total:merged.length,ignored};
 }
 function v29Bind(){
  const file=document.getElementById('v29CsvFile');
