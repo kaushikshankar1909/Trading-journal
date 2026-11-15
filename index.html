@@ -1,4 +1,7 @@
 <!--
+TRADING JOURNAL v37 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
+V37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
+
 TRADING JOURNAL v36 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V35 audit upgrades: date-switch autosave flush + stale-load guard + delete-safe navigation; timestamp-aware local/cloud conflict resolution and local-only history merge; IST-based 14:40 cutoff with recorded trigger-time handling; nearest eligible structural T1 selection; malformed nonblank Volume rejection; duplicate helper removed; finite-number guards for participation/Order Flow/Fib; lakh delta parsing; timestamp-ordered Order Flow sequences when all event times exist; history JSON carries per-day read-only scanner results; Trade Plan links the nine scanner results without treating scanner status as order permission. Existing methodology thresholds and numeric Coach rules are not expanded.
 Base: original user-supplied V28 Coach Multi-Setup journal; all existing sections, local/cloud persistence, saved-day schema, trade logs, learning lab, exports and legacy backup/restore are retained.
@@ -241,8 +244,8 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v35 (Coach Learning Lab)</div>
-  <div class="title">Daily Trading Journal v35</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v37 (Coach Cockpit Audited)</div>
+  <div class="title">Daily Trading Journal v37</div>
 </header>
 
 <div class="daybar">
@@ -269,7 +272,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
   <!-- ================= LEVELS ================= -->
   <!-- ================= COACH COCKPIT ================= -->
   <div id="section-cockpit" class="section">
-    <div class="hint-box" style="padding:12px 4px 10px">🎯 Coach Cockpit v36 — Live checkpoint, 09:30 anchor, 10:15 IB lock, If-Then scenario tree &amp; active trade management in one screen.</div>
+    <div class="hint-box" style="padding:12px 4px 10px">🎯 Coach Cockpit v37 — Live checkpoint, 09:30 anchor, 10:15 IB lock, If-Then scenario tree &amp; active trade management in one screen.</div>
     <div class="card">
       <div class="card-title">LIVE SESSION PHASE &amp; GATES</div>
       <div id="cockpitPhaseBox" class="result-inner"></div>
@@ -1358,12 +1361,15 @@ function formatDateKey(key) {
 /* ============================================================
    NAV
 ============================================================ */
-const SECTIONS = ["premarket","morning","midday","afternoon","trades","engine","learning","summary"];
+const SECTIONS = ["cockpit","premarket","morning","midday","afternoon","trades","engine","learning","summary"];
 function showSection(id) {
+  if (!SECTIONS.includes(id)) return;
   SECTIONS.forEach(s => {
-    document.getElementById('section-'+s).classList.toggle('active', s===id);
+    const section=document.getElementById('section-'+s);
+    if(section) section.classList.toggle('active', s===id);
   });
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
+  if (id === 'cockpit') { try { renderCoachCockpit(); renderSetup4Audit(); } catch(e) {} }
   if (id === 'learning') { try { llLoad(); } catch(e) {} }
   if (id === 'summary') renderSummary();
   if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
@@ -1486,7 +1492,7 @@ function scheduleAutoSave() {
 async function saveDay(silent) {
   const key=dateKey, snapshot=JSON.parse(JSON.stringify(DAY));
   if(!/^\d{4}-\d{2}-\d{2}$/.test(key||''))return;
-  snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v35',updatedAt:new Date().toISOString()};
+  snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v37',updatedAt:new Date().toISOString()};
   try { localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(snapshot)); }
   catch (e) { if (!silent) alert('Local save failed — storage blocked ho sakta hai.'); return; }
   const cloudWasEnabled=usingDb;
@@ -1503,7 +1509,7 @@ async function loadDay(key, options={}) {
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||'')))return;
   const sequence=++dayLoadSequence;
   const oldKey=dateKey, oldSnapshot=JSON.parse(JSON.stringify(DAY));
-  if(/^\d{4}-\d{2}-\d{2}$/.test(oldKey||''))oldSnapshot._journalMeta={...(oldSnapshot._journalMeta||{}),schemaVersion:'v35',updatedAt:new Date().toISOString()};
+  if(/^\d{4}-\d{2}-\d{2}$/.test(oldKey||''))oldSnapshot._journalMeta={...(oldSnapshot._journalMeta||{}),schemaVersion:'v37',updatedAt:new Date().toISOString()};
   clearTimeout(autoSaveTimer); autoSaveTimer=null;
   // Flush the outgoing date before changing globals; otherwise a pending debounce could
   // save the previous day's object under the newly selected date.
@@ -3836,22 +3842,26 @@ function itmAnchor930() {
 }
 function evaluateSetup4Evidence(dayData) {
   const d=dayData||DAY, o=d.opening||{}, anchor=setup4AnchorAudit(d), part=participationAuditForDay(d,'c930'), spot=o.spot930||{};
-  const spotReady=['o','h','l','c'].every(k=>String(spot[k]??'').trim()!==''&&Number.isFinite(parseFloat(spot[k])));
+  const nums=['o','h','l','c'].map(k=>Number(spot[k]));
+  const spotReady=['o','h','l','c'].every((k,i)=>String(spot[k]??'').trim()!==''&&Number.isFinite(nums[i]));
+  const spotOHLCValid=spotReady && nums[1]>=nums[2] && nums[1]>=nums[0] && nums[1]>=nums[3] && nums[2]<=nums[0] && nums[2]<=nums[3];
   const openingAudit=classifyOpeningAt930(d), mp=o.setup4MPAlignment||'';
   const aligned=anchor.direction==='up'?part.alignedBull:(anchor.direction==='down'?part.alignedBear:0);
+  const opposing=anchor.direction==='up'?part.alignedBear:(anchor.direction==='down'?part.alignedBull:0);
   const partDirection=part.alignedBull>part.alignedBear?'up':(part.alignedBear>part.alignedBull?'down':null);
+  const alignmentPct=part.entered ? +(100*aligned/part.entered).toFixed(1) : null;
   let status='INSUFFICIENT_DATA', detail='';
   if(anchor.status==='CONFLICT') { status='CONFLICTING_EVIDENCE'; detail='CE aur PE Fib anchors opposite directional evidence de rahe hain. Direction force nahi ki gayi.'; }
   else if(!anchor.direction) { status=anchor.status==='MISSING'?'INSUFFICIENT_DATA':'DID_NOT_FORM'; detail='09:30 CE/PE anchor neutral ya unresolved hai; directional anchor establish nahi hua.'; }
-  else if(!spotReady||String(openingAudit.dataIntegrity||'').startsWith('CONFLICT')) { status='INSUFFICIENT_DATA'; detail='Exact 09:15–09:30 Spot OHLC aur conflict-free opening data required hai.'; }
-  else if(part.entered<7) { status='INSUFFICIENT_DATA'; detail='c930 participation coverage '+part.entered+'/12; 7+ directional observations beyond the documented flat band cannot yet be assessed.'; }
-  else if(aligned<7) { status=part.entered===12?'DID_NOT_FORM':'INSUFFICIENT_DATA'; detail='Anchor direction ke saath flat-filtered c930 directional alignment sirf '+aligned+'/'+part.entered+' hai; 7+ evidence nahi.'; }
-  else if(partDirection!==anchor.direction) { status='CONFLICTING_EVIDENCE'; detail='ITM anchor aur flat-filtered c930 directional participation opposite direction mein hain.'; }
+  else if(!spotOHLCValid||String(openingAudit.dataIntegrity||'').startsWith('CONFLICT')) { status='INSUFFICIENT_DATA'; detail='Valid, internally consistent 09:15–09:30 Spot OHLC aur conflict-free opening data required hai.'; }
+  else if(!part.entered) { status='INSUFFICIENT_DATA'; detail='c930 participation data missing hai; directional percentage alignment assess nahi ho sakta.'; }
+  else if(!partDirection) { status='DEVELOPING'; detail='c930 participation mein bullish aur bearish directional counts equal hain; percentage alignment unresolved hai.'; }
+  else if(partDirection!==anchor.direction) { status='CONFLICTING_EVIDENCE'; detail='ITM anchor aur c930 directional participation opposite direction mein hain; counts ko percentage ke saath alag dekho.'; }
   else if(mp==='conflict') { status='CONFLICTING_EVIDENCE'; detail='Manual 09:30 Market Profile opening-structure assessment conflict / not aligned hai.'; }
-  else if(mp!==anchor.direction) { status='INSUFFICIENT_DATA'; detail='Coach 27-Oct alignment condition ke liye 09:30 Market Profile opening-structure alignment manually record karo; participation alone is not sufficient.'; }
-  else if(part.entered<12 || anchor.status==='PROVISIONAL_ONE_SIDE') { status='DEVELOPING'; detail='ITM anchor + flat-filtered c930 participation + manual 09:30 Market Profile opening-structure aligned, but evidence coverage is provisional ('+part.entered+'/12 or one option side missing).'; }
-  else { status='DEVELOPING'; detail='09:30 directional evidence aligned: ITM anchor + '+aligned+'/12 c930 participation + Market Profile opening-structure. 09:30 Spot close is the recorded reference only; actual execution/order permission remains a separate live decision.'; }
-  return {status,detail,anchor,participation:part,partDirection,aligned,spotReady,spotClose:spot.c??null,spotOHLC:spot,openingDataIntegrity:openingAudit.dataIntegrity,openingStructure:openingAudit.base+'/'+openingAudit.subtype,manualMPAlignment:mp||null,cutoff:'09:30; later A/B, IB, post-10:15, OF and latest premium excluded',entryReference:spotReady?spot.c:null,tradePermission:false};
+  else if(mp!==anchor.direction) { status='INSUFFICIENT_DATA'; detail='Coach 27-Oct alignment condition ke liye 09:30 Market Profile opening-structure alignment manually record karo; participation alone sufficient nahi.'; }
+  else if(part.entered<12 || anchor.status==='PROVISIONAL_ONE_SIDE') { status='DEVELOPING'; detail='ITM anchor + c930 participation percentage direction + manual Market Profile alignment match; coverage provisional ('+part.entered+'/12, '+alignmentPct+'% aligned among entered observations).'; }
+  else { status='DEVELOPING'; detail='09:30 directional evidence aligned: ITM anchor + '+aligned+'/12 ('+alignmentPct+'%) c930 participation + Market Profile opening-structure. This is evidence alignment, not order permission.'; }
+  return {status,detail,anchor,participation:part,partDirection,aligned,opposing,alignmentPct,spotReady:spotOHLCValid,spotClose:spot.c??null,spotOHLC:spot,openingDataIntegrity:openingAudit.dataIntegrity,openingStructure:openingAudit.base+'/'+openingAudit.subtype,manualMPAlignment:mp||null,cutoff:'09:30; later A/B, IB, post-10:15, OF and latest premium excluded',entryReference:spotOHLCValid?spot.c:null,tradePermission:false};
 }
 function participationAudit(cp) {
   let positive=0,negative=0,zero=0,strongBull=0,strongBear=0,entered=0;
@@ -3951,7 +3961,7 @@ function renderSetup4Audit() {
   const r=evaluateSetup4Evidence(DAY), v=r.anchor.states, p=r.participation;
   const align= r.manualMPAlignment==='up'?'BULLISH':(r.manualMPAlignment==='down'?'BEARISH':(r.manualMPAlignment==='conflict'?'CONFLICT / NOT ALIGNED':'NOT ASSESSED'));
   const spot=r.spotOHLC||{};
-  el.innerHTML='<b>SETUP 4 · EARLY ITM OPTION ANCHOR (LOCKED 09:30)</b><br>CE p930: <b>'+(v.ce||'MISSING')+'</b> · PE p930: <b>'+(v.pe||'MISSING')+'</b> · Combined: <b>'+r.anchor.status+' / '+(r.anchor.direction||'NO DIRECTION')+'</b><br>c930 participation: positive '+p.positive+' · negative '+p.negative+' · zero '+p.zero+' · entered '+p.entered+'/12 · aligned '+r.aligned+'/'+p.entered+'<br>09:30 Market Profile opening-structure alignment: <b>'+align+'</b><br>Spot 09:15–09:30 OHLC: '+(r.spotReady?'O '+spot.o+' · H '+spot.h+' · L '+spot.l+' · C '+spot.c:'INCOMPLETE')+'<br>09:30 spot close reference: <b>'+(r.entryReference??'UNAVAILABLE')+'</b><br>Opening data integrity: '+(r.openingDataIntegrity||'UNVERIFIED')+'<br>Evidence status: <b>'+r.status+'</b><br>'+r.detail+'<br><span class="muted">Coach 27-Oct: participation must align in percentage terms AND with Market Profile opening structure. 09:30 snapshot only; no later data. Spot close is a reference, not automatic order permission.</span>';
+  el.innerHTML='<b>SETUP 4 · EARLY ITM OPTION ANCHOR (LOCKED 09:30)</b><br>CE p930: <b>'+(v.ce||'MISSING')+'</b> · PE p930: <b>'+(v.pe||'MISSING')+'</b> · Combined: <b>'+r.anchor.status+' / '+(r.anchor.direction||'NO DIRECTION')+'</b><br>c930 participation: positive '+p.positive+' · negative '+p.negative+' · zero '+p.zero+' · entered '+p.entered+'/12 · anchor-aligned '+r.aligned+'/'+p.entered+' ('+(r.alignmentPct===null?'—':r.alignmentPct+'%')+') · opposite '+r.opposing+'<br>09:30 Market Profile opening-structure alignment: <b>'+align+'</b><br>Spot 09:15–09:30 OHLC: '+(r.spotReady?'O '+spot.o+' · H '+spot.h+' · L '+spot.l+' · C '+spot.c:'INCOMPLETE')+'<br>09:30 spot close reference: <b>'+(r.entryReference??'UNAVAILABLE')+'</b><br>Opening data integrity: '+(r.openingDataIntegrity||'UNVERIFIED')+'<br>Evidence status: <b>'+r.status+'</b><br>'+r.detail+'<br><span class="muted">Coach 27-Oct: participation must align in percentage terms AND with Market Profile opening structure. 09:30 snapshot only; no later data. Spot close is a reference, not automatic order permission.</span>';
 }
 
 function fibOutText(k, f) {
@@ -4659,7 +4669,7 @@ function ciAutomaticSetupScan(day,key){
 }
 function ciBaseExport(type, key, day, trades, stats){
  const d=day||DAY; const c=type==='history'?null:computeCoachContext('c930',d); const quality=ciDataQuality(d,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v35 audited 9-setup journal / V28-compatible base',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v37 audited 9-setup journal / V28-compatible base',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -4708,7 +4718,7 @@ function renderEverything() {
   try { renderCoachContext(); renderCoachCockpit(); ciRefreshExportUI(); v29LoadInputs(); v29Render(); } catch (e) { console.warn('Coach intelligence render',e); }
 }
 
-if (typeof setInterval === 'function') setInterval(() => { try { renderCoachContext(); ciRefreshExportUI(); } catch(e) {} }, 3000);
+if (typeof setInterval === 'function') setInterval(() => { try { renderCoachContext(); renderCoachCockpit(); ciRefreshExportUI(); } catch(e) {} }, 3000);
 
 
 function renderCoachCockpit() {
@@ -4721,10 +4731,11 @@ function renderCoachCockpit() {
   const o = DAY.opening || {};
   const L = DAY.levels || {};
   const m = journalClockMinutesIST();
-  const phase = m < 570 ? 'PRE-MARKET (< 09:30 IST)'
+  const historicalView = !!(dateKey && dateKey !== todayKey());
+  const phase = historicalView ? 'HISTORICAL REVIEW · live clock is not the selected session phase' : (m < 570 ? 'PRE-MARKET (< 09:30 IST)'
     : m < 615 ? '09:30 ANCHOR WINDOW (09:30–10:15 IST)'
     : m < 880 ? 'POST-IB EXECUTION WINDOW (10:15–14:40 IST)'
-    : 'FRESH-ENTRY CUTOFF ACTIVE (≥ 14:40 IST — NO NEW TRADE)';
+    : 'FRESH-ENTRY CUTOFF ACTIVE (≥ 14:40 IST — NO NEW TRADE)');
 
   const anc = itmAnchor();
   const anc930 = itmAnchor930();
@@ -4732,11 +4743,13 @@ function renderCoachCockpit() {
   const ib = calcIB();
   const dt = calcDayType();
   const op = calcOpening();
-  const eng = engRun(engCP());
+  const eng = engRun(historicalView ? 'dt' : engCP());
 
-  const gateHtml = (eng.gates && eng.gates.length)
-    ? '<div class="result-box neg" style="margin:8px 0 0"><b>ACTIVE NO-TRADE GATES</b><br>' + eng.gates.join('<br>') + '</div>'
-    : '<div class="result-box" style="margin:8px 0 0"><span class="pos">No active hard gate</span> · Manual context approval + trigger confirmation still required.</div>';
+  const gateHtml = historicalView
+    ? '<div class="result-box" style="margin:8px 0 0">Historical review: live-clock no-trade gates are not applied to this saved session. Review its recorded trigger time and evidence separately.</div>'
+    : ((eng.gates && eng.gates.length)
+      ? '<div class="result-box neg" style="margin:8px 0 0"><b>ACTIVE NO-TRADE GATES</b><br>' + eng.gates.join('<br>') + '</div>'
+      : '<div class="result-box" style="margin:8px 0 0"><span class="pos">No active hard gate</span> · Manual context approval + trigger confirmation still required.</div>');
 
   phaseBox.innerHTML =
     '<div class="kv-row"><span>Session Date (IST)</span><b>' + dateKey + '</b></div>' +
