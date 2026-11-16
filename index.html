@@ -1,5 +1,6 @@
 <!--
-TRADING JOURNAL v40 — COACH COCKPIT EDITION (AUTOMATIC TRIGGER AUDIT)
+TRADING JOURNAL v41 — METHODOLOGY-ALIGNED OPPORTUNITY & LIFECYCLE JOURNAL
+V41 additive upgrade: independent opportunity board, contextual divergence, process lifecycle, provenance-aware AI export, and backward-compatible additive state.
 V40 scoped upgrades: deterministic trigger-state resolver is linked to the existing S1–S9 scanner; only source-verifiable completed trigger evidence can become TRIGGER CONFIRMED; scanner-only context/access states remain WAITING; explicit failed/conflicting conditions become INVALID / NO TRADE; legacy manual confirmation and watchlist stage cannot override the resolver; unique confirmed setup may be suggested automatically without overwriting a user selection; cockpit and trade plan share the same status. No broker execution and no new Coach threshold.
 
 TRADING JOURNAL v39 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
@@ -278,7 +279,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
   <!-- ================= LEVELS ================= -->
   <!-- ================= COACH COCKPIT ================= -->
   <div id="section-cockpit" class="section">
-    <div class="hint-box" style="padding:12px 4px 10px">🎯 Coach Cockpit v40 — Live checkpoint, 09:30 anchor, 10:15 IB lock, If-Then scenario tree &amp; active trade management in one screen.</div>
+    <div class="hint-box" style="padding:12px 4px 10px">🎯 Coach Cockpit v41 — Live checkpoint, 09:30 anchor, 10:15 IB lock, If-Then scenario tree &amp; active trade management in one screen.</div>
     <div class="card">
       <div class="card-title">LIVE SESSION PHASE &amp; GATES</div>
       <div id="cockpitPhaseBox" class="result-inner"></div>
@@ -298,6 +299,10 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
     <div class="card">
       <div class="card-title">AUTOMATIC S1–S9 TRIGGER &amp; TRADE PLAN STATUS</div>
       <div id="cockpitAutoTriggerBox" class="result-inner">Automatic trigger audit will appear when scanner evidence is available.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">V41 · INDEPENDENT OPPORTUNITY BOARD &amp; LIFECYCLE</div>
+      <div id="v41OpportunityPanel" class="result-inner">V41 opportunity audit will render after the journal loads.</div>
     </div>
   </div>
 
@@ -1256,7 +1261,7 @@ const COL = { green:"#3DDC84", red:"#F2545B", amber:"#E8A93E", sub:"#7C8896", cy
 const STORAGE_PREFIX = "tj_";
 const WEIGHTS_KEY = "tj_weights";
 const RULES_KEY = "tj_rules";
-const JOURNAL_SCHEMA_VERSION = "2.3.0";
+const JOURNAL_SCHEMA_VERSION = "2.4.0";
 const ANALYSIS_RULES_VERSION = "1.0.0";
 // Source-aware starter rulebook. Status describes evidence quality, not trading strength.
 const ANALYSIS_RULES = [
@@ -1278,7 +1283,7 @@ const ANALYSIS_RULES = [
   {ruleId:"R-COACH-QA-PRIORITY-01",category:"Signal interpretation",ruleName:"Max alignment; otherwise Market Profile priority",originalCoachStatement:"look for max alignment for best result, otherwise give priority to market profile always",interpretation:"When indications tie or conflict, direction follows Market Profile evidence. Max alignment is still the best case. No numeric weighting implied.",applicability:"Directional indication tie / conflict",sourceFile:"WhatsApp Chat - Visvas Yadav.zip",sourceDate:"05 November 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Replaces the earlier note that no priority rule was supplied."},
   {ruleId:"R-OPEN-DRIVE-02",category:"Opening",ruleName:"Open Drive has no fixed point length",originalCoachStatement:"there is no fix point of calculation to justify the opening... the pattern is key",interpretation:"Open Drive = open near high/low and one-direction drive in first ~20 min. No minimum point length (default 0).",applicability:"Opening classification",sourceFile:"WhatsApp Chat - Visvas Yadav.zip",sourceDate:"05 August 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Length varies with VIX/volatility; behaviour and timing matter."},
   {ruleId:"R-CAS-01",category:"Session data",ruleName:"Ignore price after 3:15 PM (M period / CAS)",originalCoachStatement:"avoid price after 3:15pm, as it comes under CAS its not trading on screen",interpretation:"Last valid 15m candle starts 15:00 (L period ends 15:15). The 15:15 candle is excluded from scanner checks.",applicability:"Candle scanner, day structure",sourceFile:"WhatsApp Chat - Visvas Yadav.zip",sourceDate:"05 August 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Coach: observe CAS for 30-60 days before any rule change."},
-  {ruleId:"R-TARGET-01",category:"Targets / Exit",ruleName:"T1 partial booking",originalCoachStatement:"First, secure the target daily. Lock the partial quantity here... 50-70% partial exit zaroor karo",interpretation:"Master source records compulsory 70% as the operational rule; preserve exact quote and attribution.",applicability:"When T1 target zone is reached",sourceFile:"Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Existing app trade log does not yet enforce or independently capture partial quantity."},
+  {ruleId:"R-TARGET-01",category:"Targets / Exit",ruleName:"T1 partial booking",originalCoachStatement:"First, secure the target daily. Lock the partial quantity here... 50-70% partial exit zaroor karo",interpretation:"Coach source records 50–70% partial exit at T1. The 70% default is the existing journal operational convention; do not treat one percentage as universal across every setup or trade.",applicability:"When T1 target zone is reached; apply with the selected INTRADAY / SWING management mode",sourceFile:"Combined_Master_Source.pdf",sourceDate:"Source compilation through 31 Oct 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"Existing app trade log does not yet enforce or independently capture partial quantity."},
   {ruleId:"R-TIME-01",category:"Execution",ruleName:"30-minute context and 15-minute execution close",originalCoachStatement:"Context 30mnt ka hi standard rakho; Execution ke doran 15mnt close consider kar sakte hain",interpretation:"Maintain context timeframe and execution trigger as distinct fields.",applicability:"Stop-loss / live execution review",sourceFile:"WhatsApp Chat - Visvas Yadav.zip; Coach Framework Prompt v16.pdf",sourceDate:"30 October 2026",verificationStatus:"VERIFIED",version:"1.0.0",conflicts:[],notes:"A 15m close is execution evidence, not a replacement for 30m context."}
 ];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -1503,7 +1508,7 @@ function scheduleAutoSave() {
 async function saveDay(silent) {
   const key=dateKey, snapshot=JSON.parse(JSON.stringify(DAY));
   if(!/^\d{4}-\d{2}-\d{2}$/.test(key||''))return;
-  snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v39',updatedAt:new Date().toISOString()};
+  snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v41',updatedAt:new Date().toISOString()};
   try { localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(snapshot)); }
   catch (e) { if (!silent) alert('Local save failed — storage blocked ho sakta hai.'); return; }
   const cloudWasEnabled=usingDb;
@@ -1520,7 +1525,7 @@ async function loadDay(key, options={}) {
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||'')))return;
   const sequence=++dayLoadSequence;
   const oldKey=dateKey, oldSnapshot=JSON.parse(JSON.stringify(DAY));
-  if(/^\d{4}-\d{2}-\d{2}$/.test(oldKey||''))oldSnapshot._journalMeta={...(oldSnapshot._journalMeta||{}),schemaVersion:'v39',updatedAt:new Date().toISOString()};
+  if(/^\d{4}-\d{2}-\d{2}$/.test(oldKey||''))oldSnapshot._journalMeta={...(oldSnapshot._journalMeta||{}),schemaVersion:'v41',updatedAt:new Date().toISOString()};
   clearTimeout(autoSaveTimer); autoSaveTimer=null;
   // Flush the outgoing date before changing globals; otherwise a pending debounce could
   // save the previous day's object under the newly selected date.
@@ -2044,15 +2049,21 @@ document.getElementById('openDriveHalfBox').innerHTML =
   document.getElementById('op_trailVwap').value = DAY.opening.trailVwap;
   document.getElementById('op_trailFilter').value = DAY.opening.trailFilter;
   renderToggleGroup('tg_trailPartialBooked', DAY.opening.trailPartialBooked);
-  const trail = calcTrailChecklist();
   const trailBox = document.getElementById('trailResultBox');
-  if (!trail) { trailBox.textContent = "Direction + VWAP bharo"; }
-  else {
-    let th = '<div class="row"><span class="muted">TSL level (VWAP ' + (trail.dir === 'long' ? '−' : '+') + ' filter)</span><b style="color:#3DDC84">' + trail.tsl.toFixed(1) + '</b></div>';
-    th += '<div class="muted" style="margin-top:8px">' + trail.dayNote + '</div>';
-    if (trail.cutoffNote) th += '<div class="muted" style="margin-top:8px;color:#E8A93E">' + trail.cutoffNote + '</div>';
-    if (trail.partialNote) th += '<div class="muted" style="margin-top:8px">' + trail.partialNote + '</div>';
-    trailBox.innerHTML = th;
+  const managementMode = DAY.opening.v41 && DAY.opening.v41.managementMode || 'LEGACY_UNSPECIFIED';
+  if (managementMode === 'INTRADAY') {
+    trailBox.innerHTML = '<div class="hint-box" style="padding:0">INTRADAY mode: Swing VWAP TSL is not auto-applied. Use the setup-specific structural SL, 15-minute Order Flow and intraday exit process. Stored VWAP inputs are preserved and remain available if you switch to SWING.</div>';
+  } else {
+    const trail = calcTrailChecklist();
+    if (managementMode !== 'SWING') trailBox.innerHTML = '<div class="hint-box" style="padding:0">V40 LEGACY mode: existing VWAP checklist is preserved until you explicitly select INTRADAY or SWING. V41 permission requires a selected management mode.</div>' + (trail ? '<div class="muted">Legacy VWAP reference: '+trail.tsl.toFixed(1)+' (not a V41 Swing permission)</div>' : '');
+    else if (!trail) { trailBox.textContent = "SWING mode: Direction + VWAP bharo"; }
+    else {
+      let th = '<div class="row"><span class="muted">SWING TSL level (VWAP ' + (trail.dir === 'long' ? '−' : '+') + ' filter)</span><b style="color:#3DDC84">' + trail.tsl.toFixed(1) + '</b></div>';
+      th += '<div class="muted" style="margin-top:8px">' + trail.dayNote + '</div>';
+      if (trail.cutoffNote) th += '<div class="muted" style="margin-top:8px;color:#E8A93E">' + trail.cutoffNote + '</div>';
+      if (trail.partialNote) th += '<div class="muted" style="margin-top:8px">' + trail.partialNote + '</div>';
+      trailBox.innerHTML = th;
+    }
   }
 
   document.getElementById('op_fibP1').value = DAY.opening.fibP1;
@@ -4367,11 +4378,11 @@ function engHTML(r) {
   if (r.gates.length) h += '<div class="result-box neg"><b>DIRECT COACH NO-TRADE RULE:</b><br>' + r.gates.join('<br>') + '</div>';
   if (r.caution.length) h += '<div class="result-box amb"><b>CAUTION (reduce size, no-trade nahi):</b><br>' + r.caution.join('<br>') + '<br>Conviction lower; size strictly manage karo.</div>';
   h += '<div class="result-box"><b>4. ENTRY ZONE:</b> ' + (P ? 'Entry at current price (' + P.px + ') — ' + r.cp + ' trigger. Pullback is bonus.' : NOPLAN) +
-    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>Final numeric SL / targets: see COACH RULE-BASED TRADE PLAN panel below. Legacy generic SL/target projection is suppressed here so it cannot override Coach #14 trade-type rules.' + '<br><span class="muted">Exit handling: Counter/Momentum = fixed SL; Market Profile = observe 2–3 periods for context change (not a universal SL trigger); intraday options execution uses 15-min Order Flow.</span>' + '<br>T1 par 50–70% partial booking; runner SL Cost/VWAP par shift as applicable.' : NOPLAN) +
+    '<br><b>5. SL & TARGET ZONES:</b> ' + (P ? '<br>Final numeric SL / targets: see COACH RULE-BASED TRADE PLAN panel below. Legacy generic SL/target projection is suppressed here so it cannot override Coach #14 trade-type rules.' + '<br><span class="muted">Exit handling: Counter/Momentum = fixed SL; Market Profile = observe 2–3 periods for context change (not a universal SL trigger); intraday options execution uses 15-min Order Flow.</span>' + '<br>T1 partial reference: 50–70% (V40 journal default 70%); runner handling follows selected INTRADAY / SWING mode.' : NOPLAN) +
     '<br><b>6. STRIKE:</b> ' + (P ? P.strike + ' <span class="muted">(ITM depth: ' + UNDEF + ')</span>' : NA) + '<br><b>Sizing:</b> ' + (P ? P.tier : NA) + (r.fri ? ' · Friday context reminder only; no automatic cap (R-SIZ-02 unresolved)' : '') + '<br>Fresh trade 2:40 PM ke baad nahi.</div>';
   h += '<div class="result-box"><b>7. ORDER FLOW CHECK:</b> ' + (r.sg.s4[0] === 'FAIL' ? r.sg.s4[1] + '. Non-supportive context, not automatic no-trade.' : r.sg.s4[1]) + '<br>Absorption: ' + UNDEF + '<br><b>8. PSYCHOLOGY:</b> ' + (/^NO/.test(r.action) ? 'Apply only the specific context-backed gate shown above; generic doubt alone is not a Coach no-trade rule.' : '"Signals fire hue -> Trade valid -> Entry lo (current price). Pullback aaya to bonus, nahi aaya to bhi setup correct tha."') +
     '<br><b>9. COACH QUOTE:</b> "Sab signals har din align nahi honge. Jo 2-3 indication mile, unpe kaam karo." · "Pullback aaya to bonus, nahi aaya to bhi setup correct tha." · "Agar 1-2 cheeze confusion hain to qty kam karke jiske chance high lage vo karo."' +
-    '<br><b>10. WHAT COACH WOULD DO:</b> ' + (P ? '1) Live structure review ✓ 2) Manual approval + trigger confirmation 3) SL selected trade type ke Coach rule se 4) T1 par 50-70% book, runner SL Cost/VWAP 5) 2:40 ke baad no fresh trade; quantity trader-selected tier ke hisaab se' : 'Process follow: stand down ya agla 15-min close trigger ka wait') +
+    '<br><b>10. WHAT COACH WOULD DO:</b> ' + (P ? '1) Live structure review ✓ 2) Manual approval + trigger confirmation 3) SL selected trade type ke Coach rule se 4) T1 partial reference 50–70% (V40 operational default 70%); runner handling INTRADAY / SWING mode ke hisaab se 5) 2:40 ke baad no fresh trade; quantity trader-selected tier ke hisaab se' : 'Process follow: stand down ya agla 15-min close trigger ka wait') +
     '<br><b>11. CONTEXT:</b> VIX ' + (r.vix || '?') + (r.vix && r.vix < 12 ? ' (Low VIX: zone + early partial, R-TGT-04)' : '') + ' · IB ' + ((calcIB() || {}).cat || '—') + ' · Day ' + (calcDayType() || '—') + ' · Opening ' + ((calcOpening() || {}).base || '—') + ' · Shape ' + (DAY.opening.profileShape || '—') + '</div>';
   h += '<div class="result-box"><b>? LEGIT DOUBT FOR COACH — DAILY CHECK</b><br>STATUS: <b class="' + (D.status === 'NO DOUBT' ? 'pos' : 'amb') + '">' + D.status + '</b><br>REASON: ' + D.reason + (D.process ? '<br>DECISION MADE BY PROCESS: ' + D.process : '') + (D.question ? '<br>COACH QUESTION: ' + D.question : '') + '<br><span class="muted">Is hafte genuine questions: ' + D.wk + '/2</span></div>';
   const ids = r.used, sigIds = ['R-MOM-02', 'R-PAR-01', 'R-IB-04', 'R-OF-03', 'R-OF-04', 'R-NOTRADE-06', 'R-VA-01', 'R-OPEN-01'].filter(i => ids.includes(i)), line = i => { const e = ENG_REG[i] || ['?', '?', '']; return i + ' · ' + e[0] + ' · <b class="' + (e[1].startsWith('VERIFIED') ? 'pos' : 'amb') + '">' + e[1] + '</b>'; };
@@ -4481,6 +4492,17 @@ function renderAfternoonTradePlan(){
   const playbookText=s?String(s.name||'')+' '+String(s.entry||''):'';
   const playbookBlocks=!!(s&&waitPattern.test(playbookText));
   triggerResult=finalizeAutomaticTrigger(triggerResult,r,playbookBlocks);
+  if(setup==='momentum_fib'){
+    const manualDecision=DAY.opening.v41&&DAY.opening.v41.manualDecision||'';
+    if(manualDecision==='NO_TRADE'){triggerResult.triggerState='INVALID_NO_TRADE';triggerResult.triggerDetail='Manual decision recorded: NO TRADE. No entry plan is released.';}
+    else if(manualDecision==='WAIT'){triggerResult.triggerState='WAITING_NEEDS_MANUAL_EVIDENCE';triggerResult.triggerDetail='Manual decision recorded: WAIT. Opportunity remains visible; no entry plan is released.';}
+    else if(!['INTRADAY','SWING'].includes(DAY.opening.v41&&DAY.opening.v41.managementMode)){triggerResult.triggerState='WAITING_NEEDS_MANUAL_EVIDENCE';triggerResult.triggerDetail='Select INTRADAY or SWING trade-management mode before V41 releases an entry plan.';}
+    const mpDir=DAY.opening.v41&&DAY.opening.v41.mpDirection||DAY.opening.setup4MPAlignment||'';
+    if(manualDecision!=='NO_TRADE'&&manualDecision!=='WAIT'&&['INTRADAY','SWING'].includes(DAY.opening.v41&&DAY.opening.v41.managementMode)&&((mpDir!=='up'&&mpDir!=='down')||mpDir!==triggerResult.direction)){
+      triggerResult.triggerState='WAITING_NEEDS_MANUAL_EVIDENCE';
+      triggerResult.triggerDetail=(triggerResult.triggerDetail||'S5 trigger evidence recorded.')+' Market Profile direction is missing or diverges from the setup direction; keep the opportunity visible, record the MP view and resolve context before any plan permission.';
+    }
+  }
   const triggerConfirmed=triggerResult.triggerState==='TRIGGER_CONFIRMED';
   const triggerInvalid=triggerResult.triggerState==='INVALID_NO_TRADE';
   if(triggerEl)triggerEl.value=triggerConfirmed?'yes':'no';
@@ -4541,7 +4563,9 @@ function renderAfternoonTradePlan(){
     h+='<div class="kv-row"><span>Entry basis</span><b>Manually entered current Nifty spot at confirmed 15-min trigger close. Pullback bonus hai, requirement nahi.</b></div>';
     const fibForPlan = type==='momentum' ? calcFibExtension() : null;
     const canonical = resolveCanonicalTradePlan({enginePlan:p,tradeType:type,setupSubtype:setup,opening:o,levels:L,ib,alignedCount:(long?r.up:r.dn),fib:fibForPlan});
-    h+='<div class="result-box"><b>CANONICAL SL REFERENCE</b><br>'+(canonical.sl!==null?fmt(canonical.sl)+' · '+esc(canonical.slName):'NUMERIC SL: UNDEF / PENDING')+'<br>'+esc(canonical.slNote)+'</div>';
+    const v41ManualStop=strictFiniteNumber(DAY.opening.v41&&DAY.opening.v41.manualStructuralSL);
+    const v41ManualStopValid=setup==='momentum_fib'&&Number.isFinite(v41ManualStop)&&v41ManualStop>0&&((long&&v41ManualStop<p.px)||(!long&&v41ManualStop>p.px));
+    h+='<div class="result-box"><b>SL REFERENCE</b><br>'+(canonical.sl!==null?fmt(canonical.sl)+' · '+esc(canonical.slName):(v41ManualStopValid?fmt(v41ManualStop)+' · MANUAL_INPUT · NIFTY spot basis':'NUMERIC SL: UNDEF / PENDING'))+'<br>'+esc(canonical.sl!==null?canonical.slNote:(v41ManualStopValid?'Trader-entered structural stop; no universal distance inferred. RR remains UNDEF unless target uses the same Nifty-spot basis.':canonical.slNote))+'</div>';
     canonical.targets.forEach((t,i)=>{
       const label=i===0?'T1':(i===1?'T2':'T3');
       h+='<div class="kv-row"><span>'+label+' target zone</span><b>'+zone(t.value,t.basis)+' · '+esc(t.label)+' · '+esc(t.basis)+'</b></div>';
@@ -4555,11 +4579,17 @@ function renderAfternoonTradePlan(){
     }
     if(canonical.unresolved.length)h+='<div class="hint-box">Unresolved: '+esc(canonical.unresolved.join(', '))+'</div>';
     h+='<div class="result-box"><b>TRADE-TYPE EXIT RULE — '+esc(typeLabel)+'</b><br>'+esc(exitRule)+'</div>';
-    h+='<div class="hint-box">T1 hit hone par Coach source ke mutabik 50–70% partial booking (journal operational default 70%); remaining runner ka SL Cost/VWAP par shift as applicable. Target zone ±10 points; zone guaranteed execution price nahi hai.</div>';
+    h+='<div class="hint-box">T1 partial reference: 50–70% (V40 journal operational default 70%). This is not treated as one universal percentage for every setup. Runner management: '+(DAY.opening.v41&&DAY.opening.v41.managementMode==='SWING'?'review VWAP trailing where applicable.':(DAY.opening.v41&&DAY.opening.v41.managementMode==='INTRADAY'?'INTRADAY structural SL / 15m Order Flow; no automatic Swing VWAP TSL.':'V40 legacy runner handling preserved until INTRADAY / SWING is selected.'))+' Target zone ±10 points; zone guaranteed execution price nahi hai.</div>';
     h+='<div class="hint-box">Strike suggestion: '+esc(p.strike)+' · Position sizing: '+esc(p.tier)+'</div>';
   }
   if(s)h+='<div class="result-box"><b>PLAYBOOK RULE MATCH</b><br>'+esc(s.name)+'<br><b>Entry:</b> '+esc(s.entry)+'<br><b>SL note:</b> '+esc(s.sl)+'<br><b>Target note:</b> '+esc(s.target)+(s.note?'<br><span class="muted">'+esc(s.note)+'</span>':'')+'</div>';
   h+='<div class="hint-box">Manual live-price workflow: update Nifty spot yourself; PRE-TRADE Entry/target calculations refresh from that value. The journal does not fetch a market feed. Once you actually enter, record the executed price and trade details in the existing Trades tab; a later spot update is not your historical fill price. Unspecified Coach SL formulas remain pending, never guessed.</div>';
+  const v41ManualSL=DAY.opening&&DAY.opening.v41&&strictFiniteNumber(DAY.opening.v41.manualStructuralSL);
+  if(setup==='momentum_fib'&&Number.isFinite(v41ManualSL)&&r.plan&&((r.plan.long&&v41ManualSL<r.plan.px)||(!r.plan.long&&v41ManualSL>r.plan.px)))h+='<div class="muted">V41 manual structural SL is recorded as MANUAL_INPUT. Risk/reward is not calculated against option-chart Fib targets because the price bases differ.</div>';
+  if(DAY.opening.v41&&DAY.opening.v41.manualDecision==='REDUCED_SIZE')h+='<div class="hint-box">Manual decision: REDUCED SIZE. Adjust quantity manually; no automatic percentage or size is inferred.</div>';
+  if(typeof v41SetupRows==='function'&&DAY.opening.planSetupSubtype){
+    try{const v41b=v41SetupRows(DAY,dateKey),mapped=V40_SETUP_TO_SCAN[DAY.opening.planSetupSubtype],v41row=v41b.rows.find(z=>z.setupId===mapped);const v41status=v41b.permission?(v41b.manualDecision==='REDUCED_SIZE'?'PERMITTED — REDUCED SIZE (MANUAL)':'PERMITTED'):'NOT PERMITTED';const v41reason=v41row?v41row.reasonCodes.join(', '):'No matching coded trigger for selected setup';h='<div class="hint-box"><b>V41 TRADE PERMISSION: '+v41status+'</b><br>Scanner / plan context alone is not permission. '+esc(v41reason||'All required V41 checks passed.')+'</div>'+h;}catch(e){h='<div class="hint-box">V41 permission audit unavailable; do not treat this plan display as permission.</div>'+h;}
+  }
   el.innerHTML=h;
 }
 
@@ -4663,7 +4693,7 @@ function tradeAutoFill() {
   const tr = document.getElementById('t_trig'), lo = document.getElementById('t_lots'), ls = document.getElementById('t_lotsize');
   if (!ls.value) { const v = localStorage.getItem('lot_size'); if (v) ls.value = v; }
   ls.oninput = () => { localStorage.setItem('lot_size', ls.value); tradeLockUpdate(); }; lo.addEventListener && lo.addEventListener('input', tradeLockUpdate);
-  if (!tr.value) { let r = null, a = null, selected = null; try { a=automaticTriggerAudit(); selected=selectedAutomaticTrigger(a,DAY.opening.planSetupSubtype||''); r=engRun('trig'); } catch (e) {} if (r && r.valid && selected && selected.triggerState==='TRIGGER_CONFIRMED') { tr.value = 'system'; document.getElementById('tradeFormMsg').innerHTML = '<span class="muted">Trigger suggestion: automatic scanner confirmed the selected setup; verify actual execution details before logging.</span>'; } }
+  if (!tr.value) { let r = null, a = null, selected = null, permission = null; try { a=automaticTriggerAudit(); selected=selectedAutomaticTrigger(a,DAY.opening.planSetupSubtype||''); r=engRun('trig'); if(typeof v41SetupRows==='function')permission=v41SetupRows(DAY,dateKey); } catch (e) {} if (r && r.valid && selected && selected.triggerState==='TRIGGER_CONFIRMED' && permission && permission.permission) { tr.value = 'system'; document.getElementById('tradeFormMsg').innerHTML = '<span class="muted">V41 permission passed. Verify actual broker execution details before logging.</span>'; } else if(selected&&selected.triggerState==='TRIGGER_CONFIRMED'&&permission&&!permission.permission) { document.getElementById('tradeFormMsg').innerHTML = '<span class="amb">Scanner trigger is visible, but V41 trade permission is not granted: '+(permission.rows.find(x=>x.setupId===V40_SETUP_TO_SCAN[DAY.opening.planSetupSubtype||''])?.reasonCodes.join(', ')||'required context / risk review incomplete')+'. Manual logging of an actually executed trade remains available.</span>'; } }
   if (!lo.value) { let z = null; try { z = calcPositionSizing(); } catch (e) {} if (z && z.recommended) lo.value = String(Math.round(z.recommended * 100) / 100); }
   tradeLockUpdate();
 }
@@ -4859,7 +4889,7 @@ const CI_AI_INSTRUCTIONS=[
 'The 04-Nov-2026 Coach answer is COACH_QA_USER_REPORTED; do not upgrade it to independently verified from the attached ZIP because that answer is not present in the supplied export. Coach flat wording is exactly 0.05 to 0.10%; until its signed-band interpretation is confirmed, show candidates separately and do not silently alter directional counts.',
 '80% VA Rule requires completed A+B / IB, open outside prior VA, post-IB 15-minute close with >=20% penetration, and multi-letter TPO acceptance. Do not infer missing evidence.',
 'Half-IB touch, wick, completed 15m close and subsequent acceptance are four separate observations. Use halfIbEvents as the timestamped event ledger (time, timeframe, type, side, level, candle OHLC, sequence). Only a completed 15m close beyond the level grants access; touch/wick alone never count. Later acceptance is not a second access event or an additional directional signal.',
-'At T1, record actual partial booking percentage and runner management. Source says 50–70% partial (operational default 70%); remaining runner SL should shift to Cost/VWAP. T2 is an optional structural/extension target, not mandatory for every setup.',
+'At T1, record actual partial booking percentage and runner management. Source reference: 50–70% partial; V40 journal operational default 70%, not a universal percentage for every setup. Runner management follows the selected INTRADAY / SWING mode. T2 is an optional structural/extension target, not mandatory for every setup.',
 'Order Flow is contextual/execution confidence evidence, not mandatory independent confirmation in every setup; distinguish unavailable data from conflicting evidence.',
 'Do not infer a numerical confidence percentage or new weighting formula.',
 'Coach clarified 7-Nov-2026 that indications are not a fixed list and depend on market structure. The legacy five-field map is partial evidence audit only: never use its count as automatic trade permission, no-trade threshold, or Coach-defined 2/5 or 3+/5 score. Review C period, IB access, day structure, strategy and Order Flow as applicable; record the trader’s manual context decision and actual trigger separately.',
@@ -4882,7 +4912,7 @@ function ciAutomaticSetupScan(day,key){
 }
 function ciBaseExport(type, key, day, trades, stats){
  const d=day||DAY; const c=type==='history'?null:computeCoachContext('c930',d); const quality=ciDataQuality(d,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v40 automatic-trigger audited 9-setup journal / V28-compatible base',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v41 methodology-aligned 9-setup opportunity lifecycle journal / V40-compatible additive migration',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -4935,6 +4965,7 @@ if (typeof setInterval === 'function') setInterval(() => { try { renderCoachCont
 
 
 function renderCoachCockpit() {
+  try { if (typeof v41Ensure === 'function') v41Ensure(DAY); } catch (e) {}
   const phaseBox = document.getElementById('cockpitPhaseBox');
   const anchorBox = document.getElementById('cockpitAnchorIbBox');
   const scenBox = document.getElementById('cockpitScenarioBox');
@@ -4998,17 +5029,17 @@ function renderCoachCockpit() {
   const spot = parseFloat(DAY.niftyPrice);
   const vwap = parseFloat(o.trailVwap);
   if (!trades.length) {
-    coachBox.innerHTML = '<div class="hint-box" style="padding:0">Aaj koi active/logged trade nahi hai. Entry ke baad T1 partial booking (50–70%, default 70%), Cost/VWAP runner SL shift aur VWAP exit alerts yahan dikhenge.</div>';
+    coachBox.innerHTML = '<div class="hint-box" style="padding:0">Aaj koi active/logged trade nahi hai. V40 journal partial-booking convention 50–70% (default 70%). '+(!o.v41||o.v41.managementMode==='LEGACY_UNSPECIFIED'?'V40 legacy management remains unchanged until INTRADAY / SWING is selected.':(o.v41.managementMode==='INTRADAY'?'INTRADAY: structural SL / 15m Order Flow exit; Swing VWAP TSL auto-apply nahi hoga.':'SWING: VWAP trailing checklist available where applicable.'))+'</div>';
   } else {
     const last = trades[trades.length - 1];
-    const vwapNote = (!isNaN(spot) && !isNaN(vwap))
-      ? ('Spot ' + spot.toFixed(1) + ' vs VWAP ' + vwap.toFixed(1) + (last.dir === 'up' && spot < vwap ? ' · ⚠ Spot VWAP ke neeche (Long VWAP reject check)' : (last.dir === 'down' && spot > vwap ? ' · ⚠ Spot VWAP ke upar (Short VWAP reject check)' : ' · VWAP aligned')))
-      : 'Spot / VWAP input update karo live check ke liye';
+    const vwapNote = (!o.v41||o.v41.managementMode==='LEGACY_UNSPECIFIED') ? ('V40 legacy mode: VWAP is displayed as context only until INTRADAY / SWING is selected. '+(!isNaN(spot)&&!isNaN(vwap)?('Spot '+spot.toFixed(1)+' vs VWAP '+vwap.toFixed(1)):'Spot / VWAP input unavailable')) : (o.v41.managementMode==='INTRADAY') ? ('INTRADAY mode: VWAP is context only; Swing VWAP TSL is not auto-applied. '+(!isNaN(spot)&&!isNaN(vwap)?('Spot '+spot.toFixed(1)+' vs VWAP '+vwap.toFixed(1)):'Spot / VWAP input unavailable')) : ((!isNaN(spot) && !isNaN(vwap))
+      ? ('SWING mode: Spot ' + spot.toFixed(1) + ' vs VWAP ' + vwap.toFixed(1) + (last.dir === 'up' && spot < vwap ? ' · ⚠ Spot VWAP ke neeche (Long VWAP reject check)' : (last.dir === 'down' && spot > vwap ? ' · ⚠ Spot VWAP ke upar (Short VWAP reject check)' : ' · VWAP aligned')))
+      : 'Spot / VWAP input update karo live check ke liye');
     coachBox.innerHTML =
       '<div class="kv-row"><span>Latest Trade</span><b>' + (last.time || '--:--') + ' · ' + (last.dir === 'up' ? 'LONG/CE' : 'SHORT/PE') + ' · ' + (last.tradeType || 'type?') + '</b></div>' +
       '<div class="kv-row"><span>T1 Reached / Partial %</span><b>' + (last.t1Reached || 'no') + ' · ' + (last.partialPct != null ? last.partialPct + '%' : '—') + '</b></div>' +
       '<div class="kv-row"><span>Runner SL Shift</span><b>' + (last.runnerShift || 'pending') + '</b></div>' +
-      '<div class="hint-box" style="padding:6px 0 0">' + vwapNote + '<br>Coach Rule: T1 zone par 50–70% partial book (default 70%), runner SL Cost/VWAP par shift; Counter/Momentum = fixed SL, Market Profile = 2–3 period context observation.</div>';
+      '<div class="hint-box" style="padding:6px 0 0">' + vwapNote + '<br>V40 journal convention: T1 zone par 50–70% partial book (default 70%). '+(!o.v41||o.v41.managementMode==='LEGACY_UNSPECIFIED'?'V40 legacy runner handling preserved until INTRADAY / SWING is selected.':(o.v41.managementMode==='INTRADAY'?'Intraday structural SL / Order Flow exit; no automatic Swing VWAP TSL.':'Swing mode: VWAP / period-context trailing may be reviewed where applicable.'))+'</div>';
   }
   if(triggerBox){
     try{
@@ -5032,6 +5063,7 @@ function renderCoachCockpit() {
       triggerBox.innerHTML='<div class="kv-row"><span>Selected setup</span><b>'+v29Esc(labels[setup]||'Not selected / manual')+'</b></div><div class="kv-row"><span>Trigger status</span><b>'+pretty+'</b></div><div class="hint-box">'+v29Esc(selected.triggerDetail||'Choose a setup; all nine setups are independently scanned.')+'</div><div class="kv-row"><span>Auto-confirmed setups</span><b>'+confirmed.length+'/9</b></div>'+planHtml+'<details class="result-box"><summary>All nine trigger states</summary>'+rows+'</details><div class="hint-box">Entry / SL / targets / RR appear only when the automatic trigger, manual context approval, trade-type checks and required numeric references are all available. No manual confirmation override; no broker execution.</div>';
     }catch(e){triggerBox.innerHTML='<div class="amb">Automatic trigger audit unavailable: '+v29Esc(e&&e.message||e)+'</div>';}
   }
+  try { if (typeof v41RenderPanel === 'function') v41RenderPanel(); } catch (e) { console.warn('V41 panel render', e); }
 }
 
 (async function boot(){
@@ -5189,7 +5221,7 @@ function v29IB(){
 function v29Status(status,detail,bar){return {status,detail,bar:bar?bar.timestamp:null};}
 function v29SessionComplete(bars){
  const required=new Set();for(let t=615;t<=900;t+=15)required.add(t);
- const seen=new Set((bars||[]).filter(v29BarIsUsable).map(b=>v29Time(b.timestamp)));
+ const seen=new Set((bars||[]).filter(b=>v29BarIsUsable(b)&&v29BarClosedForScan(b,v29DateKey(b.timestamp))).map(b=>v29Time(b.timestamp)));
  for(const t of required)if(!seen.has(t))return false;
  return true;
 }
@@ -5199,6 +5231,14 @@ function v29BarIsUsable(b){
  if(!d||t==null||vals.some(v=>!Number.isFinite(strictFiniteNumber(v))))return false;
  const [o,h,l,c]=vals.map(strictFiniteNumber);
  return h>=Math.max(o,c)&&l<=Math.min(o,c)&&h>=l;
+}
+// Imported current-session 15m bars are eligible only after their full 15-minute interval has elapsed.
+// Historical sessions are treated as closed; this is not a live-feed completion flag.
+function v29BarClosedForScan(bar,scanDate){
+ const d=scanDate||v29DateKey(bar&&bar.timestamp),t=v29Time(bar&&bar.timestamp);
+ if(!d||t==null)return false;
+ if(d!==todayKey())return true;
+ return t+15<=journalClockMinutesIST();
 }
 function v29Build30m(bars){
  const sorted=bars.slice().sort((a,b)=>v29StampKey(a.timestamp).localeCompare(v29StampKey(b.timestamp)));
@@ -5241,7 +5281,7 @@ function v29Scan(options={}){
  const tpoVal=(x.v29TPO!=null&&x.v29TPO!=='')?x.v29TPO:(((DAY.opening||{}).valueTpoAcceptance==='yes'||(DAY.opening||{}).valueTpoAcceptance==='no')?(DAY.opening||{}).valueTpoAcceptance:'');
  const results=[];
  // Setup 1: C period range extension and close back inside IB, with 2-month avg volume gate.
- const cBars=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<645;});
+ const cBars=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<645&&v29BarClosedForScan(b,scanDate);});
  const _o=DAY.opening||{};
  const pxAbove=(x.v29PriceAboveAvg!=null&&x.v29PriceAboveAvg!=='')?x.v29PriceAboveAvg:(_o.cPriceAboveAvg||'');
  const csvVol=avg!=null&&avg>0&&cBars.length>=2&&cBars.every(b=>b.volume!=null);
@@ -5277,7 +5317,7 @@ function v29Scan(options={}){
  else if(fibVah==null||fibVal==null||fibVah<=fibVal)results.push({id:5,name:V29_SETUP_NAMES[4],status:'INSUFFICIENT_DATA',detail:'Previous-session Fib VAH/VAL for the traded instrument are required; Market Profile VA is not substituted.'});
  else if(!swing||!x.v29SwingTime||v29Time(x.v29SwingTime)==null||[x.v29SwingP1,x.v29SwingP2,x.v29SwingP3].some(v=>v29Num(v)==null))results.push({id:5,name:V29_SETUP_NAMES[4],status:'INSUFFICIENT_DATA',detail:'Genuine numeric P1/P2/P3 Dow Theory pivots and a parseable exact 15m break-candle timestamp are required.'});
  else if(swing==='no')results.push({id:5,name:V29_SETUP_NAMES[4],status:'DID_NOT_FORM',detail:'15m swing HH/LL break not confirmed.'});
- else {const p1=v29Num(x.v29SwingP1),p2=v29Num(x.v29SwingP2),p3=v29Num(x.v29SwingP3);const pivotShape=swing==='up'?(p1<p3&&p3<p2):(p1>p3&&p3>p2);const breakTime=v29Time(x.v29SwingTime);const hit=pivotShape?bars.find(b=>v29Time(b.timestamp)===breakTime&&(swing==='up'?b.close>Math.max(fibVah,p2):b.close<Math.min(fibVal,p2))):null;results.push(!pivotShape?{id:5,name:V29_SETUP_NAMES[4],status:'INSUFFICIENT_DATA',detail:'P1/P2/P3 geometry is inconsistent with the declared '+(swing==='up'?'bullish base-low → swing-high → pullback-low':'bearish base-high → swing-low → pullback-high')+' sequence.'}:hit?{id:5,name:V29_SETUP_NAMES[4],status:'TRIGGERED',tradePermission:false,detail:'Setup evidence only; not automatic order permission. Exact declared 15m candle CLOSE breaks the declared P2 swing level and is outside the previous-session instrument Fib VA. P1/P2/P3 sequence geometry is consistent; after 3 consecutive extensions no fresh aggressive entry.',bar:hit.timestamp}:{id:5,name:V29_SETUP_NAMES[4],status:'DEVELOPING',detail:'The declared timestamp candle does not close beyond both the P2 swing-break level and the previous-session Fib VA boundary.'});}
+ else {const p1=v29Num(x.v29SwingP1),p2=v29Num(x.v29SwingP2),p3=v29Num(x.v29SwingP3);const pivotShape=swing==='up'?(p1<p3&&p3<p2):(p1>p3&&p3>p2);const breakTime=v29Time(x.v29SwingTime);const hit=pivotShape?bars.find(b=>v29Time(b.timestamp)===breakTime&&v29BarClosedForScan(b,scanDate)&&(swing==='up'?b.close>Math.max(fibVah,p2):b.close<Math.min(fibVal,p2))):null;results.push(!pivotShape?{id:5,name:V29_SETUP_NAMES[4],status:'INSUFFICIENT_DATA',detail:'P1/P2/P3 geometry is inconsistent with the declared '+(swing==='up'?'bullish base-low → swing-high → pullback-low':'bearish base-high → swing-low → pullback-high')+' sequence.'}:hit?{id:5,name:V29_SETUP_NAMES[4],status:'TRIGGERED',tradePermission:false,detail:'Setup evidence only; not automatic order permission. Exact declared 15m candle CLOSE breaks the declared P2 swing level and is outside the previous-session instrument Fib VA. P1/P2/P3 sequence geometry is consistent; after 3 consecutive extensions no fresh aggressive entry.',bar:hit.timestamp}:{id:5,name:V29_SETUP_NAMES[4],status:'DEVELOPING',detail:'The declared timestamp candle does not close beyond both the P2 swing-break level and the previous-session Fib VA boundary.'});}
  // Setup 6: opening pattern is visual/manual; participation is read from the actual locked c930 journal checkpoint.
  const part6=participationAuditForDay(DAY,'c930'),aligned6=Math.max(part6.alignedBull,part6.alignedBear),dir6=part6.alignedBull>part6.alignedBear?'up':(part6.alignedBear>part6.alignedBull?'down':null);
  if(!x.v29Institutional||x.v29Institutional==='no')results.push({id:6,name:V29_SETUP_NAMES[5],status:x.v29Institutional==='no'?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:'Open Drive / OTD / ORR pattern and direction require first-20m visual validation.'});
@@ -5287,12 +5327,12 @@ function v29Scan(options={}){
  else results.push({id:6,name:V29_SETUP_NAMES[5],status:'DEVELOPING',detail:'Opening subtype '+x.v29Subtype+' and c930 participation align ('+aligned6+'/'+part6.entered+'). '+(part6.entered<12?'PROVISIONAL: incomplete 12-stock coverage. ':'')+'Confirm exact completed 15m trigger close and subtype-specific conditions; no automatic entry.'});
  // Setup 7: mechanical Half-IB access after IB lock.
  if(!ib.ready)results.push({id:7,name:V29_SETUP_NAMES[6],status:'INSUFFICIENT_DATA',detail:ib.reason||'IB not ready.'});
- else {const later=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<=900&&b.close!=null;});const hit=later.find(b=>b.close>ib.upper||b.close<ib.lower);results.push(hit?{id:7,name:V29_SETUP_NAMES[6],status:'TRIGGERED',tradePermission:false,detail:'ACCESS CONFIRMED ONLY: completed 15m close beyond Half-IB '+(hit.close>ib.upper?'Upper':'Lower')+'. Touch/wick is not access; subsequent acceptance and actual order permission are separate live decisions. Coach risk/SL execution remains separate.',bar:hit.timestamp}:{id:7,name:V29_SETUP_NAMES[6],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session candle coverage shows no post-10:15 15m close beyond Half-IB Upper/Lower.':'No Half-IB close found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});}
+ else {const later=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<=900&&b.close!=null&&v29BarClosedForScan(b,scanDate);});const hit=later.find(b=>b.close>ib.upper||b.close<ib.lower);results.push(hit?{id:7,name:V29_SETUP_NAMES[6],status:'TRIGGERED',tradePermission:false,detail:'ACCESS CONFIRMED ONLY: completed 15m close beyond Half-IB '+(hit.close>ib.upper?'Upper':'Lower')+'. Touch/wick is not access; subsequent acceptance and actual order permission are separate live decisions. Coach risk/SL execution remains separate.',bar:hit.timestamp}:{id:7,name:V29_SETUP_NAMES[6],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session candle coverage shows no post-10:15 15m close beyond Half-IB Upper/Lower.':'No Half-IB close found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});}
  // Setup 8: open outside VA, post-IB close >=20% depth, TPO acceptance.
  if(tpoVal==='no')results.push({id:8,name:V29_SETUP_NAMES[7],status:'DID_NOT_FORM',manual:true,detail:'Aapne record kiya: prior VA ke andar multi-period TPO acceptance nahi mila; price-only 80% setup valid nahi.'});
  else if(vah==null||val==null||vah<=val)results.push({id:8,name:V29_SETUP_NAMES[7],status:'INSUFFICIENT_DATA',detail:'Prior-session VAH/VAL required.'});
  else if(!ib.ready)results.push({id:8,name:V29_SETUP_NAMES[7],status:'INSUFFICIENT_DATA',detail:'A+B IB must be complete before evaluation.'});
- else {const first=bars.find(b=>v29Time(b.timestamp)===555);const open=first?.open??v29Num(DAY.opening.open);const outside=open!=null&&(open>vah||open<val);const hit=bars.find(b=>{const t=v29Time(b.timestamp);if(t==null||t<615||t>900||b.close==null)return false;const inside=b.close>=val&&b.close<=vah;const depth=(b.close-val)/(vah-val);return inside&&(open>vah?depth<=.80:open<val?depth>=.20:false);});
+ else {const first=bars.find(b=>v29Time(b.timestamp)===555);const open=first?.open??v29Num(DAY.opening.open);const outside=open!=null&&(open>vah||open<val);const hit=bars.find(b=>{const t=v29Time(b.timestamp);if(t==null||t<615||t>900||b.close==null||!v29BarClosedForScan(b,scanDate))return false;const inside=b.close>=val&&b.close<=vah;const depth=(b.close-val)/(vah-val);return inside&&(open>vah?depth<=.80:open<val?depth>=.20:false);});
  if(!outside)results.push({id:8,name:V29_SETUP_NAMES[7],status:open==null?'INSUFFICIENT_DATA':'DID_NOT_FORM',detail:'Session opening price is not verified outside prior VA.'});
  else if(!hit)results.push({id:8,name:V29_SETUP_NAMES[7],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session coverage shows no post-IB completed 15m close inside prior VA with >=20% penetration depth.':'No qualifying VA re-entry found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});
  else if(tpoVal!=='yes')results.push({id:8,name:V29_SETUP_NAMES[7],status:tpoVal==='no'?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:'Price penetration observed at '+hit.timestamp+' but multi-period TPO acceptance is not confirmed. Price-only is not a valid 80% setup.'});
@@ -5516,6 +5556,328 @@ function v29QARender(){
 try{v29Bind();}catch(e){console.warn('V29 scanner binding',e);}
 try{v29QARender();}catch(e){console.warn('V29 QA',e);}
 
+</script>
+
+\n\n<!-- V41 ADDITIVE UPGRADE: all legacy V40 modules remain in place. -->
+<script>
+/*
+ V41 methodology-aligned opportunity audit.
+ Provenance is explicit: this layer adds visibility and lifecycle tracking; it does not
+ invent entry rules, composite scores, or automatic order execution.
+*/
+const V41_PROVENANCE = Object.freeze({
+  hierarchy:'NOTEBOOK_REFERENCE', smallIB:'NOTEBOOK_REFERENCE', bigGap:'NOTEBOOK_REFERENCE',
+  pocVolume:'NOTEBOOK_REFERENCE', pocVolumeChartReference:'SOURCE_CONFIRMED', delta75k:'V40_EXISTING_CONVENTION',
+  timestampValidation:'SOURCE_CONFIRMED', halfIbClose:'SOURCE_CONFIRMED', sourceConfirmed:'SOURCE_CONFIRMED', dataNotVisible:'DATA_NOT_VISIBLE', undef:'UNDEF',
+  managementMode:'ENGINEERING_RECOMMENDATION', contextAlignment:'ENGINEERING_RECOMMENDATION', lifecycle:'ENGINEERING_RECOMMENDATION', manualEvidence:'MANUAL_INPUT', partialBooking:'V40_EXISTING_CONVENTION',
+  triggerS5:'V40_EXISTING_CONVENTION', timeGate:'V40_EXISTING_CONVENTION',
+  partialBooking:'V40_EXISTING_CONVENTION', managementMode:'ENGINEERING_RECOMMENDATION',
+  lifecycle:'ENGINEERING_RECOMMENDATION', manualInputs:'MANUAL_INPUT',
+  scanner:'V40_EXISTING_CONVENTION',
+});
+const V41_REASON_CODES = [
+ 'MISSING_15M_CLOSE','GATE_1440','IV_40_PLUS','OF_FIGHTING','HEAVYWEIGHT_DIVERGENCE',
+ 'CONTEXT_ONLY','MISSING_SL_ANCHOR','MISSING_INPUT','WAITING_FOR_TRIGGER',
+ 'MANUAL_NO_TRADE','EXPIRED_SETUP','NOT_DETECTED','HINDSIGHT_ONLY','CONTEXT_DIVERGENCE'
+];
+const V41_SETUP_NAMES = {
+  1:'C-Period Bluff / Reversal',2:'45-Degree OAIR Rotation',3:'Failed Auction Revisit',
+  4:'09:30 ITM Fib Context',5:'Fibonacci Extension',6:'Institutional Momentum',
+  7:'Half-IB Access',8:'Value Area 80%',9:'Trend Day Continuation'
+};
+function v41Esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function v41Num(v){const n=strictFiniteNumber(v);return Number.isFinite(n)?n:null;}
+function v41Ensure(d=DAY){
+ const o=d.opening||(d.opening={});
+ if(!o.v41||typeof o.v41!=='object')o.v41={managementMode:'LEGACY_UNSPECIFIED',mpDirection:'',manualDecision:'',pocVolumeStatus:'DATA_NOT_VISIBLE',pocVolumeNotes:'',stockCandidateNotes:'',contextNotes:'',doubtRecorded:'no',doubtNotes:'',gapCheckTime:'',manualStructuralSL:'',evidenceNotes:{}};
+ const x=o.v41;
+ if(!x.managementMode)x.managementMode='LEGACY_UNSPECIFIED';
+ if(!x.evidenceNotes||typeof x.evidenceNotes!=='object')x.evidenceNotes={};
+ if(!Array.isArray(o.v41LifecycleEvents))o.v41LifecycleEvents=[];
+ if(!Array.isArray(o.v41EvidenceEvents))o.v41EvidenceEvents=[];
+ if(!o.v41LifecycleState||typeof o.v41LifecycleState!=='object')o.v41LifecycleState={};
+ return {o,x};
+}
+function v41WithDay(d,fn){return withJournalDay(d||DAY,fn);}
+function v41WithDayDate(d,key,fn){const priorDay=DAY,priorDate=dateKey;if(d&&d!==DAY)DAY=d;if(key)dateKey=key;try{return fn();}finally{DAY=priorDay;dateKey=priorDate;}}
+function v41FullSessionComplete(bars,scanDate=dateKey){const required=new Set();for(let t=555;t<=900;t+=15)required.add(t);const seen=new Set((bars||[]).filter(b=>v29BarIsUsable(b)&&v29BarClosedForScan(b,scanDate)).map(b=>v29Time(b.timestamp)));for(const t of required)if(!seen.has(t))return false;return true;}
+function v41Context(d=DAY,scanDate=dateKey){
+ return v41WithDayDate(d,scanDate,()=>{
+  const o=d.opening||{}, L=d.levels||{}, ib=calcIB(), op=calcOpening(), legacyDayType=calcDayType();
+  const pa=participationAuditForDay(d,'c930');
+  const anchor=setup4AnchorAudit(d);
+  const scan=automaticTriggerAudit(d,scanDate||dateKey);
+  let combos={found:[],orderAmbiguous:false,orderSource:'unavailable'};
+  try{combos=detectOfCombos();}catch(e){}
+  const ofEvents=(d.orderflow||[]).filter(e=>e&&['IB','IS','RB','RS'].includes(e.tag));
+  const ofTagEvents=(d.orderflow||[]).filter(e=>e&&['Absorption','Exhaustion-end','Exhaustion-POC','Continuation-mid','Imbalance-confirmed','Not-useful'].includes(e.tag));
+  const ofTagCounts={};ofTagEvents.forEach(e=>ofTagCounts[e.tag]=(ofTagCounts[e.tag]||0)+1);
+  const ofDetails=ofTagEvents.slice(-8).map(e=>({time:e.time||null,period:e.period||null,tag:e.tag,note:e.note||'',poc:e.poc||null,du:e.du||null,dd:e.dd||null}));
+  const delta75=ofEvents.map((e,i)=>({index:i+1,tag:e.tag,du:parseDeltaK(e.du),dd:parseDeltaK(e.dd)})).filter(e=>Math.max(Number.isFinite(e.du)?e.du:0,Number.isFinite(e.dd)?e.dd:0)>=75000);
+  const lastCombo=(combos.found||[]).slice(-1)[0]||null;
+  const ofDir=lastCombo?(lastCombo.n===1||lastCombo.n===2?'up':(lastCombo.n===3||lastCombo.n===4?'down':null)):null;
+  const mpDir=(o.v41&&o.v41.mpDirection)||o.setup4MPAlignment||'';
+  const openDir=op&&op.sub?op.sub.dir:(op&&op.orr?op.orr.dir:null);
+  const partDir=pa.alignedBull>pa.alignedBear?'up':(pa.alignedBear>pa.alignedBull?'down':null);
+  const dirs=[['Market Profile',mpDir],['Opening',openDir],['09:30 ITM Fib',anchor.direction||null],['Heavyweight participation',partDir],['Order Flow',ofDir]].filter(x=>x[1]==='up'||x[1]==='down');
+  const conflicts=dirs.filter(x=>mpDir&&(x[1]!==mpDir));
+  const contextAlignment=!dirs.length?'UNRESOLVED':(conflicts.length?'PARTIAL_ALIGNMENT':(new Set(dirs.map(x=>x[1])).size===1?'ALIGNED':'PARTIAL_ALIGNMENT'));
+  const bars=(o.v29Candles||[]).filter(b=>v29DateKey(b.timestamp)===(scanDate||dateKey));
+  const sessionComplete=v41FullSessionComplete(bars,scanDate);
+  
+  const pocStatus=o.v41&&o.v41.pocVolumeStatus||'DATA_NOT_VISIBLE';
+  const pdc=v41Num(L.pdc),open=v41Num(o.open);
+  const gapPts=pdc!=null&&open!=null?Math.abs(open-pdc):null;
+  const gapPct=pdc&&open!=null?Math.abs(open/pdc-1)*100:null;
+  const gapPointHit=gapPts!=null?gapPts>=140:null, gapPctHit=gapPct!=null?gapPct>=0.80:null;
+  const gapThresholdState=gapPointHit===null||gapPctHit===null?'UNRESOLVED':(gapPointHit&&gapPctHit?'BOTH APPROXIMATE REFERENCES MET':(gapPointHit||gapPctHit?'MEASURES DISAGREE — REVIEW':'BELOW BOTH APPROXIMATE REFERENCES'));
+  const gapPeriod=String(o.middayTailPeriod||'').toUpperCase();
+  const gapTime=v41Num(String(o.v41&&o.v41.gapCheckTime||'').replace(':','.'));
+  const gapGH=/^(G|H)$/.test(gapPeriod)||(o.v41&&/^([01]?\d|2[0-3]):[0-5]\d$/.test(o.v41.gapCheckTime)&&(()=>{const z=o.v41.gapCheckTime.split(':').map(Number);return z[0]*60+z[1]>=750;})());
+  const gapContinuation=(gapPointHit===true||gapPctHit===true)&&o.oaorGapFilled==='no'&&gapGH;
+  const smallIB=!ib?'IB UNAVAILABLE':(ib.len>=40&&ib.len<=80?'APPROX. 40–80 POINT SMALL-IB BAND':(ib.len<40?'V40 SMALL CATEGORY (≤80), BELOW APPROX. 40-POINT LOWER REFERENCE':'NOT SMALL BY V40 CATEGORY'));
+  const s7result=(scan.results||[]).find(r=>r.id===7)||null;
+  const scanHalfIbDirection=s7result&&s7result.status==='TRIGGERED'?(/Upper/i.test(String(s7result.detail||''))?'up':'down'):null;
+  const manualHalfIbDirection=o.halfIbAccess==='yes'?o.halfIbSide:null;
+  const hibDirection=scanHalfIbDirection;
+  const halfIbSource=scanHalfIbDirection?'IMPORTED COMPLETED 15m CLOSE':(manualHalfIbDirection?'MANUAL NOTE ONLY — imported 15m close not verified':'UNCONFIRMED');
+  const scanHalfIbAbsent=!!(s7result&&s7result.status==='DID_NOT_FORM'&&sessionComplete);
+  let dt=legacyDayType,dayTypeEvidenceStatus='UNCONFIRMED';
+  if(o.ibTouchedBothSides==='yes'){
+   dayTypeEvidenceStatus=String(o.closeInsideIB||'').trim()? 'IB BOTH-SIDES / CLOSE-LOCATION EVIDENCE':'MISSING CLOSE-LOCATION INPUT';
+  }else if(o.ibTouchedBothSides==='no'){
+   if(hibDirection){
+    if(o.halfIbAccess==='no'){dt=null;dayTypeEvidenceStatus='CONFLICT — imported completed Half-IB close vs manual NO';}
+    else if(o.vwapFrozenHHLL==='yes'){dt='Trend Day';dayTypeEvidenceStatus='COMPLETED HALF-IB CLOSE + VWAP FROZEN HH/LL';}
+    else if(o.vwapFrozenHHLL==='no'){dt='Normal Variation';dayTypeEvidenceStatus='COMPLETED HALF-IB CLOSE + VWAP NOT FROZEN';}
+    else{dt=null;dayTypeEvidenceStatus='MISSING VWAP FROZEN HH/LL INPUT';}
+   }else if(o.halfIbAccess==='yes'){
+    dayTypeEvidenceStatus=scanHalfIbAbsent?'CONFLICT — MANUAL HALF-IB YES VS COMPLETED SESSION WITH NO HALF-IB CLOSE':'UNVERIFIED — MANUAL HALF-IB YES WITHOUT IMPORTED COMPLETED 15m CLOSE';
+   }else if(o.halfIbAccess==='no'||scanHalfIbAbsent){
+    if(o.closeInsideIB==='in'||o.closeInsideIB==='out'){dt=o.closeInsideIB==='out'?'Normal Variation':'Normal Day';dayTypeEvidenceStatus=sessionComplete?'NO HALF-IB ACCESS IN COMPLETED SESSION':'PROVISIONAL — NO ACCESS RECORDED; SESSION INCOMPLETE';}
+    else{dt=null;dayTypeEvidenceStatus='MISSING CLOSE-INSIDE / CLOSE-OUTSIDE IB INPUT';}
+   }else{dt=null;dayTypeEvidenceStatus='HALF-IB ACCESS NOT VERIFIED';}
+  }else{dayTypeEvidenceStatus='IB BOTH-SIDES INPUT NOT RECORDED';}
+  const dayTypeStatus=dayTypeEvidenceStatus.startsWith('UNVERIFIED')||dayTypeEvidenceStatus.startsWith('CONFLICT')||dayTypeEvidenceStatus.startsWith('MISSING')||dayTypeEvidenceStatus==='HALF-IB ACCESS NOT VERIFIED'||dayTypeEvidenceStatus==='IB BOTH-SIDES INPUT NOT RECORDED'?dayTypeEvidenceStatus:(dt?(sessionComplete?'FINAL_REVIEW_READY':'PROVISIONAL — midday review around 11:00–11:30; full-session evidence incomplete'):'UNCONFIRMED');
+  const s4PostIbDivergence=anchor.direction&&hibDirection?(anchor.direction===hibDirection?'ALIGNED':'DIVERGENT — CONTEXT WARNING'):'UNDEF — 09:30 Fib or completed Half-IB direction missing';
+  if(hibDirection)dirs.push(['Post-10:15 Half-IB',hibDirection]);
+  const current=v41Num(d.niftyPrice);
+  let obstacles=[];
+  if(ib&&hibDirection){
+   const long=hibDirection==='up',t2=long?ib.ibHigh+ib.len:ib.ibLow-ib.len,t3=long?ib.ibHigh+2*ib.len:ib.ibLow-2*ib.len;
+   const refs=[['POC',L.poc],['VAH',L.vah],['VAL',L.val],['VWAP',o.trailVwap],['PDH',L.pdh],['PDL',L.pdl]];
+   const origin=current==null?(long?ib.halfUpper:ib.halfLower):current;
+   obstacles=refs.map(([name,v])=>({name,value:v41Num(v)})).filter(x=>x.value!=null&&(long?x.value>origin&&x.value<t3:x.value<origin&&x.value>t3)).sort((a,b)=>long?a.value-b.value:b.value-a.value);
+   obstacles={direction:hibDirection,t2,t3,between2IB:obstacles.filter(x=>long?x.value<=t2:x.value>=t2),between3IB:obstacles};
+  }
+  const early=anchor.direction?{state:'EARLY_CONTEXT_CANDIDATE',direction:anchor.direction,participation:pa.entered+'/12; '+(anchor.direction==='up'?pa.alignedBull:pa.alignedBear)+' aligned'}:{state:'UNRESOLVED',direction:null,participation:pa.entered+'/12'};
+  const missing=[];
+  if(!d.levels||!L.pdh||!L.pdl)missing.push('Previous-session PDH/PDL');
+  if(!o.open)missing.push('Opening price');
+  if(!o.spot930||!['o','h','l','c'].every(k=>String(o.spot930[k]||'').trim()!==''))missing.push('09:15–09:30 spot OHLC');
+  if(!o.fibCE||!o.fibCE.p930)missing.push('09:30 CE premium close');
+  if(!o.fibPE||!o.fibPE.p930)missing.push('09:30 PE premium close');
+  if(!ofEvents.length)missing.push('Futures/Order Flow event evidence unavailable');
+  if(!Array.isArray(o.v29Candles)||!o.v29Candles.length)missing.push('Imported 15-minute candle data');
+  if(scan.scaleMismatch)missing.push('Instrument/price-scale mapping mismatch');
+  if(o.triggerTime&&!o.triggerSpot)missing.push('Trigger-time Nifty spot');
+  return {opening:op,dayType:dt,dayTypeStatus,dayTypeEvidenceStatus,sessionComplete,ib,participation:pa,anchor,scan,combos,delta75,ofTagCounts,ofDetails,pocVolumeStatus:pocStatus,mpDirection:mpDir,openingDirection:openDir,participationDirection:partDir,orderflowDirection:ofDir,contextAlignment,conflicts,smallIB,halfIbDirection:hibDirection,manualHalfIbDirection,halfIbSource,s4PostIbDivergence,obstacles,gapPts,gapPct,gapThresholdState,gapContinuation,gapGH,early,missing,provenance:{hierarchy:V41_PROVENANCE.hierarchy,delta75k:V41_PROVENANCE.delta75k,pocVolume:V41_PROVENANCE.pocVolume}};
+ });
+}
+function v41SetupRows(d=DAY,scanDate=dateKey){
+ const c=v41Context(d,scanDate), o=d.opening||{}, audit=c.scan||{results:[]};
+ let engine=null, strategy=null, selected=null, playbookBlocks=false, permissionSetup=null;
+ try{engine=v41WithDayDate(d,scanDate,()=>engRun('trig'));strategy=v41WithDayDate(d,scanDate,()=>selectStrategy());}catch(e){}
+ const setup=o.planSetupSubtype||'', type=o.planTradeType||'';
+ const mapped=V40_SETUP_TO_SCAN[setup];
+ selected=(audit.results||[]).find(x=>x.id===mapped)||null;
+ playbookBlocks=!!(strategy&&/wait|mat lo|no trade|cancel|skip|not a fresh entry|fresh aggressive entry/i.test(String(strategy.name||'')+' '+String(strategy.entry||'')));
+ let canonical=null,typeMatch=(type==='momentum'&&setup==='momentum_fib')||(type==='counter'&&['c_failure','failed_auction','45_degree'].includes(setup))||(type==='mp'&&['45_degree','half_ib','va_80','trend_continuation'].includes(setup));
+ if(selected&&selected.triggerState==='TRIGGER_CONFIRMED'&&engine&&engine.valid&&engine.plan&&typeMatch&&!playbookBlocks&&!(engine.gates||[]).length){
+  try{canonical=v41WithDay(d,()=>resolveCanonicalTradePlan({enginePlan:engine.plan,tradeType:type,setupSubtype:setup,opening:o,levels:d.levels||{},ib:c.ib,alignedCount:engine.plan.long?engine.up:engine.dn,fib:type==='momentum'?calcFibExtension():null}));}catch(e){}
+ }
+ const recordedTriggerMinute=toMin(o.triggerTime);
+ const triggerTimeValid=recordedTriggerMinute!==null&&!Number.isNaN(recordedTriggerMinute)&&recordedTriggerMinute>=555&&recordedTriggerMinute<880;
+ const finalTrigger=selected?v41WithDayDate(d,scanDate,()=>finalizeAutomaticTrigger(selected,engine,playbookBlocks)):null;
+ const triggerDirectionAligned=!!(finalTrigger&&finalTrigger.triggerState==='TRIGGER_CONFIRMED');
+ const mpDirectionValid=c.mpDirection==='up'||c.mpDirection==='down';
+ const mpDirectionMatch=!!(mpDirectionValid&&selected&&selected.direction===c.mpDirection);
+ const manualSL=v41Num(o.v41&&o.v41.manualStructuralSL),entryPrice=engine&&engine.plan?v41Num(engine.plan.px):null;
+ const manualSLValid=manualSL!=null&&manualSL>0&&entryPrice!=null&&((engine.plan.long&&manualSL<entryPrice)||(!engine.plan.long&&manualSL>entryPrice));
+ const resolvedSL=canonical&&canonical.sl!=null?canonical.sl:(manualSLValid?manualSL:null);
+ const resolvedSLProvenance=canonical&&canonical.sl!=null?'V40_EXISTING_CONVENTION':(manualSLValid?'MANUAL_INPUT':'UNDEF');
+ const manualDecision=o.v41&&o.v41.manualDecision||'';
+ const managementModeValid=['INTRADAY','SWING'].includes(o.v41&&o.v41.managementMode);
+ const manualDecisionBlocks=manualDecision==='NO_TRADE'||manualDecision==='WAIT';
+ const permission=!!(mapped===5&&selected&&selected.triggerState==='TRIGGER_CONFIRMED'&&triggerDirectionAligned&&mpDirectionMatch&&engine&&engine.valid&&engine.plan&&typeMatch&&!playbookBlocks&&!manualDecisionBlocks&&!(engine.gates||[]).length&&triggerTimeValid&&managementModeValid&&resolvedSL!=null&&resolvedSL>0);
+ const hardGates=engine&&engine.gates||[],softWarnings=engine&&engine.caution||[];
+ const rows=(audit.results||[]).map(r=>{
+  let evidenceState=r.id===4?'CONTEXT_ONLY':(r.id===5?'CODED_TRIGGER':'MANUAL_EVIDENCE_REQUIRED');
+  let triggerState=r.id===4?'CONTEXT_ONLY':(r.triggerState||'WAITING_NEEDS_MANUAL_EVIDENCE');
+  let gateStatus=hardGates.length?'HARD_GATE_ACTIVE':'NO_GLOBAL_HARD_GATE';
+  const selectedThis=Number(mapped)===r.id;
+  let reasonCodes=[];
+  if(r.id===4)reasonCodes.push('CONTEXT_ONLY');
+  if(triggerState!=='TRIGGER_CONFIRMED'&&r.id!==4)reasonCodes.push(r.status==='INSUFFICIENT_DATA'?'MISSING_INPUT':'WAITING_FOR_TRIGGER');
+  if(hardGates.some(x=>/2:40|14:40/i.test(x)))reasonCodes.push('GATE_1440');
+  if(hardGates.some(x=>/IV 40/i.test(x)))reasonCodes.push('IV_40_PLUS');
+  if(hardGates.some(x=>/combo #5|combo #6|fighting/i.test(x)))reasonCodes.push('OF_FIGHTING');
+  if(resolvedSL==null&&r.id===5&&triggerState==='TRIGGER_CONFIRMED')reasonCodes.push('MISSING_SL_ANCHOR');
+  if(selectedThis&&r.id===5&&!triggerTimeValid)reasonCodes.push('MISSING_INPUT');
+  if(selectedThis&&r.id===5&&!mpDirectionValid)reasonCodes.push('MISSING_INPUT');
+  if(selectedThis&&r.id===5&&!managementModeValid)reasonCodes.push('MISSING_INPUT');
+  if(selectedThis&&r.id===5&&mpDirectionValid&&!mpDirectionMatch)reasonCodes.push('CONTEXT_DIVERGENCE');
+  if(selectedThis&&r.id===5&&finalTrigger&&finalTrigger.triggerState!=='TRIGGER_CONFIRMED')reasonCodes.push('CONTEXT_DIVERGENCE');
+  if(selectedThis&&r.id===5&&manualDecision==='NO_TRADE')reasonCodes.push('MANUAL_NO_TRADE');
+  if(selectedThis&&r.id===5&&manualDecision==='WAIT')reasonCodes.push('WAITING_FOR_TRIGGER');
+  if(r.id===7&&r.status!=='TRIGGERED'&&c.manualHalfIbDirection)reasonCodes.push('MISSING_15M_CLOSE');
+  if(c.conflicts.some(x=>x[0]==='Heavyweight participation'))reasonCodes.push('HEAVYWEIGHT_DIVERGENCE');
+  const permitted=selectedThis&&permission&&r.id!==4;
+  let lifecycle=permitted?'PERMITTED':(selectedThis&&manualDecision==='WAIT'?'WAITING':(selectedThis&&(hardGates.length||reasonCodes.includes('MISSING_SL_ANCHOR')||reasonCodes.includes('MANUAL_NO_TRADE')||playbookBlocks)?'BLOCKED':(triggerState==='TRIGGER_CONFIRMED'?'TRIGGER CONFIRMED':(r.status==='DEVELOPING'||r.status==='TRIGGERED'?'CANDIDATE':'WAITING'))));
+  return {setupId:r.id,name:r.name||V41_SETUP_NAMES[r.id],evidenceState,triggerState,contextAlignment:c.contextAlignment,gateStatus,tradePermission:permitted,missingInputs:r.status==='INSUFFICIENT_DATA'?[r.detail]:[],reasonCodes:[...new Set(reasonCodes)],sourceProvenance:r.id===4?'CONTEXT_ONLY':(r.id===5?V41_PROVENANCE.triggerS5:V41_PROVENANCE.scanner),scannerStatus:r.status,detail:r.detail,triggerDetail:r.triggerDetail||null,lifecycle};
+ });
+ return {rows,engine,selected,canonical,manualSL,manualSLValid,resolvedSL,resolvedSLProvenance,triggerTimeValid,triggerDirectionAligned,mpDirectionValid,mpDirectionMatch,manualDecision,manualDecisionBlocks,managementModeValid,permission,hardGates,softWarnings,context:c,setup,type,typeMatch,playbookBlocks};
+}
+function v41PushLifecycle(d,setupId,stage,reasonCode,detail,source='ENGINEERING_RECOMMENDATION'){
+ const {o}=v41Ensure(d), states=o.v41LifecycleState, key=String(setupId), prior=states[key];
+ if(prior&&['TRADED','MISSED','EXPIRED'].includes(prior.stage)&&prior.provenance==='MANUAL_INPUT')return prior;
+ if(prior&&prior.stage===stage&&prior.reasonCode===reasonCode)return prior;
+ const event={setupId:Number(setupId),stage,reasonCode:reasonCode||null,detail:detail||'',timestamp:new Date().toISOString(),provenance:source};
+ o.v41LifecycleEvents.push(event);if(o.v41LifecycleEvents.length>1000)o.v41LifecycleEvents=o.v41LifecycleEvents.slice(-1000);
+ states[key]=event;try{scheduleAutoSave();}catch(e){}return event;
+}
+function v41SyncLifecycle(d,board){
+ const c=board.context,complete=c.sessionComplete;
+ board.rows.forEach(r=>{
+  const id=r.setupId, prior=(d.opening.v41LifecycleState||{})[String(id)];
+  if(prior&&['TRADED','MISSED','EXPIRED'].includes(prior.stage)&&prior.provenance==='MANUAL_INPUT')return;
+  let stage='WAITING',reason='WAITING_FOR_TRIGGER';
+  if(id===4){stage='WAITING';reason='CONTEXT_ONLY';}
+  else if(r.tradePermission){stage='PERMITTED';reason=null;}
+  else if(r.lifecycle==='BLOCKED'){stage='BLOCKED';reason=r.reasonCodes[0]||'MISSING_INPUT';}
+  else if(r.lifecycle==='WAITING'){stage='WAITING';reason=r.reasonCodes[0]||'WAITING_FOR_TRIGGER';}
+  else if(r.triggerState==='TRIGGER_CONFIRMED'){stage='TRIGGER CONFIRMED';reason=null;}
+  else if(r.scannerStatus==='DEVELOPING'||r.scannerStatus==='TRIGGERED'){stage='CANDIDATE';reason='WAITING_FOR_TRIGGER';}
+  else if(r.scannerStatus==='DID_NOT_FORM'&&complete){stage='EXPIRED';reason='EXPIRED_SETUP';}
+  else if(r.scannerStatus==='INSUFFICIENT_DATA'){stage='WAITING';reason='MISSING_INPUT';}
+  const isFormation=stage==='CANDIDATE'||stage==='TRIGGER CONFIRMED'||stage==='PERMITTED';
+  if(!prior&&isFormation)v41PushLifecycle(d,id,'DETECTED',null,'A setup formation was detected by the independent scanner.',V41_PROVENANCE.scanner);
+  else if(prior&&prior.stage==='WAITING'&&isFormation)v41PushLifecycle(d,id,'DETECTED',null,'A setup formation became visible after earlier waiting / incomplete evidence.',V41_PROVENANCE.scanner);
+  v41PushLifecycle(d,id,stage,reason,r.detail||r.triggerDetail||'State updated from current evidence.',V41_PROVENANCE.lifecycle);
+ });
+}
+function v41RecordAction(id){
+ const {o}=v41Ensure(DAY), action=document.getElementById('v41Action_'+id)?.value||'', reason=document.getElementById('v41Reason_'+id)?.value||'', note=document.getElementById('v41Note_'+id)?.value||'';
+ if(!['TRADED','MISSED','EXPIRED'].includes(action)){alert('Please select TRADED, MISSED or EXPIRED.');return;}
+ if(action==='MISSED'&&!reason){alert('MISSED record ke liye reason code select karo.');return;}
+ const prior=o.v41LifecycleState[String(id)];
+ const event={setupId:Number(id),stage:action,reasonCode:reason||null,detail:note||'Manually recorded by trader.',timestamp:new Date().toISOString(),provenance:'MANUAL_INPUT'};
+ o.v41LifecycleEvents.push(event);o.v41LifecycleState[String(id)]=event;
+ scheduleAutoSave();v41RenderPanel(true);
+}
+function v41SetField(field,value){const {x}=v41Ensure(DAY);x[field]=value;scheduleAutoSave();v41RenderPanel();}
+function v41RenderPanel(force=false){
+ const host=document.getElementById('v41OpportunityPanel');if(!host)return;
+ const {o,x}=v41Ensure(DAY);
+ const b=v41SetupRows(DAY);v41SyncLifecycle(DAY,b);
+ const dtBox=document.getElementById('dayTypeResultBox');if(dtBox){const cdt=b.context;dtBox.innerHTML=cdt.dayType?'<div class="big">'+v41Esc(cdt.dayType)+'</div><div class="muted">V41: '+v41Esc(cdt.dayTypeStatus)+' · '+v41Esc(cdt.dayTypeEvidenceStatus)+'</div>':'<div class="big">UNCONFIRMED</div><div class="muted">V41: '+v41Esc(cdt.dayTypeStatus)+' · day type is not a setup blocker</div>'; }
+ const active=document.activeElement;
+ if(!force&&active&&host.contains(active)&&String(active.id||'').startsWith('v41'))return;
+ const c=b.context,pa=c.participation,mp=c.mpDirection||'UNDEF',anchor=c.anchor.direction||'UNDEF';
+ const selectedName=b.setup?b.setup:'Not selected';
+ const reasonOpts=['',...V41_REASON_CODES].map(v=>'<option value="'+v+'">'+(v||'Select reason')+'</option>').join('');
+ const modeOpts=[['LEGACY_UNSPECIFIED','SELECT MODE / V40 LEGACY'],['INTRADAY','INTRADAY'],['SWING','SWING']].map(([v,l])=>'<option value="'+v+'" '+(x.managementMode===v?'selected':'')+'>'+l+'</option>').join('');
+ const effectiveMpDirection=x.mpDirection||o.setup4MPAlignment||'';
+ const dirOpts=[['','UNDEF / NOT RECORDED'],['up','BULLISH'],['down','BEARISH'],['balanced','BALANCED / ROTATION']].map(([v,l])=>'<option value="'+v+'" '+(effectiveMpDirection===v?'selected':'')+'>'+l+'</option>').join('');
+ const decisionOpts=[['','NO MANUAL DECISION'],['WAIT','WAIT'],['NO_TRADE','NO TRADE'],['REDUCED_SIZE','REDUCED SIZE']].map(([v,l])=>'<option value="'+v+'" '+(x.manualDecision===v?'selected':'')+'>'+l+'</option>').join('');
+ const stateRows=b.rows.map(r=>{
+  const life=(o.v41LifecycleState||{})[String(r.setupId)]||{};
+  const actionOpts=['','TRADED','MISSED','EXPIRED'].map(v=>'<option value="'+v+'">'+(v||'Record outcome')+'</option>').join('');
+  const name='S'+r.setupId+' · '+v41Esc(r.name);
+  return '<div class="candidate-card" style="margin:7px 0;padding:10px;border-color:'+(r.tradePermission?'#3DDC84':(r.lifecycle==='BLOCKED'?'#F2545B':'#394655'))+'"><div class="cc-head"><span>'+name+'</span><span class="candidate-status">'+v41Esc(r.lifecycle)+'</span></div><div class="cc-meta"><b>Evidence:</b> '+v41Esc(r.evidenceState)+' · <b>Trigger:</b> '+v41Esc(r.triggerState)+'<br><b>Context:</b> '+v41Esc(r.contextAlignment)+' · <b>Gate:</b> '+v41Esc(r.gateStatus)+' · <b>Permission:</b> '+(r.tradePermission?'PERMITTED':'NOT PERMITTED')+'<br><b>Reason:</b> '+v41Esc(r.reasonCodes.join(', ')||'—')+'<br>'+v41Esc(r.triggerDetail||r.detail||'')+'<br><b>Lifecycle latest:</b> '+v41Esc(life.stage||'WAITING')+(life.reasonCode?' · '+v41Esc(life.reasonCode):'')+'</div><div class="field-row"><input id="v41Evidence_'+r.setupId+'" value="'+v41Esc(x.evidenceNotes[String(r.setupId)]||'')+'" placeholder="Manual chart evidence / visual review (does not confirm trigger)" style="min-width:220px;flex:1"><span class="muted">MANUAL_INPUT · evidence note only</span></div><div class="field-row"><select id="v41Action_'+r.setupId+'" style="max-width:150px">'+actionOpts+'</select><select id="v41Reason_'+r.setupId+'" style="max-width:210px">'+reasonOpts+'</select><input id="v41Note_'+r.setupId+'" placeholder="Outcome / missed-opportunity note" style="min-width:160px;flex:1"><button type="button" onclick="v41RecordAction('+r.setupId+')">Record</button></div><div class="muted">Source: '+v41Esc(r.sourceProvenance)+' · Manual outcome is not proof that a valid setup existed retrospectively. Use NOT_DETECTED for an actually missed system detection and HINDSIGHT_ONLY for a move that only looks like a setup after the fact.</div></div>';
+ }).join('');
+ const mpText='Market Profile direction: '+mp+' (priority context)';
+ const ofText=c.combos.found.length?c.combos.found.map(q=>'#'+q.n+' '+q.name+' ['+((q.n===5||q.n===6)?'FIGHTING / EXIT-NO-NEW':(q.ok?'VALID DIRECTIONAL':'UNVERIFIED'))+']').join(' → '):'No tagged combination recorded';
+ const partDir=c.participationDirection||'UNDEF';
+ const ofChronologyNote=c.combos.orderAmbiguous?'Order Flow event chronology ambiguous — manual entry order used.':(c.combos.chronologyKnown?'Recorded event timestamps used.':'Event order not independently timestamp-verified.');
+ const divergence=c.conflicts.length?c.conflicts.map(q=>q[0]+' '+q[1]+' vs MP '+mp).join('; '):(c.contextAlignment==='PARTIAL_ALIGNMENT'?'Supporting inputs conflict with each other; MP direction is not set or is incomplete.':'No recorded conflict against MP direction; incomplete inputs remain unresolved.');
+ const smallHtml=c.ib?'<div class="kv-row"><span>Small-IB</span><b>'+v41Esc(c.smallIB)+' · Range '+c.ib.len.toFixed(1)+' pts ('+c.ib.ibLow.toFixed(1)+'–'+c.ib.ibHigh.toFixed(1)+')</b></div><div class="kv-row"><span>Half-IB / 15m close</span><b>'+(c.halfIbDirection?('ACCESS CONFIRMED · '+c.halfIbDirection.toUpperCase()+' · '+c.halfIbSource):(c.manualHalfIbDirection?('MANUAL NOTE ONLY · '+c.manualHalfIbDirection.toUpperCase()+' · completed 15m close not verified by imported candles'):'NOT CONFIRMED / NOT RECORDED'))+'</b></div><div class="kv-row"><span>Participation context</span><b>+'+pa.alignedBull+' / -'+pa.alignedBear+' · '+pa.entered+'/12 entered · '+(partDir||'UNDEF')+'</b></div>':'<div class="kv-row"><span>Small-IB</span><b>IB High/Low incomplete — candidate cannot be classified yet.</b></div>' ;
+ const obs=c.obstacles&&c.obstacles.between3IB?'<div class="kv-row"><span>2IB / 3IB conditional targets</span><b>'+c.obstacles.t2.toFixed(1)+' / '+c.obstacles.t3.toFixed(1)+'</b></div><div class="kv-row"><span>Structural obstacles before 3IB</span><b>'+v41Esc(c.obstacles.between3IB.map(z=>z.name+' '+z.value).join(' · ')||'No entered POC / VAH / VAL / VWAP / PDH / PDL obstacle between current price and 3IB')+'</b></div>':'<div class="kv-row"><span>2IB / 3IB</span><b>Half-IB access / direction not recorded; no continuation assumed.</b></div>' ;
+ const gapHtml='<div class="kv-row"><span>Opening gap</span><b>'+(c.gapPts==null?'UNDEF':c.gapPts.toFixed(1)+' pts')+' · '+(c.gapPct==null?'UNDEF':c.gapPct.toFixed(2)+'%')+'</b></div><div class="kv-row"><span>Gap threshold review</span><b>'+v41Esc(c.gapThresholdState)+'</b></div><div class="kv-row"><span>G/H unfilled continuation context</span><b>'+(c.gapContinuation?'CANDIDATE CONTEXT — NOT AN ENTRY TRIGGER':(DAY.opening.oaorGapFilled==='no'?'UNFILLED RECORDED; G/H checkpoint needs confirmation':'NOT CONFIRMED'))+'</b></div>' ;
+ const openingText=c.opening?[c.opening.base||'UNDEF',c.opening.sub?(c.opening.sub.type+' '+c.opening.sub.dir):(c.opening.orr?('ORR '+c.opening.orr.dir):'no directional subtype')].join(' · '):'UNDEF';
+ const v29i=DAY.opening.v29Inputs||{};
+ const cPeriodText='C-period: rejected='+String(DAY.opening.cPeriodRejected||'UNDEF')+' · price above avg='+String(v29i.v29PriceAboveAvg||DAY.opening.cPriceAboveAvg||'UNDEF')+' · volume above avg='+String(DAY.opening.cVolumeAboveAvg||'UNDEF')+' · 2-month 15m avg volume='+String(v29i.v29AvgVol||'UNDEF')+' · strong volume='+String(DAY.opening.cVolumeStrong||'UNDEF')+' · range='+String(DAY.opening.cRange||'UNDEF')+' · volume='+String(DAY.opening.cVol||'UNDEF');
+ const deltaHtml='<div class="kv-row"><span>75K dominant delta</span><b>'+(c.delta75.length?c.delta75.map(q=>q.tag+' #'+q.index+' ('+Math.max(q.du||0,q.dd||0).toLocaleString('en-IN')+')').join(' · '):'UNDEF / no tagged event ≥75K')+'</b></div><div class="kv-row"><span>1 lakh POC volume reference</span><b>'+v41Esc(c.pocVolumeStatus||'UNDEF')+'</b></div><div class="muted">Separate observations; neither is combined into a mandatory joint filter. V40 source describes 1 lakh as a chart extended-volume POC reference, not a separate journal numeric input. Notes: '+v41Esc(c.pocVolumeNotes||'UNDEF')+'.</div>' ;
+ const lifeEvents=o.v41LifecycleEvents||[],counts={};lifeEvents.forEach(e=>counts[e.stage]=(counts[e.stage]||0)+1);
+ const quality=(c.scan&&c.scan.results||[]).filter(r=>r.status==='INSUFFICIENT_DATA').length;
+ host.innerHTML='<div class="hint-box"><b>Conceptual priority:</b> Market Profile 60% · Order Flow 20% · Momentum / Options / Psychology 20% <span class="muted">('+V41_PROVENANCE.hierarchy+')</span>. This is hierarchy only—not a score, weighted formula or mandatory three-way alignment.</div>'+
+ '<div class="field-row"><label>Trade management</label><select id="v41ManagementMode">'+modeOpts+'</select><label>Manual MP direction</label><select id="v41MPDirection">'+dirOpts+'</select><label>Manual action</label><select id="v41Decision">'+decisionOpts+'</select></div>'+
+ '<div class="field-row"><label>1 lakh POC chart reference</label><select id="v41PocStatus"><option value="DATA_NOT_VISIBLE" '+(x.pocVolumeStatus==='DATA_NOT_VISIBLE'?'selected':'')+'>DATA_NOT_VISIBLE</option><option value="OBSERVED" '+(x.pocVolumeStatus==='OBSERVED'?'selected':'')+'>OBSERVED ON CHART</option><option value="NOT_OBSERVED" '+(x.pocVolumeStatus==='NOT_OBSERVED'?'selected':'')+'>NOT OBSERVED</option></select><label>POC note</label><input id="v41PocNotes" value="'+v41Esc(x.pocVolumeNotes)+'" placeholder="Absorption / limit-order / price-action context"></div>'+
+ '<div class="field-row"><label>Manual structural SL (Nifty spot basis)</label><input id="v41ManualSL" inputmode="decimal" value="'+v41Esc(x.manualStructuralSL)+'" placeholder="Enter your own valid structural SL"><span class="muted">Manual input only; correct side of entry required. RR stays UNDEF unless target is in same price basis.</span></div>'+
+ '<div class="field-row"><label>Stock / sector candidate</label><input id="v41StockCandidate" value="'+v41Esc(x.stockCandidateNotes)+'" placeholder="Instrument, direction, evidence; no auto permission"></div>'+
+ '<div class="field-row"><label>Context notes</label><input id="v41ContextNotes" value="'+v41Esc(x.contextNotes)+'" placeholder="MP / Fib / OF divergence explanation" style="flex:1;min-width:220px"><label>G/H gap check time</label><input id="v41GapTime" value="'+v41Esc(x.gapCheckTime)+'" placeholder="e.g. 12:30" style="max-width:100px"></div>'+
+ '<div class="field-row"><label>Doubt recorded?</label><select id="v41Doubt"><option value="no" '+(x.doubtRecorded==='no'?'selected':'')+'>No</option><option value="yes" '+(x.doubtRecorded==='yes'?'selected':'')+'>Yes — review</option></select><input id="v41DoubtNotes" value="'+v41Esc(x.doubtNotes)+'" placeholder="Reason for doubt / weakening context" style="flex:1;min-width:180px"></div>'+
+ (x.doubtRecorded==='yes'?'<div class="hint-box">Doubt prompt: consider partial exit, consider trailing, reassess Market Profile / Order Flow structure, and record the reason. No automatic exit is forced.</div>':'')+
+ '<div class="result-box"><b>MP vs ORDER FLOW vs 09:30 FIB vs OPENING vs HEAVYWEIGHTS</b><br>'+v41Esc(mpText)+'<br>Order Flow: '+v41Esc(ofText)+' · '+v41Esc(ofChronologyNote)+'<br>09:30 ITM Fib anchor: '+v41Esc(anchor)+'<br>Opening direction: '+v41Esc(c.openingDirection||'UNDEF')+'<br>Heavyweight direction: '+v41Esc(partDir)+' ('+pa.entered+'/12)<br><b>Divergence:</b> '+v41Esc(divergence)+'<br><b>Context state:</b> '+v41Esc(c.contextAlignment)+' — Market Profile remains the priority context; disagreement is visible, not an automatic setup cancellation.</div>'+
+ '<div class="result-box"><b>EARLY CONTEXT vs CONFIRMED TRIGGER</b><br>EARLY CONTEXT: '+v41Esc(c.early.state)+' · '+v41Esc(c.early.direction||'UNDEF')+' · participation '+v41Esc(c.early.participation)+'<br>09:30 Fib vs post-10:15 Half-IB: '+v41Esc(c.s4PostIbDivergence)+'<br>7/12 participation is evidence, not a universal mandatory early-entry filter. Any early/reduced-size approach remains a manual discretionary decision; no size is auto-authorized.<br>CONFIRMED TRIGGER: only applicable verified setup trigger; early context is never promoted automatically.<br>Labels remain separate: EARLY CONTEXT · CANDIDATE · WAITING FOR TRIGGER · CONFIRMED TRIGGER · PERMITTED · BLOCKED.</div>'+
+ '<div class="result-box"><b>SMALL-IB OPPORTUNITY CALLOUT</b><br>'+smallHtml+'<div class="muted">Small IB is an opportunity category, not trade permission. Mixed / flat participation does not hide this callout.</div></div>'+
+ '<div class="result-box"><b>CONDITIONAL 2IB / 3IB STRUCTURAL CONTEXT</b><br>2IB/3IB are not guaranteed after Half-IB access. Nearby POC / VAH / VAL / VWAP / PDH / PDL obstacles are shown where inputs exist.<br>'+obs+'</div>'+
+ '<div class="result-box"><b>BIG-GAP CONTINUATION CONTEXT</b><br>'+gapHtml+'<div class="muted">Point and percentage references are shown separately; no universal combined threshold or automatic afternoon trigger is created.</div></div>'+
+ '<div class="result-box"><b>ORDER FLOW OBSERVATIONS</b><br>'+deltaHtml+'<br><b>C-PERIOD CONTEXT:</b> '+v41Esc(cPeriodText)+'<br>Absorption / exhaustion / imbalance tags: '+v41Esc(Object.entries(c.ofTagCounts||{}).map(([k,v])=>k+': '+v).join(' · ')||'UNDEF')+'<br>Recent tagged observations: '+v41Esc((c.ofDetails||[]).map(e=>(e.time||e.period||'')+' '+e.tag+' '+e.note).join(' | ')||'No tagged observations recorded')+'<br>Price-action interpretation remains manual; event notes are preserved as entered.</div>'+
+ '<div class="result-box"><b>OPENING / DAY TYPE STATUS</b><br>Opening: '+v41Esc(openingText)+' · Opening gap band: '+v41Esc(c.opening&&c.opening.gapBand||'UNDEF')+' · PDH/PDL distance: '+v41Esc(c.opening&&c.opening.gapDist!=null?c.opening.gapDist.toFixed(1)+' pts':'UNDEF')+'<br>Day type: '+v41Esc(c.dayType||'UNCONFIRMED')+' · '+v41Esc(c.dayTypeStatus)+'<br>Evidence: '+v41Esc(c.dayTypeEvidenceStatus)+'<br>Unconfirmed day type is not a global setup blocker. V40 opening threshold ambiguity remains visible where base=BORDERLINE.</div>'+
+ '<div class="result-box"><b>TRADE MANAGEMENT MODE</b><br>'+v41Esc(x.managementMode)+' · '+(x.managementMode==='INTRADAY'?'Intraday booking / structural exit context. V41 does not automatically apply Swing VWAP TSL.':(x.managementMode==='SWING'?'Swing mode selected. Existing VWAP trailing fields remain available for manual swing management; period-count exit remains contextual, not automatic.':'Select INTRADAY or SWING. Existing V40 trail behavior is preserved; V41 trade permission remains unavailable until mode is selected.'))+'<br><span class="muted">Existing partial-booking 50–70% / 70% default is a V40 journal convention, not asserted here as a universal Coach rule.</span></div>'+
+ '<div class="result-box"><b>TRADE PERMISSION / RISK ANCHOR</b><br>Selected setup: '+v41Esc(selectedName)+' · Permission: '+(b.permission?(b.manualDecision==='REDUCED_SIZE'?'PERMITTED — REDUCED SIZE (MANUAL)':'PERMITTED'):'NOT PERMITTED')+'<br>SL: '+(b.resolvedSL!=null?v41Esc(b.resolvedSL)+' · '+v41Esc(b.resolvedSLProvenance):'UNDEF / MISSING STRUCTURAL SL')+'<br>RR: '+(b.canonical&&b.canonical.rr!=null?v41Esc(b.canonical.rr):'UNDEF — no same-basis RR fabricated')+'</div>'+
+ '<div class="result-box"><b>HARD GATES</b><br>'+(b.hardGates.length?v41Esc(b.hardGates.join(' · ')):'No current V40 engine hard gate reported')+'<br><b>SOFT WARNINGS:</b> '+v41Esc(b.softWarnings.join(' · ')||'None recorded')+'<br><b>Missing input scan:</b> '+quality+' setup(s) currently report INSUFFICIENT_DATA. '+v41Esc(c.missing.join(' · '))+'</div>'+
+ '<div class="result-box"><b>INDEPENDENT S1–S9 BOARD &amp; LIFECYCLE</b><br>Every setup remains visible independently. Scanner detection is not permission. S4 is context-only and tradePermission=false. S5 is the only V40 coded trigger; other trigger evidence remains manual unless source code proves otherwise.</div>'+stateRows+
+ '<div class="result-box"><b>PROCESS ANALYTICS (THIS JOURNAL DAY)</b><br>Distinct setups detected: '+new Set(lifeEvents.filter(e=>e.stage==='DETECTED').map(e=>e.setupId)).size+' · Missing-input setups: '+b.rows.filter(r=>r.scannerStatus==='INSUFFICIENT_DATA').length+'/9 · Trigger-confirmed events: '+(counts['TRIGGER CONFIRMED']||0)+' · Permitted: '+(counts.PERMITTED||0)+' · Blocked: '+(counts.BLOCKED||0)+' · Missing-input / waiting events: '+(counts.WAITING||0)+' · Missed outcomes: '+(counts.MISSED||0)+' · Manual overrides/outcomes: '+lifeEvents.filter(e=>e.provenance==='MANUAL_INPUT').length+'<br>Lifecycle events: '+lifeEvents.length+' · '+v41Esc(Object.entries(counts).map(([k,v])=>k+': '+v).join(' · ')||'No transitions yet')+'<br><button type="button" id="v41HistoricalBtn">Refresh all-saved-days process analytics</button><div id="v41HistoricalResult" class="muted"></div><br>Actual trade/P&amp;L analytics remain in existing Trades / Summary modules; process counts are not performance statistics.</div>'+ 
+ '<div class="muted">Provenance: trigger / scanner / cutoff / 75K = V40_EXISTING_CONVENTION; hierarchy / small-IB / big-gap / POC = NOTEBOOK_REFERENCE; editable observations = MANUAL_INPUT; lifecycle and mode separation = ENGINEERING_RECOMMENDATION. Missing values stay UNDEF / DATA NOT AVAILABLE.</div>' ;
+ // Wire controls after each re-render; values are persisted inside DAY.opening, under the existing day record.
+ const bind=(id,field,transform=v=>v)=>{const el=document.getElementById(id);if(el)el.onchange=()=>{x[field]=transform(el.value);scheduleAutoSave();v41RenderPanel(true);if(field==='manualStructuralSL'){try{renderAfternoonTradePlan();}catch(e){}}if(field==='managementMode'){try{renderOpening();renderCoachCockpit();}catch(e){}}};};
+ bind('v41ManagementMode','managementMode');bind('v41MPDirection','mpDirection');bind('v41Decision','manualDecision');
+ bind('v41PocStatus','pocVolumeStatus');bind('v41PocNotes','pocVolumeNotes');bind('v41ManualSL','manualStructuralSL');bind('v41StockCandidate','stockCandidateNotes');bind('v41ContextNotes','contextNotes');bind('v41GapTime','gapCheckTime');bind('v41Doubt','doubtRecorded');bind('v41DoubtNotes','doubtNotes');
+ b.rows.forEach(r=>{const ev=document.getElementById('v41Evidence_'+r.setupId);if(ev)ev.onchange=()=>{x.evidenceNotes[String(r.setupId)]=ev.value;o.v41EvidenceEvents.push({setupId:r.setupId,evidence:ev.value,timestamp:new Date().toISOString(),provenance:'MANUAL_INPUT'});if(o.v41EvidenceEvents.length>1000)o.v41EvidenceEvents=o.v41EvidenceEvents.slice(-1000);scheduleAutoSave();v41RenderPanel(true);};});
+ const histBtn=document.getElementById('v41HistoricalBtn');if(histBtn)histBtn.onclick=v41HistoricalAnalytics;
+}
+async function v41HistoricalAnalytics(){
+ const out=document.getElementById('v41HistoricalResult');if(out)out.textContent='Reading saved journal days…';
+ try{
+  const days=await getAllSavedDays(), agg={days:days.length,detected:0,triggerConfirmed:0,permitted:0,blocked:0,missed:0,traded:0,expired:0,manual:0,reasons:{}};
+  days.forEach(entry=>{const op=entry.saved&&entry.saved.opening||{},states=op.v41LifecycleState||{},events=op.v41LifecycleEvents||[];agg.detected+=new Set(events.filter(e=>e.stage==='DETECTED').map(e=>e.setupId)).size;Object.values(states).forEach(x=>{if(x.stage==='PERMITTED')agg.permitted++;if(x.stage==='BLOCKED')agg.blocked++;if(x.stage==='MISSED')agg.missed++;if(x.stage==='TRADED')agg.traded++;if(x.stage==='EXPIRED')agg.expired++;});events.forEach(e=>{if(e.stage==='TRIGGER CONFIRMED')agg.triggerConfirmed++;if(e.provenance==='MANUAL_INPUT')agg.manual++;if(e.stage==='MISSED'&&e.reasonCode)agg.reasons[e.reasonCode]=(agg.reasons[e.reasonCode]||0)+1;});});
+  if(out)out.textContent='Saved days: '+agg.days+' · setup states recorded: '+agg.detected+' · trigger-confirmed transitions: '+agg.triggerConfirmed+' · permitted states: '+agg.permitted+' · blocked states: '+agg.blocked+' · traded: '+agg.traded+' · missed: '+agg.missed+' · expired: '+agg.expired+' · manual outcome records: '+agg.manual+' · missed reasons: '+(Object.entries(agg.reasons).map(([k,v])=>k+' '+v).join(', ')||'none');
+  return agg;
+ }catch(e){if(out)out.textContent='Historical process analytics unavailable: '+String(e&&e.message||e);return null;}
+}
+function v41BuildDecisionAudit(d=DAY,key=dateKey){
+ const {o,x}=v41Ensure(d),b=v41SetupRows(d,key||dateKey),c=b.context;
+ const life=Array.isArray(o.v41LifecycleEvents)?o.v41LifecycleEvents:[];
+ const candleAudit=(()=>{try{return v41WithDayDate(d,key||dateKey,()=>v29Validate((o.v29Candles||[]).filter(z=>v29DateKey(z.timestamp)===(key||dateKey))));}catch(e){return {issues:[String(e)],missing:[]};}})();
+ const selected=b.selected,canonical=b.canonical;
+ const missing=[...c.missing,...(candleAudit.missing||[]),...(candleAudit.issues||[])];
+ if(selected&&selected.triggerState==='TRIGGER_CONFIRMED'&&b.resolvedSL==null)missing.push('Selected trigger has no valid source-backed or manual structural SL anchor');
+ const hardGates=b.hardGates||[],softWarnings=b.softWarnings||[];
+ return {version:'V41',date:key||dateKey,methodologyHierarchy:{marketProfile:'60% conceptual priority',orderFlow:'20% contextual evidence',momentumOptionsPsychology:'20% supporting context',provenance:V41_PROVENANCE.hierarchy,scoring:'NO WEIGHTED SCORE'},marketContext:{marketProfileDirection:c.mpDirection||'UNDEF',opening:c.opening?{base:c.opening.base,subtype:c.opening.sub&&c.opening.sub.type,direction:c.openingDirection,gapPoints:c.gapPts,gapPercent:c.gapPct}:null,dayType:c.dayType,dayTypeStatus:c.dayTypeStatus,dayTypeEvidenceStatus:c.dayTypeEvidenceStatus,ib:c.ib,halfIbAccess:c.halfIbDirection,halfIbSource:c.halfIbSource,s4PostIbDivergence:c.s4PostIbDivergence,setup4FibContext:c.anchor,orderFlowCombos:c.combos,orderFlowTagCounts:c.ofTagCounts,orderFlowTaggedObservations:c.ofDetails,delta75kObservations:c.delta75,pocVolumeReferenceStatus:x.pocVolumeStatus||'DATA_NOT_VISIBLE',pocVolumeNotes:x.pocVolumeNotes||'UNDEF',participation:{entered:c.participation.entered,bullish:c.participation.alignedBull,bearish:c.participation.alignedBear,direction:c.participationDirection},heavyweightDivergence:c.conflicts,earlyContext:c.early,smallIB:c.smallIB,bigGap:{points:c.gapPts,percent:c.gapPct,thresholdState:c.gapThresholdState,unfilled:o.oaorGapFilled==='no',ghCheckpoint:c.gapGH,candidate:c.gapContinuation},conditionalTargetsAndObstacles:c.obstacles},setups:b.rows,selectedSetup:{setup:b.setup,tradeType:b.type,triggerState:selected&&selected.triggerState||'UNDEF',tradePermission:b.permission,sl:b.resolvedSL!=null?b.resolvedSL:'UNDEF',slStatus:b.resolvedSL!=null?b.resolvedSLProvenance:'UNDEF / MISSING SL ANCHOR',rr:canonical&&canonical.rr!=null?canonical.rr:'UNDEF',rrStatus:canonical&&canonical.rr!=null?'CALCULATED_SAME_BASIS':'UNDEF / BASIS OR SL MISSING'},coachMethodologyReferences:ciRulebookForExport(),hardGates,softWarnings,missingInputs:[...new Set(missing)],dataQuality:{timestampNormalization:'15-minute grid; non-zero seconds and off-grid minutes rejected by V40 parser',scaleMismatch:!!(c.scan&&c.scan.scaleMismatch),candleIssues:candleAudit.issues||[],candleMissing:candleAudit.missing||[],provenance:{importedCandles:'CSV_IMPORT',timestampNormalization:V41_PROVENANCE.timestampValidation,halfIbClose:V41_PROVENANCE.halfIbClose,pocVolumeChartReference:V41_PROVENANCE.pocVolumeChartReference,manualContext:'MANUAL_INPUT',scanner:'V40_EXISTING_CONVENTION'}},tradeManagement:{mode:x.managementMode,modeProvenance:V41_PROVENANCE.managementMode,manualStructuralSL:x.manualStructuralSL||'UNDEF',manualStructuralSLProvenance:x.manualStructuralSL?'MANUAL_INPUT':'UNDEF',partialBooking:'V40 existing journal convention: 50–70% band, 70% default; not asserted as universal Coach rule',doubtRecorded:x.doubtRecorded,doubtNotes:x.doubtNotes},opportunityLifecycle:{currentState:o.v41LifecycleState||{},events:life,evidenceChanges:o.v41EvidenceEvents||[],missedOpportunityReasons:life.filter(e=>e.stage==='MISSED').map(e=>({setupId:e.setupId,reasonCode:e.reasonCode,detail:e.detail,timestamp:e.timestamp})),terminalOutcomes:life.filter(e=>['TRADED','MISSED','EXPIRED'].includes(e.stage))},manualContext:{decision:x.manualDecision||'UNRECORDED',evidenceNotes:x.evidenceNotes||{},stockCandidateNotes:x.stockCandidateNotes||'',contextNotes:x.contextNotes||'',pocVolumeNotes:x.pocVolumeNotes||''},provenanceLabels:V41_PROVENANCE,reasonCodeDictionary:V41_REASON_CODES,methodologyCaveats:['S4 is context-only and cannot grant trade permission.','Half-IB access is not a guaranteed 2IB/3IB continuation.','75K delta and 1 lakh POC volume are separate observations.','Early context is not a confirmed trigger.','A scanner hit is not trade permission.','No missing SL, RR, price, timestamp or trigger is fabricated.','No automatic single-stock trade permission is created from divergence.']};
+}
+// Safe additive AI export wrapper: V40 sourceData and calculations remain intact.
+const V40_ciBaseExport = ciBaseExport;
+ciBaseExport = function(type,key,day,trades,stats){
+ const out=V40_ciBaseExport.apply(this,arguments);
+ if(!out||typeof out!=='object')return out;
+ try{
+  if(type==='history'&&day&&Array.isArray(day.days)){
+   out.v41DecisionSupport={version:'V41',scope:'HISTORICAL',days:day.days.map(entry=>{const saved=entry.day||{};const op=saved.opening||{};const events=op.v41LifecycleEvents||[];return {date:entry.date||null,tradeManagement:{mode:op.v41&&op.v41.managementMode||'LEGACY_UNSPECIFIED',manualStructuralSL:op.v41&&op.v41.manualStructuralSL||'UNDEF'},opportunityLifecycle:{currentState:op.v41LifecycleState||{},events,evidenceChanges:op.v41EvidenceEvents||[],missedOpportunityReasons:events.filter(e=>e.stage==='MISSED').map(e=>({setupId:e.setupId,reasonCode:e.reasonCode,detail:e.detail,timestamp:e.timestamp}))},manualContext:{decision:op.v41&&op.v41.manualDecision||'UNRECORDED',evidenceNotes:op.v41&&op.v41.evidenceNotes||{},stockCandidateNotes:op.v41&&op.v41.stockCandidateNotes||'',contextNotes:op.v41&&op.v41.contextNotes||''},provenanceLabels:V41_PROVENANCE};}),reasonCodeDictionary:V41_REASON_CODES,analyticsScope:'Process lifecycle only; P&L/outcomes remain in the original history export.'};
+  }else out.v41DecisionSupport=v41BuildDecisionAudit(day||DAY,key||dateKey);
+ }catch(e){out.v41DecisionSupport={version:'V41',error:String(e&&e.message||e),provenanceLabels:V41_PROVENANCE};}
+ return out;
+};
+// Explicit S4 context-only lock at the final resolver boundary. No other setup is changed here.
+const V40_finalizeAutomaticTrigger = finalizeAutomaticTrigger;
+finalizeAutomaticTrigger = function(trigger,engine,playbookBlocks=false){
+ const t=Object.assign({},trigger||{});
+ if(Number(t.id)===4){t.triggerState='WAITING_NEEDS_MANUAL_EVIDENCE';t.tradePermission=false;t.triggerDetail='S4 is CONTEXT ONLY: 09:30 ITM Fib can inform early direction/divergence but cannot authorize an entry.';return t;}
+ const out=V40_finalizeAutomaticTrigger(t,engine,playbookBlocks);out.tradePermission=false;return out;
+};
+// Bind after the source's original boot; boot/loadDay is asynchronous and this script runs before its next paint.
+try{v41Ensure(DAY);v41RenderPanel(true);}catch(e){console.warn('V41 initial panel',e);}
 </script>
 
 </body>
