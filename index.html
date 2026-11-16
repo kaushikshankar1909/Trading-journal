@@ -1,4 +1,6 @@
 <!--
+TRADING JOURNAL v38 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
+V38 technical fixes: ORR requires a valid A-period range before B-period reversal can be classified; OTD close must be on the correct side of its tested reference; Tick Acceptance no longer infers acceptance without valid A-period OHLC; malformed numeric inputs are rejected consistently in participation, delta, P&L/target, Fib/IV, IB and scanner OHLC validation; incomplete trade-size tier no longer displays a false zero-lot recommendation; Day Type ladder now exposes its existing close-location input for the no-Half-IB branch; trade logging blocks malformed/wrong-side SL or T1 values and malformed supplied size/partial fields; data-quality checks handle malformed record arrays and blank Half-IB OHLC safely. Existing Coach thresholds, setup logic outside these technical guards, and V28-compatible data schema are retained.
 TRADING JOURNAL v37 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
 
@@ -12,7 +14,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v36 · Coach Cockpit Edition</title>
+<title>Daily Trading Journal v38 · Coach Cockpit Edition</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -244,8 +246,8 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v37 (Coach Cockpit Audited)</div>
-  <div class="title">Daily Trading Journal v37</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v38 (Technical Bug Fixes)</div>
+  <div class="title">Daily Trading Journal v38</div>
 </header>
 
 <div class="daybar">
@@ -272,7 +274,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
   <!-- ================= LEVELS ================= -->
   <!-- ================= COACH COCKPIT ================= -->
   <div id="section-cockpit" class="section">
-    <div class="hint-box" style="padding:12px 4px 10px">🎯 Coach Cockpit v37 — Live checkpoint, 09:30 anchor, 10:15 IB lock, If-Then scenario tree &amp; active trade management in one screen.</div>
+    <div class="hint-box" style="padding:12px 4px 10px">🎯 Coach Cockpit v38 — Live checkpoint, 09:30 anchor, 10:15 IB lock, If-Then scenario tree &amp; active trade management in one screen.</div>
     <div class="card">
       <div class="card-title">LIVE SESSION PHASE &amp; GATES</div>
       <div id="cockpitPhaseBox" class="result-inner"></div>
@@ -1492,7 +1494,7 @@ function scheduleAutoSave() {
 async function saveDay(silent) {
   const key=dateKey, snapshot=JSON.parse(JSON.stringify(DAY));
   if(!/^\d{4}-\d{2}-\d{2}$/.test(key||''))return;
-  snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v37',updatedAt:new Date().toISOString()};
+  snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v38',updatedAt:new Date().toISOString()};
   try { localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(snapshot)); }
   catch (e) { if (!silent) alert('Local save failed — storage blocked ho sakta hai.'); return; }
   const cloudWasEnabled=usingDb;
@@ -1509,7 +1511,7 @@ async function loadDay(key, options={}) {
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||'')))return;
   const sequence=++dayLoadSequence;
   const oldKey=dateKey, oldSnapshot=JSON.parse(JSON.stringify(DAY));
-  if(/^\d{4}-\d{2}-\d{2}$/.test(oldKey||''))oldSnapshot._journalMeta={...(oldSnapshot._journalMeta||{}),schemaVersion:'v37',updatedAt:new Date().toISOString()};
+  if(/^\d{4}-\d{2}-\d{2}$/.test(oldKey||''))oldSnapshot._journalMeta={...(oldSnapshot._journalMeta||{}),schemaVersion:'v38',updatedAt:new Date().toISOString()};
   clearTimeout(autoSaveTimer); autoSaveTimer=null;
   // Flush the outgoing date before changing globals; otherwise a pending debounce could
   // save the previous day's object under the newly selected date.
@@ -1569,9 +1571,20 @@ document.getElementById('lv_poorLow').oninput = (e) => { DAY.levels.poorLow = e.
 /* ============================================================
    OPENING TYPE CALC
 ============================================================ */
+// Strict numeric parsing for user-entered market data. Unlike parseFloat(), this rejects
+// trailing junk (for example "24700oops") while still accepting correctly grouped commas.
+function strictFiniteNumber(value) {
+  const raw = String(value == null ? '' : value).trim();
+  if (!raw) return NaN;
+  const pattern = /^[+-]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
+  if (!pattern.test(raw)) return NaN;
+  const n = Number(raw.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : NaN;
+}
+
 function calcOpening() {
   const L = DAY.levels, O = DAY.opening;
-  const open = parseFloat(O.open), pdh = parseFloat(L.pdh), pdl = parseFloat(L.pdl);
+  const open = strictFiniteNumber(O.open), pdh = strictFiniteNumber(L.pdh), pdl = strictFiniteNumber(L.pdl);
   if (![open,pdh,pdl].every(Number.isFinite)) return null;
 
   // [BUG#1 FIX — corrected version, re-verified against transcripts this session]
@@ -1597,7 +1610,9 @@ function calcOpening() {
   }
 
   const ER = effectiveRules();
-  const Ah = parseFloat(O.A.h), Al = parseFloat(O.A.l), Ac = parseFloat(O.A.c);
+  const Ah = strictFiniteNumber(O.A.h), Al = strictFiniteNumber(O.A.l), Ac = strictFiniteNumber(O.A.c);
+  const aRangeReady = Number.isFinite(Ah) && Number.isFinite(Al) && Ah >= Al && Ah >= open && Al <= open;
+  const aOhlcReady = aRangeReady && Number.isFinite(Ac) && Ac >= Al && Ac <= Ah;
   let sub = null;
 
   // BIG GAP OAOR — Drive/OTD dono disable, sirf Open accept/reject applicable hai (coach ka rule)
@@ -1608,7 +1623,7 @@ function calcOpening() {
   // Close dono extreme se check: driven-extreme ke paas hona chahiye AUR doosre extreme se door
   const MIN_CLOSE_AWAY = 10;
   const CLOSE_NEAR_EXTREME = 15;
-  if (!bigGapOAOR && base !== 'BORDERLINE' && [Ah,Al,Ac].every(Number.isFinite)) {
+  if (!bigGapOAOR && base !== 'BORDERLINE' && aOhlcReady) {
     const upMove = Ah - open, downMove = open - Al;
     const closeNearLow = (Ac - Al) <= CLOSE_NEAR_EXTREME;
     const closeNearHigh = (Ah - Ac) <= CLOSE_NEAR_EXTREME;
@@ -1621,32 +1636,32 @@ function calcOpening() {
       sub = { type:"DRIVE", dir:"up" };
     }
   }
-  if (!sub && Number.isFinite(Ac) && !bigGapOAOR && base !== 'BORDERLINE') {
+  if (!sub && aOhlcReady && !bigGapOAOR && base !== 'BORDERLINE') {
     const OTD_TEST = 10, OTD_PROBE = 25, OTD_BREAK = 20;
     const levels = [["PDH",pdh],["PDL",pdl],["PDC",parseFloat(L.pdc)],["VAH",parseFloat(L.vah)],["VAL",parseFloat(L.val)],["POC",parseFloat(L.poc)],["PSYCH",parseFloat(L.psych)]].filter(x=>!isNaN(x[1]));
     if (L.naked) {
       L.naked.split(',').forEach((s, idx) => {
-        const v = parseFloat(s.trim());
-        if (!isNaN(v)) levels.push(["NAKED"+(idx+1), v]);
+        const v = strictFiniteNumber(s.trim());
+        if (Number.isFinite(v)) levels.push(["NAKED"+(idx+1), v]);
       });
     }
     for (const [name, lvl] of levels) {
-      if (!isNaN(Al) && !isNaN(Ah) && Math.abs(Al - lvl) <= OTD_TEST && Ac < open && (Ah - open) <= OTD_PROBE && (lvl - Ac) < OTD_BREAK) { sub = { type:"OTD", dir:"down", level:name }; break; }
-      if (!isNaN(Ah) && !isNaN(Al) && Math.abs(Ah - lvl) <= OTD_TEST && Ac > open && (open - Al) <= OTD_PROBE && (Ac - lvl) < OTD_BREAK) { sub = { type:"OTD", dir:"up", level:name }; break; }
+      if (Math.abs(Al - lvl) <= OTD_TEST && Ac < open && Ac < lvl && (Ah - open) <= OTD_PROBE && (lvl - Ac) < OTD_BREAK) { sub = { type:"OTD", dir:"down", level:name }; break; }
+      if (Math.abs(Ah - lvl) <= OTD_TEST && Ac > open && Ac > lvl && (open - Al) <= OTD_PROBE && (Ac - lvl) < OTD_BREAK) { sub = { type:"OTD", dir:"up", level:name }; break; }
     }
   }
 
   let orr = null;
-  const Bc = parseFloat(O.B.c);
+  const Bc = strictFiniteNumber(O.B.c);
   const bFilled = Number.isFinite(Bc);
-  if (bFilled && Number.isFinite(Bc)) {
-    const upMove = (!isNaN(Ah) ? Ah-open : 0), downMove = (!isNaN(Al) ? open-Al : 0);
+  if (bFilled && aRangeReady) {
+    const upMove = Ah-open, downMove = open-Al;
     const aDir = downMove >= upMove ? "down" : "up";
     const crossed = aDir === "down" ? (Bc - open) : (open - Bc);
     if (crossed >= ER.orrMinCross) orr = { dir: aDir === "down" ? "up" : "down", cross: crossed };
   }
 
-  return { base, sub, orr, waitForB: !sub, bFilled, ER, bigGapOAOR, gapDist, gapBand:gapDist>=50 && gapDist<Math.max(70,Number(RULES.flatThresh)||70)?'BORDERLINE 50–70 / USER THRESHOLD BAND':(gapDist>=70?'OAOR SOURCE BAND (70–80+ pts)':'FLAT / OAIR SOURCE BAND (<40–50 pts)') };
+  return { base, sub, orr, waitForB: !sub, bFilled, aRangeReady, aOhlcReady, ER, bigGapOAOR, gapDist, gapBand:gapDist>=50 && gapDist<Math.max(70,Number(RULES.flatThresh)||70)?'BORDERLINE 50–70 / USER THRESHOLD BAND':(gapDist>=70?'OAOR SOURCE BAND (70–80+ pts)':'FLAT / OAIR SOURCE BAND (<40–50 pts)') };
 }
 
 function effectiveRules() {
@@ -1679,7 +1694,7 @@ function getMomentum() {
 // [NEW FEATURE 2: Opening Tick Acceptance — this session]
 function suggestTickAcceptance() {
   const res = calcOpening();
-  if (!res) return null;
+  if (!res || !res.aOhlcReady) return null;
   return (res.sub || res.orr) ? 'rejected' : 'accepted'; // Drive/OTD/ORR present = rejected tick; else rotation = accepted
 }
 function getTickAcceptance() {
@@ -1699,10 +1714,11 @@ function tz(n) { return (n - TARGET_ZONE_HALF).toFixed(0) + '–' + (n + TARGET_
 function calcPositionSizing() {
   // Coach Q&A 7 Nov 2026: size is chosen from live structure, volatility, alignment and confidence.
   // No automatic one-tier-per-factor deduction: Coach did not define such a formula.
-  const base = parseFloat(DAY.opening.baseLotSize);
+  const base = strictFiniteNumber(DAY.opening.baseLotSize);
   if (isNaN(base) || base <= 0) return null;
   const o = DAY.opening;
-  const selected = [25,50,75,100].includes(parseInt(o.sizingChosenPct,10)) ? parseInt(o.sizingChosenPct,10) : null;
+  const chosenPct = strictFiniteNumber(o.sizingChosenPct);
+  const selected = [25,50,75,100].includes(chosenPct) ? chosenPct : null;
   const reasons = [];
   if (o.sizingStructure === 'balanced') reasons.push('Balanced / normal structure selected — Coach examples: OAIR, Normal Day, NVD; full quantity may be considered when volatility is low and structure is balanced.');
   if (o.sizingStructure === 'confusing') reasons.push('Confusing structure — Coach says reduce size; exact tier is your live risk decision.');
@@ -1747,9 +1763,9 @@ function calcTrailChecklist() {
 }
 
 function calcFibExtension() {
-  const p1 = parseFloat(DAY.opening.fibP1);
-  const p2 = parseFloat(DAY.opening.fibP2);
-  const p3 = parseFloat(DAY.opening.fibP3);
+  const p1 = strictFiniteNumber(DAY.opening.fibP1);
+  const p2 = strictFiniteNumber(DAY.opening.fibP2);
+  const p3 = strictFiniteNumber(DAY.opening.fibP3);
   if (![p1,p2,p3].every(Number.isFinite) || p2===p1) return null;
   const range = p2 - p1;
   const dir = range >= 0 ? "upside" : "downside";
@@ -1761,7 +1777,7 @@ function calcFibExtension() {
     mids.push({ label: levels[i].label + "–" + levels[i+1].label + " mid", value: (levels[i].value + levels[i+1].value) / 2 });
   }
   const deadEndLevel = levels[3].value; // 261.8% = 3rd extension counting 100/161.8/261.8
-  const live = parseFloat(DAY.niftyPrice);
+  const live = strictFiniteNumber(DAY.niftyPrice);
   let deadEndNote = null;
   if (!isNaN(live)) {
     const reached = dir === "upside" ? live >= deadEndLevel : live <= deadEndLevel;
@@ -1788,7 +1804,7 @@ function calcFibExtension() {
 const IV_SKEW_MIN = 3, IV_SKEW_STRONG = 5, IV_HIGH = 20, IV_EXTREME = 40; // 3-4 gap, 20-22 freeze, 40+ extreme: Coach (Option trading 4)
 function calcIVSkew() {
   const o = DAY.opening;
-  const c = parseFloat(o.callIV), p = parseFloat(o.putIV), vix = parseFloat(o.vix);
+  const c = strictFiniteNumber(o.callIV), p = strictFiniteNumber(o.putIV), vix = strictFiniteNumber(o.vix);
   const haveBoth = !isNaN(c) && !isNaN(p);
   const r = { haveBoth, c, p, gap:null, higherSide:null, skew:false, strong:false,
               bothHigh:false, extreme:false, vixHigh: !isNaN(vix) && vix >= IV_HIGH,
@@ -1844,17 +1860,18 @@ function renderIV() {
 }
 
 function calcStrikeSelector() {
-  const open = parseFloat(DAY.opening.open);
-  if (isNaN(open)) return null;
+  const open = strictFiniteNumber(DAY.opening.open);
+  if (!Number.isFinite(open)) return null;
   const roundTo = 100;
-  const dist = parseFloat(DAY.opening.strikeDist) || 300;
+  const rawDist = strictFiniteNumber(DAY.opening.strikeDist);
+  const dist = Number.isFinite(rawDist) && rawDist > 0 ? rawDist : 300;
   const atm = Math.round(open / roundTo) * roundTo;
   const ceStrike = Math.round((atm + dist) / roundTo) * roundTo;
   const peStrike = Math.round((atm - dist) / roundTo) * roundTo;
   const rangeUp = open * 1.01;
   const rangeDown = open * 0.99;
 
-  const live = parseFloat(DAY.niftyPrice);
+  const live = strictFiniteNumber(DAY.niftyPrice);
   let shiftNote = null;
   if (!isNaN(live)) {
     const fellAgainstCE = open - live;
@@ -1872,7 +1889,7 @@ function calcIB() {
   // Coach's Morning tab is the authoritative IB input: A 09:15–09:45 + B 09:45–10:15.
   // Do not rebuild or require these values from CSV opening candles.
   const A = DAY.opening.A || {}, B = DAY.opening.B || {};
-  const Ah=Number(A.h), Al=Number(A.l), Bh=Number(B.h), Bl=Number(B.l);
+  const Ah=strictFiniteNumber(A.h), Al=strictFiniteNumber(A.l), Bh=strictFiniteNumber(B.h), Bl=strictFiniteNumber(B.l);
   if (![Ah,Al,Bh,Bl].every(Number.isFinite)) return null;
   if (Ah<=0 || Al<=0 || Bh<=0 || Bl<=0 || Ah<Al || Bh<Bl) return null;
   const ibHigh = Math.max(Ah,Bh), ibLow = Math.min(Al,Bl);
@@ -1913,8 +1930,10 @@ function openingLabel(res) {
     else parts.push("OTD " + (res.sub.dir === "up" ? "Up" : "Down") + " (near " + res.sub.level + ")");
   } else if (res.orr) {
     parts.push("ORR " + (res.orr.dir === "up" ? "Up" : "Down"));
-  } else if (res.bFilled) {
+  } else if (res.bFilled && res.aRangeReady) {
     extra += (extra ? " " : "") + "B check ho gaya — ORR ke conditions nahi bane (" + res.ER.orrMinCross + "+ pts cross chahiye). Koi named sub-type confirm nahi hota, sirf " + res.base + " hai.";
+  } else if (res.bFilled && !res.aRangeReady) {
+    extra += (extra ? " " : "") + "B close entered, lekin A-period High/Low missing ya invalid hai; ORR classify nahi kiya gaya.";
   } else {
     extra += (extra ? " " : "") + "Ambiguous — B period ka wait karo, ORR possible.";
   }
@@ -2189,7 +2208,7 @@ function renderOpening() {
   renderToggleGroup('tg_vwapTestCount', DAY.opening.vwapTestCount);
   renderToggleGroup('tg_vwapReaction', DAY.opening.vwapReaction);
 
-  document.getElementById('q_closeInside').style.display = (DAY.opening.ibTouchedBothSides === 'yes') ? 'block' : 'none';
+  document.getElementById('q_closeInside').style.display = (DAY.opening.ibTouchedBothSides === 'yes' || (DAY.opening.ibTouchedBothSides === 'no' && DAY.opening.halfIbAccess === 'no')) ? 'block' : 'none';
   document.getElementById('q_halfAccess').style.display = (DAY.opening.ibTouchedBothSides === 'no') ? 'block' : 'none';
   document.getElementById('q_halfSide').style.display = (DAY.opening.halfIbAccess === 'yes') ? 'block' : 'none';
   document.getElementById('q_vwap').style.display = (DAY.opening.halfIbAccess === 'yes') ? 'block' : 'none';
@@ -2769,7 +2788,7 @@ document.getElementById('op_prevSpikeLow').oninput = (e) => { DAY.opening.prevSp
 ============================================================ */
 const PART_FLAT_BAND = 0.10; // Coach 04-Aug-26: 0.05–0.10% is flat → |chg| <= 0.10 is NOT directional
 function computeFromValues(values, nifty, cp) {
-  const entries = STOCKS.map(s => ({ ...s, val: parseFloat(values[s.name] ? values[s.name][cp] : NaN) })).filter(e => Number.isFinite(e.val));
+  const entries = STOCKS.map(s => ({ ...s, val: strictFiniteNumber(values && values[s.name] ? values[s.name][cp] : '') })).filter(e => Number.isFinite(e.val));
   if (entries.length === 0) return null;
   const positive = entries.filter(e => e.val > 0).length;
   const negative = entries.filter(e => e.val < 0).length;
@@ -2788,7 +2807,7 @@ function computeFromValues(values, nifty, cp) {
   const pullPct = entries.reduce((s, e) => s + e.val * e.weight, 0) / 100;
   const spot = Number.isFinite(Number(nifty)) ? Number(nifty) : 0;
   const points = (pullPct * spot) / 100;
-  const legVals = STOCKS.filter(s => s.leg).map(s => parseFloat(values[s.name][cp])).filter(Number.isFinite);
+  const legVals = STOCKS.filter(s => s.leg).map(s => strictFiniteNumber(values && values[s.name] ? values[s.name][cp] : '')).filter(Number.isFinite);
   const legUp = legVals.filter(v => v >= 0.5).length, legDown = legVals.filter(v => v <= -0.5).length;
   const legSignal = legVals.length === 0 ? null : (legUp >= 3 ? "BULL" : legDown >= 3 ? "BEAR" : "MIXED");
   let direction = null, signal = "MIXED / NO CONVICTION", signalStatus = entries.length===12 ? "COMPLETE" : "INCOMPLETE";
@@ -2803,7 +2822,7 @@ function computeCheckpoint(cp) {
   return computeFromValues(DAY.participation, nifty, cp);
 }
 function checkpointFillCount(values, cp) {
-  return STOCKS.filter(s => !isNaN(parseFloat(values[s.name][cp]))).length;
+  return STOCKS.filter(s => Number.isFinite(strictFiniteNumber(values && values[s.name] ? values[s.name][cp] : ''))).length;
 }
 function signalColor(sig) {
   if (sig === "BUY" || sig === "SELL") return sig === "BUY" ? COL.green : COL.red;
@@ -3068,21 +3087,22 @@ function renderOF() {
    Pehle parseFloat('9k') = 9 ho jaata tha, isliye delta galat padha jaata tha. */
 function parseDeltaK(v) {
   if (v === null || v === undefined) return NaN;
-  let s = String(v).trim().toLowerCase().replace(/[,\s]/g, '');
+  let s = String(v).trim().toLowerCase().replace(/\s/g, '');
   if (!s) return NaN;
   let mult = 1;
   if (/k$/.test(s)) { mult = 1000; s = s.slice(0, -1); }
   else if (/m$/.test(s)) { mult = 1000000; s = s.slice(0, -1); }
   else if (/l$/.test(s)) { mult = 100000; s = s.slice(0, -1); }
-  const n = parseFloat(s);
+  const n = strictFiniteNumber(s);
   return Number.isFinite(n) ? Math.abs(n) * mult : NaN;
 }
 
 function computeOfRealityFromEntries() {
   // P3 Bug#2 FIX: aggregate ALL A+B period candles (A1,A2,B1,B2...), not just the first found per period.
   // Coach's rule (Orderflow part 3) is sequence/combination based, not single-candle based.
-  const aEntries = DAY.orderflow.filter(e => e.period === 'A' && e.tag);
-  const bEntries = DAY.orderflow.filter(e => e.period === 'B' && e.tag);
+  const entries = Array.isArray(DAY.orderflow) ? DAY.orderflow : [];
+  const aEntries = entries.filter(e => e && e.period === 'A' && e.tag);
+  const bEntries = entries.filter(e => e && e.period === 'B' && e.tag);
   const all = aEntries.concat(bEntries);
   if (all.length === 0) return null;
   if (aEntries.length === 0 || bEntries.length === 0) return 'not_useful'; // need at least one tagged candle from EACH period
@@ -3412,17 +3432,24 @@ let TF = { dir:null, plan:null, pre:null, perr:null, t1Reached:null, mist:[] };
 let TRADES_CACHE = [], CVOL_CACHE = [];
 
 function parseMoney(v) {
-  let s = String(v == null ? '' : v).toLowerCase().replace(/[₹,\s]/g, '');
+  let s = String(v == null ? '' : v).toLowerCase().replace(/[₹\s]/g, '');
   if (!s) return NaN;
   let m = 1;
   if (/k$/.test(s)) { m = 1000; s = s.slice(0, -1); }
-  const n = parseFloat(s);
-  return isNaN(n) ? NaN : n * m;
+  const n = strictFiniteNumber(s);
+  return Number.isFinite(n) ? n * m : NaN;
 }
 function parseTarget(v, up) {
-  const m = /^\s*(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*$/.exec(String(v == null ? '' : v));
-  if (m) { const a = parseFloat(m[1]), b = parseFloat(m[2]), lo = Math.min(a, b), hi = Math.max(a, b); return { lo, hi, edge: up ? lo : hi }; }
-  const n = parseFloat(v); return isNaN(n) ? null : { lo: n, hi: n, edge: n };
+  const part = '(?:\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d+)?|\\.\\d+';
+  const m = new RegExp('^\\s*(' + part + ')\\s*[-–]\\s*(' + part + ')\\s*$').exec(String(v == null ? '' : v));
+  if (m) {
+    const a = strictFiniteNumber(m[1]), b = strictFiniteNumber(m[2]);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    const lo = Math.min(a, b), hi = Math.max(a, b);
+    return { lo, hi, edge: up ? lo : hi };
+  }
+  const n = strictFiniteNumber(v);
+  return Number.isFinite(n) ? { lo: n, hi: n, edge: n } : null;
 }
 function toMin(t) { const m = /^(\d{1,2})[:.](\d{2})$/.exec(String(t || '').trim()); return m ? (+m[1]) * 60 + (+m[2]) : NaN; }
 function fmtR(n) { return (n < 0 ? '−' : '+') + '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); }
@@ -3596,8 +3623,9 @@ function renderTradeForm() {
 function updateRRHint() {
   try { tradeLockUpdate(); } catch (e) {}
   const el=document.getElementById('tradeRRHint'); if(!el)return;
-  const g=id=>{const v=parseFloat(document.getElementById(id).value);return Number.isFinite(v)?v:null;};
-  const up=TF.dir!=='down',e=g('t_sEntry'),sl=g('t_sSL');
+  const g=id=>{const v=strictFiniteNumber(document.getElementById(id).value);return Number.isFinite(v)?v:null;};
+  if (TF.dir !== 'up' && TF.dir !== 'down') { el.innerHTML='Direction chuno (CE / PE), phir risk aur RR calculate hoga.'; return; }
+  const up=TF.dir==='up',e=g('t_sEntry'),sl=g('t_sSL');
   const t1=parseTarget(document.getElementById('t_sT1').value,up),t2=parseTarget(document.getElementById('t_sT2').value,up);
   if(e==null||sl==null){el.innerHTML='Spot entry + SL bharo — risk aur RR yahan dikhega.';return;}
   const risk=up?e-sl:sl-e;if(!(risk>0)){el.innerHTML='<span class="neg">SL galat side par hai ('+(up?'CE: SL entry se neeche':'PE: SL entry se upar')+' hona chahiye).</span>';return;}
@@ -3610,9 +3638,13 @@ function updateRRHint() {
 }
 function updateLotHint() {
   const el = document.getElementById('tradeLotHint'); if (!el) return;
-  const lots = parseFloat(document.getElementById('t_lots').value);
+  const lots = strictFiniteNumber(document.getElementById('t_lots').value);
   let z = null; try { z = calcPositionSizing(); } catch (e) {}
   if (!z) { el.innerHTML = 'Size check ke liye MORNING me Base lot size bharo.'; return; }
+  if (z.tier == null || z.recommended == null || !Number.isFinite(z.recommended)) {
+    el.innerHTML = 'Base lot size available hai. MORNING mein sizing tier (25 / 50 / 75 / 100%) select karo; abhi recommended lots calculate nahi hue.';
+    return;
+  }
   const rec = Math.round(z.recommended * 100) / 100;
   let h = 'Aaj ka tier: ' + z.tier + '% = ' + rec + ' lots.';
   if (!isNaN(lots) && lots > z.recommended + 0.0001) h += ' <span class="neg">Tum ' + lots + ' le rahe ho — tier se zyada.</span>';
@@ -3680,7 +3712,7 @@ document.getElementById('addTradeBtn').onclick = async () => {
   const pnl = parseMoney(document.getElementById('t_pnl').value);
   if (!TF.dir) { msg.innerHTML = '<span class="neg">Direction chuno (CE/PE).</span>'; return; }
   if (isNaN(pnl)) { msg.innerHTML = '<span class="neg">P&L ₹ bharo (loss ho to -1200 jaisa).</span>'; return; }
-  const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
+  const num = id => { const v = strictFiniteNumber(document.getElementById(id).value); return Number.isFinite(v) ? v : null; };
   const pE = num('t_entry'), pX = num('t_exit'), lots = num('t_lots'), triggerSpot = num('t_triggerSpot'), triggerTime = document.getElementById('t_triggerTime').value.trim();
   const up = TF.dir === 'up';
   const sE = num('t_sEntry'), sS = num('t_sSL'), sX = num('t_sExit');
@@ -3865,15 +3897,15 @@ function evaluateSetup4Evidence(dayData) {
 }
 function participationAudit(cp) {
   let positive=0,negative=0,zero=0,strongBull=0,strongBear=0,entered=0;
-  let aB=0,aS=0;STOCKS.forEach(st=>{const raw=DAY.participation?.[st.name]?.[cp]; if(raw===''||raw==null||!Number.isFinite(parseFloat(raw)))return; const v=parseFloat(raw);entered++; if(v>0)positive++; else if(v<0)negative++; else zero++; if(v>=0.5)strongBull++; if(v<=-0.5)strongBear++; if(v>PART_FLAT_BAND)aB++; if(v<-PART_FLAT_BAND)aS++;});
+  let aB=0,aS=0;STOCKS.forEach(st=>{const raw=DAY.participation?.[st.name]?.[cp]; const v=strictFiniteNumber(raw); if(!Number.isFinite(v))return; entered++; if(v>0)positive++; else if(v<0)negative++; else zero++; if(v>=0.5)strongBull++; if(v<=-0.5)strongBear++; if(v>PART_FLAT_BAND)aB++; if(v<-PART_FLAT_BAND)aS++;});
   return {checkpoint:cp,entered,positive,negative,zero,strongBull,strongBear,alignedBull:aB,alignedBear:aS,threshold:'Strong directional display uses >= +0.50% / <= -0.50% (implementation threshold; not a Coach-defined participation threshold).'};
 }
 // Coach-aligned early opening classifier. It only uses information available by 09:30.
 // ORR is deliberately NOT confirmed here: source requires an A/B-period rejection and 7-8/12 heavyweight confirmation.
 function classifyOpeningAt930(dayData) {
-  const src=dayData||DAY, o=src.opening||{}, lv=src.levels||{}, c=o.spot930||{}, bars=o.opening5m||[];
-  const num=x=>{const n=parseFloat(x);return Number.isFinite(n)?n:null;};
-  const open=num(o.open)||num(c.o), high=num(c.h), low=num(c.l), close=num(c.c), pdc=num(lv.pdc), pdh=num(lv.pdh), pdl=num(lv.pdl);
+  const src=dayData||DAY, o=src.opening||{}, lv=src.levels||{}, c=o.spot930||{}, bars=Array.isArray(o.opening5m)?o.opening5m:[];
+  const num=x=>{const n=strictFiniteNumber(x);return Number.isFinite(n)?n:null;};
+  const open=num(o.open)!==null?num(o.open):num(c.o), high=num(c.h), low=num(c.l), close=num(c.c), pdc=num(lv.pdc), pdh=num(lv.pdh), pdl=num(lv.pdl);
   const refs=[['POC',num(lv.poc)],['VAH',num(lv.vah)],['VAL',num(lv.val)]].filter(x=>x[1]!==null);
   const completeBars=bars.length===3&&bars.every(b=>['o','h','l','c'].every(k=>num(b&&b[k])!==null));
   const complete15=[open,high,low,close].every(x=>x!==null);
@@ -4438,14 +4470,40 @@ function renderPmCheck() {
   box.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { DAY.opening[b.dataset.pm] = !DAY.opening[b.dataset.pm]; scheduleAutoSave(); renderPmCheck(); });
 }
 // 2) TRADE ENTRY LOCK. Coach: "Before the trade, you have a predefined position sizing." / "First question should not be the target. First question should be how much the minimum risk I can take right after the entry."
-function tradeLockMissing() { const g = id => nlmF(document.getElementById(id).value), m = []; if (!g('t_sEntry')) m.push('Entry'); if (!g('t_sSL')) m.push('SL'); if (!g('t_sT1')) m.push('T1'); if (TF.pre !== 'yes') m.push('Plan = Haan'); if (!TF.t1Reached) m.push('T1 hit?'); if (!g('t_executionStatus')) m.push('Execution status'); if (TF.t1Reached === 'yes' && !g('t_partialPct')) m.push('T1 partial %'); if (TF.t1Reached === 'yes' && !g('t_runnerShift')) m.push('Runner SL shift'); return m; }
+function tradeLockMissing() {
+  const value = id => strictFiniteNumber(document.getElementById(id).value);
+  const m = [], entry = value('t_sEntry'), sl = value('t_sSL');
+  const up = TF.dir === 'up', t1 = parseTarget(document.getElementById('t_sT1').value, up);
+  if (TF.dir !== 'up' && TF.dir !== 'down') m.push('Direction');
+  if (!Number.isFinite(entry) || entry <= 0) m.push('Valid entry');
+  if (!Number.isFinite(sl) || sl <= 0) m.push('Valid SL');
+  if (!t1 || !Number.isFinite(t1.edge) || t1.edge <= 0) m.push('Valid T1');
+  if (Number.isFinite(entry) && Number.isFinite(sl) && (TF.dir === 'up' || TF.dir === 'down')) {
+    if ((up && sl >= entry) || (!up && sl <= entry)) m.push('SL correct side');
+  }
+  if (Number.isFinite(entry) && t1 && (TF.dir === 'up' || TF.dir === 'down')) {
+    if ((up && t1.edge <= entry) || (!up && t1.edge >= entry)) m.push('T1 correct side');
+  }
+  if (TF.pre !== 'yes') m.push('Plan = Haan');
+  if (!TF.t1Reached) m.push('T1 hit?');
+  if (!nlmF(document.getElementById('t_executionStatus').value)) m.push('Execution status');
+  if (TF.t1Reached === 'yes') {
+    const partial = strictFiniteNumber(document.getElementById('t_partialPct').value);
+    if (!Number.isFinite(partial) || partial < 0 || partial > 100) m.push('Valid T1 partial %');
+    if (!nlmF(document.getElementById('t_runnerShift').value)) m.push('Runner SL shift');
+  }
+  const lotsRaw = document.getElementById('t_lots').value, lotSizeRaw = document.getElementById('t_lotsize').value;
+  if (String(lotsRaw || '').trim() && (!Number.isFinite(strictFiniteNumber(lotsRaw)) || strictFiniteNumber(lotsRaw) <= 0)) m.push('Valid lots');
+  if (String(lotSizeRaw || '').trim() && (!Number.isFinite(strictFiniteNumber(lotSizeRaw)) || strictFiniteNumber(lotSizeRaw) <= 0)) m.push('Valid lot size');
+  return m;
+}
 function tradeLockOk() { return tradeLockMissing().length === 0; }
 function tradeLockUpdate() {
   const btn = document.getElementById('addTradeBtn'), msg = document.getElementById('tradeFormMsg'); if (!btn) return; const m = tradeLockMissing();
   btn.disabled = m.length > 0; btn.style.opacity = m.length ? 0.45 : 1;
   if (m.length) msg.innerHTML = '<span class="neg">Trade log incomplete (' + m.join(', ') + ') — pehle required execution fields complete karo</span>';
   else if (/Trade log incomplete/.test(msg.textContent)) msg.innerHTML = '';
-  const e = parseFloat(document.getElementById('t_sEntry').value), s = parseFloat(document.getElementById('t_sSL').value), lots = parseFloat(document.getElementById('t_lots').value), ls = parseFloat(document.getElementById('t_lotsize').value), ri = document.getElementById('tradeRiskInfo');
+  const e = strictFiniteNumber(document.getElementById('t_sEntry').value), s = strictFiniteNumber(document.getElementById('t_sSL').value), lots = strictFiniteNumber(document.getElementById('t_lots').value), ls = strictFiniteNumber(document.getElementById('t_lotsize').value), ri = document.getElementById('tradeRiskInfo');
   if (ri) { if (!isNaN(e) && !isNaN(s)) { const pts = Math.abs(e - s); ri.innerHTML = 'Risk: ' + pts.toFixed(0) + ' spot pts' + (!isNaN(lots) && !isNaN(ls) ? ' · ≈ ₹' + Math.round(pts * lots * ls).toLocaleString('en-IN') + ' (index-pt basis, upper bound — info only)' : ' · lots + lot size se ₹ risk dikhega'); } else ri.innerHTML = ''; }
 }
 function tradeAutoFill() {
@@ -4593,22 +4651,24 @@ function renderCoachContext(){
 
 function ciDataQuality(day, key){
  const issues=[], missing=[], warnings=[]; const d=day||DAY; const seen=new Set();
-  (d.trades||[]).forEach((t,i)=>{const id=String(t.id||'');if(id&&seen.has(id))issues.push('Duplicate trade id: '+id);if(id)seen.add(id);if(t.time&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.time))issues.push('Invalid trade timestamp at row '+(i+1)+': '+t.time);if(t.triggerTime&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.triggerTime))issues.push('Invalid trigger timestamp at trade '+(i+1)+': '+t.triggerTime);if(typeof t.pnl!=='number'||!Number.isFinite(t.pnl))issues.push('Invalid/missing numeric P&L at trade '+(i+1));if(t.entry!=null&&t.exit!=null&&(!Number.isFinite(+t.entry)||!Number.isFinite(+t.exit)))issues.push('Invalid premium entry/exit at trade '+(i+1));if(t.partialPct!=null&&(!Number.isFinite(+t.partialPct)||+t.partialPct<0||+t.partialPct>100))issues.push('Invalid partial-booking percentage at trade '+(i+1));if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct==null)warnings.push('Trade '+(i+1)+' T1 reached but partial booking % is not recorded.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct!=null&&(+t.partialPct<50||+t.partialPct>70))warnings.push('Trade '+(i+1)+' partial booking is outside the source 50–70% band; 70% is the operational default.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct>0&&(!t.runnerShift||t.runnerShift==='no'||t.runnerShift==='na'))warnings.push('Trade '+(i+1)+' partial booked but runner SL was not shifted to Cost/VWAP.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct>0&&t.runnerShift==='other')warnings.push('Trade '+(i+1)+' runner uses a non-standard structural trail; verify whether Cost/VWAP shift rule was followed.');if(t.tradeManagementVersion&&t.t1Reached==='no'&&t.partialPct!=null&&t.partialPct>0)warnings.push('Trade '+(i+1)+' records partial booking even though T1 is marked not reached.');if(t.tradeManagementVersion&&!t.executionStatus)warnings.push('Trade '+(i+1)+' execution status is not recorded.');});
+  const trades=Array.isArray(d.trades)?d.trades:[];
+  if(d.trades!=null&&!Array.isArray(d.trades))issues.push('Trade records are not stored as an array.');
+  trades.forEach((t,i)=>{if(!t||typeof t!=='object'){issues.push('Invalid trade record at row '+(i+1));return;}const id=String(t.id||'');if(id&&seen.has(id))issues.push('Duplicate trade id: '+id);if(id)seen.add(id);if(t.time&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.time))issues.push('Invalid trade timestamp at row '+(i+1)+': '+t.time);if(t.triggerTime&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(t.triggerTime))issues.push('Invalid trigger timestamp at trade '+(i+1)+': '+t.triggerTime);if(typeof t.pnl!=='number'||!Number.isFinite(t.pnl))issues.push('Invalid/missing numeric P&L at trade '+(i+1));if((t.entry!=null||t.exit!=null)&&((t.entry==null||String(t.entry).trim()===''||!Number.isFinite(+t.entry))||(t.exit==null||String(t.exit).trim()===''||!Number.isFinite(+t.exit))))issues.push('Invalid/incomplete premium entry/exit at trade '+(i+1));if(t.partialPct!=null&&(String(t.partialPct).trim()===''||!Number.isFinite(+t.partialPct)||+t.partialPct<0||+t.partialPct>100))issues.push('Invalid partial-booking percentage at trade '+(i+1));if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct==null)warnings.push('Trade '+(i+1)+' T1 reached but partial booking % is not recorded.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct!=null&&(+t.partialPct<50||+t.partialPct>70))warnings.push('Trade '+(i+1)+' partial booking is outside the source 50–70% band; 70% is the operational default.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct>0&&(!t.runnerShift||t.runnerShift==='no'||t.runnerShift==='na'))warnings.push('Trade '+(i+1)+' partial booked but runner SL was not shifted to Cost/VWAP.');if(t.tradeManagementVersion&&t.t1Reached==='yes'&&t.partialPct>0&&t.runnerShift==='other')warnings.push('Trade '+(i+1)+' runner uses a non-standard structural trail; verify whether Cost/VWAP shift rule was followed.');if(t.tradeManagementVersion&&t.t1Reached==='no'&&t.partialPct!=null&&t.partialPct>0)warnings.push('Trade '+(i+1)+' records partial booking even though T1 is marked not reached.');if(t.tradeManagementVersion&&!t.executionStatus)warnings.push('Trade '+(i+1)+' execution status is not recorded.');});
  if(!d.levels||!d.levels.pdh||!d.levels.pdl)missing.push('Previous-day PDH/PDL');
  if(!d.opening||!d.opening.open)missing.push('Opening price');
  const so=d.opening&&d.opening.spot930||{}; if(!['o','h','l','c'].every(k=>String(so[k]||'').trim()!==''))missing.push('Exact 09:15–09:30 Spot OHLC'); if(!(d.opening&&d.opening.fibCE&&d.opening.fibCE.p930))missing.push('Locked CE p930 premium close'); if(!(d.opening&&d.opening.fibPE&&d.opening.fibPE.p930))missing.push('Locked PE p930 premium close');
  const populated=STOCKS.filter(st=>d.participation&&d.participation[st.name]&&CHECKPOINTS.some(cp=>String(d.participation[st.name][cp.key]||'').trim()!=='')).length;
  if(populated<12)missing.push('Participation coverage: '+populated+'/12 stocks have at least one checkpoint');
  CHECKPOINTS.forEach(cp=>{const n=STOCKS.filter(st=>d.participation&&d.participation[st.name]&&String(d.participation[st.name][cp.key]||'').trim()!=='').length;if(n<12)warnings.push('Participation '+cp.label+' checkpoint is provisional: '+n+'/12 stocks entered.');});
- if(!(d.orderflow||[]).length)missing.push('Order Flow entries');
+ const orderflow=Array.isArray(d.orderflow)?d.orderflow:[]; if(d.orderflow!=null&&!Array.isArray(d.orderflow))issues.push('Order Flow records are not stored as an array.'); if(!orderflow.length)missing.push('Order Flow entries');
  if(!String(d.opening&&d.opening.callIV||'').trim())missing.push('Call IV — IV skew comparison unavailable');
  if(!String(d.opening&&d.opening.putIV||'').trim())missing.push('Put IV — IV skew comparison unavailable');
  if(d.opening&&d.opening.ivFrozen==null)missing.push('IV-frozen status not recorded');
  if(d.opening&&d.opening.profileShape)warnings.push('Profile shape is user-recorded ('+d.opening.profileShape+'); raw TPO letter matrix is not included for independent shape verification.');
  // An empty trade array is a valid zero-trade day, not missing data.
- if(!Array.isArray(d.trades))missing.push('Trade array unavailable'); if(d.opening&&d.opening.triggerTime&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.opening.triggerTime))issues.push('Invalid trigger time format: '+d.opening.triggerTime); if(d.opening&&d.opening.triggerSpot!==''&&d.opening.triggerSpot!=null&&!Number.isFinite(parseFloat(d.opening.triggerSpot)))issues.push('Invalid trigger-time spot price');
- const op=d.opening||{}, spotFields=op.spot930||{}, bars=op.opening5m||[];
- const num=x=>{const n=parseFloat(x);return Number.isFinite(n)?n:null;}; const tol=0.051;
+ if(!Array.isArray(d.trades))missing.push('Trade array unavailable'); if(d.opening&&d.opening.triggerTime&&!/^([01]?\d|2[0-3]):[0-5]\d$/.test(d.opening.triggerTime))issues.push('Invalid trigger time format: '+d.opening.triggerTime); if(d.opening&&d.opening.triggerSpot!==''&&d.opening.triggerSpot!=null&&!Number.isFinite(strictFiniteNumber(d.opening.triggerSpot)))issues.push('Invalid trigger-time spot price');
+ const op=d.opening||{}, spotFields=op.spot930||{}, bars=Array.isArray(op.opening5m)?op.opening5m:[];
+ const num=x=>{const n=strictFiniteNumber(x);return Number.isFinite(n)?n:null;}; const tol=0.051;
  const full15=['o','h','l','c'].every(k=>num(spotFields[k])!==null); const full5=bars.length===3&&bars.every(b=>['o','h','l','c'].every(k=>num(b&&b[k])!==null));
  if(full15&&num(op.open)!==null&&Math.abs(num(op.open)-num(spotFields.o))>tol)issues.push('09:30 OHLC conflict: opening.open does not match spot930.o');
  if(full15&&full5){const agg={o:num(bars[0].o),h:Math.max(...bars.map(b=>num(b.h))),l:Math.min(...bars.map(b=>num(b.l))),c:num(bars[2].c)};['o','h','l','c'].forEach(k=>{if(Math.abs(num(spotFields[k])-agg[k])>tol)issues.push('09:30 OHLC conflict: spot930.'+k+' differs from aggregated opening5m.'+k);});}
@@ -4623,9 +4683,9 @@ function ciDataQuality(day, key){
  if(op.halfIbAccess==='no'&&!hasHibCloseEvent)warnings.push('Half-IB access is recorded as no; no timestamped completed-15m close event is available for independent re-audit.');
  if(op.halfIbAccess==='yes'&&!hasHibCloseEvent)warnings.push('Legacy Half-IB access flag is yes, but no timestamped 15m close_access event is logged.');
  if(op.halfIbAccess!=='yes'&&hasHibCloseEvent)warnings.push('Timestamped Half-IB close_access event exists while legacy halfIbAccess is not yes; reconcile the two records.');
- hibEvents.forEach((e,i)=>{if(!e.time||!/^([01]?\d|2[0-3]):[0-5]\d$/.test(e.time))issues.push('Half-IB event '+(i+1)+' has missing/invalid timestamp.');if(!['touch','wick','close_access','acceptance'].includes(e.type))issues.push('Half-IB event '+(i+1)+' has unknown event type.');if(e.type==='close_access'&&e.timeframe!=='15m')issues.push('Half-IB event '+(i+1)+' claims access without 15m timeframe.');if(e.type==='close_access'&&(!['o','h','l','c'].every(k=>Number.isFinite(+e[k]))||!Number.isFinite(+e.level)))issues.push('Half-IB access event '+(i+1)+' is missing full candle OHLC or Half-IB level.');if(e.type==='close_access'&&['o','h','l','c'].every(k=>Number.isFinite(+e[k]))&&(+e.h<Math.max(+e.o,+e.c)||+e.l>Math.min(+e.o,+e.c)||+e.h<+e.l))issues.push('Half-IB access event '+(i+1)+' has invalid candle OHLC geometry.');if(e.type==='close_access'&&Number.isFinite(+e.c)&&Number.isFinite(+e.level)&&((e.side==='up'&&+e.c<=+e.level)||(e.side==='down'&&+e.c>=+e.level)))issues.push('Half-IB access event '+(i+1)+' close is not beyond the recorded level in the declared direction.');});
- (d.orderflow||[]).forEach((e,i)=>{if(!['IB','IS','RB','RS'].includes(e.tag))return;const du=parseDeltaK(e.du),dd=parseDeltaK(e.dd),dom=Math.max(Number.isFinite(du)?du:0,Number.isFinite(dd)?dd:0);if(dom<75000)warnings.push('Order Flow row '+(i+1)+' tagged '+e.tag+' but dominant delta '+dom+' is below 75K; treat as Not-useful unless source rule exception applies.');});
- const bad=[]; ['pdh','pdl','vah','val','poc'].forEach(k=>{const v=d.levels&&d.levels[k];if(v!==''&&v!=null&&!Number.isFinite(parseFloat(v)))bad.push('Invalid level '+k);});
+ hibEvents.forEach((e,i)=>{if(!e||typeof e!=='object'){issues.push('Half-IB event '+(i+1)+' is malformed.');return;}if(!e.time||!/^([01]?\d|2[0-3]):[0-5]\d$/.test(e.time))issues.push('Half-IB event '+(i+1)+' has missing/invalid timestamp.');if(!['touch','wick','close_access','acceptance'].includes(e.type))issues.push('Half-IB event '+(i+1)+' has unknown event type.');if(e.type==='close_access'&&e.timeframe!=='15m')issues.push('Half-IB event '+(i+1)+' claims access without 15m timeframe.');if(e.type==='close_access'&&(!['o','h','l','c'].every(k=>Number.isFinite(strictFiniteNumber(e[k])))||!Number.isFinite(strictFiniteNumber(e.level))))issues.push('Half-IB access event '+(i+1)+' is missing full candle OHLC or Half-IB level.');if(e.type==='close_access'&&['o','h','l','c'].every(k=>Number.isFinite(strictFiniteNumber(e[k])))&&(strictFiniteNumber(e.h)<Math.max(strictFiniteNumber(e.o),strictFiniteNumber(e.c))||strictFiniteNumber(e.l)>Math.min(strictFiniteNumber(e.o),strictFiniteNumber(e.c))||strictFiniteNumber(e.h)<strictFiniteNumber(e.l)))issues.push('Half-IB access event '+(i+1)+' has invalid candle OHLC geometry.');if(e.type==='close_access'&&Number.isFinite(strictFiniteNumber(e.c))&&Number.isFinite(strictFiniteNumber(e.level))&&((e.side==='up'&&strictFiniteNumber(e.c)<=strictFiniteNumber(e.level))||(e.side==='down'&&strictFiniteNumber(e.c)>=strictFiniteNumber(e.level))))issues.push('Half-IB access event '+(i+1)+' close is not beyond the recorded level in the declared direction.');});
+ orderflow.forEach((e,i)=>{if(!e||typeof e!=='object'||!['IB','IS','RB','RS'].includes(e.tag))return;const du=parseDeltaK(e.du),dd=parseDeltaK(e.dd),dom=Math.max(Number.isFinite(du)?du:0,Number.isFinite(dd)?dd:0);if(dom<75000)warnings.push('Order Flow row '+(i+1)+' tagged '+e.tag+' but dominant delta '+dom+' is below 75K; treat as Not-useful unless source rule exception applies.');});
+ const bad=[]; ['pdh','pdl','vah','val','poc'].forEach(k=>{const v=d.levels&&d.levels[k];if(v!==''&&v!=null&&!Number.isFinite(strictFiniteNumber(v)))bad.push('Invalid level '+k);});
  if(bad.length)issues.push(...bad);
  return {issues,missing,warnings,valid:issues.length===0,checkedAt:new Date().toISOString(),day:key||dateKey};
 }
@@ -4657,7 +4717,7 @@ const CI_AI_INSTRUCTIONS=[
 'For the documented 06-Nov-2026 case, preserve the reported verdict WAIT FOR CONFIRMATION: mixed 09:30 evidence, 7 bullish / 4 bearish / 1 zero participation, both CE/PE p930 inside Fib VA, no Setup 4 trigger, later V-period close above Upper Half-IB = access only (not acceptance/entry), no recognized Order Flow combination, VA/C-period unresolved, and zero trades recorded. Treat this as a documented regression fixture, not a replay of raw JSON unless the raw JSON is supplied.',
 'Never promise future profitability.'
 ];
-function participationAuditForDay(day,cp){let aB=0,aS=0,positive=0,negative=0,zero=0,strongBull=0,strongBear=0,entered=0;STOCKS.forEach(st=>{const raw=day&&day.participation&&day.participation[st.name]?day.participation[st.name][cp]:'';if(raw===''||raw==null||!Number.isFinite(parseFloat(raw)))return;const v=parseFloat(raw);entered++;if(v>0)positive++;else if(v<0)negative++;else zero++;if(v>=0.5)strongBull++;if(v<=-0.5)strongBear++;if(v>PART_FLAT_BAND)aB++;if(v<-PART_FLAT_BAND)aS++;});return {checkpoint:cp,entered,positive,negative,zero,strongBull,strongBear,alignedBull:aB,alignedBear:aS,strongThreshold:'>=+0.50% / <=-0.50% implementation display; not a Coach-defined participation threshold'};}
+function participationAuditForDay(day,cp){let aB=0,aS=0,positive=0,negative=0,zero=0,strongBull=0,strongBear=0,entered=0;STOCKS.forEach(st=>{const raw=day&&day.participation&&day.participation[st.name]?day.participation[st.name][cp]:'';const v=strictFiniteNumber(raw);if(!Number.isFinite(v))return;entered++;if(v>0)positive++;else if(v<0)negative++;else zero++;if(v>=0.5)strongBull++;if(v<=-0.5)strongBear++;if(v>PART_FLAT_BAND)aB++;if(v<-PART_FLAT_BAND)aS++;});return {checkpoint:cp,entered,positive,negative,zero,strongBull,strongBear,alignedBull:aB,alignedBear:aS,strongThreshold:'>=+0.50% / <=-0.50% implementation display; not a Coach-defined participation threshold'};}
 function ciAutomaticSetupScan(day,key){
  const scanKey=key||dateKey;
  try{
@@ -4669,7 +4729,7 @@ function ciAutomaticSetupScan(day,key){
 }
 function ciBaseExport(type, key, day, trades, stats){
  const d=day||DAY; const c=type==='history'?null:computeCoachContext('c930',d); const quality=ciDataQuality(d,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v37 audited 9-setup journal / V28-compatible base',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v38 audited 9-setup journal / V28-compatible base',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -4822,7 +4882,7 @@ const V29_SETUP_NAMES = [
   'Trend Day Continuation (OTF Drive)'
 ];
 function v29Esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function v29Num(v){const n=Number(String(v??'').replace(/,/g,'').trim());return String(v??'').trim()!==''&&Number.isFinite(n)?n:null;}
+function v29Num(v){const n=strictFiniteNumber(v);return Number.isFinite(n)?n:null;}
 function v29DateKey(t){
  const z=String(t??'').trim();if(!z)return null;
  let m=z.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/),y,mo,d;
@@ -4912,9 +4972,9 @@ function v29Validate(bars){
   const n=v29NormalizeTimestamp(b.timestamp),k=n?n.key:null;
   if(!n)issues.push('Timestamp/date unreadable: '+b.timestamp);
   if(k&&seen.has(k))issues.push('Duplicate candle timestamp: '+b.timestamp);if(k)seen.add(k);
-  if([b.open,b.high,b.low,b.close].some(x=>x==null||!Number.isFinite(Number(x))))missing.push('Incomplete/malformed OHLC row '+(b._row??'?')+' ('+b.timestamp+')');
-  if([b.open,b.high,b.low,b.close].every(x=>x!=null&&Number.isFinite(Number(x)))){
-   const o=Number(b.open),h=Number(b.high),l=Number(b.low),c=Number(b.close);
+  if([b.open,b.high,b.low,b.close].some(x=>!Number.isFinite(strictFiniteNumber(x))))missing.push('Incomplete/malformed OHLC row '+(b._row??'?')+' ('+b.timestamp+')');
+  if([b.open,b.high,b.low,b.close].every(x=>Number.isFinite(strictFiniteNumber(x)))){
+   const o=strictFiniteNumber(b.open),h=strictFiniteNumber(b.high),l=strictFiniteNumber(b.low),c=strictFiniteNumber(b.close);
    if(h<Math.max(o,c))issues.push('High integrity error: '+b.timestamp);
    if(l>Math.min(o,c))issues.push('Low integrity error: '+b.timestamp);
    if(h<l)issues.push('High below Low: '+b.timestamp);
@@ -4960,8 +5020,8 @@ function v29SessionComplete(bars){
 function v29BarIsUsable(b){
  const t=v29Time(b&&b.timestamp),d=v29DateKey(b&&b.timestamp);
  const vals=[b&&b.open,b&&b.high,b&&b.low,b&&b.close];
- if(!d||t==null||vals.some(v=>v==null||!Number.isFinite(Number(v))))return false;
- const [o,h,l,c]=vals.map(Number);
+ if(!d||t==null||vals.some(v=>!Number.isFinite(strictFiniteNumber(v))))return false;
+ const [o,h,l,c]=vals.map(strictFiniteNumber);
  return h>=Math.max(o,c)&&l<=Math.min(o,c)&&h>=l;
 }
 function v29Build30m(bars){
@@ -4985,7 +5045,7 @@ function v29Scan(options={}){
  const scanDay=options.day||DAY;
  const priorDateKey=dateKey;
  const executeScan=()=>{
- const stored=(DAY.opening||{}).v29Candles||[];
+ const stored=Array.isArray((DAY.opening||{}).v29Candles)?DAY.opening.v29Candles:[];
  const rawBars=stored.filter(b=>v29DateKey(b.timestamp)===scanDate).sort((a,b)=>v29StampKey(a.timestamp).localeCompare(v29StampKey(b.timestamp)));
  if(!options.readOnly&&rawBars.length!==stored.length){DAY.opening.v29Candles=rawBars;DAY.opening.v29LegacyDateFilter={selectedDate:scanDate,removedOtherDateRows:stored.length-rawBars.length};scheduleAutoSave();}
  const q=v29Validate(rawBars);const importAudit=(DAY.opening||{}).v29ImportAudit||{};q.sourceOrderIssues=Array.isArray(importAudit.sourceOrderIssues)?importAudit.sourceOrderIssues:[];
