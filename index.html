@@ -19,7 +19,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v40 · Coach Cockpit Edition</title>
+<title>Daily Trading Journal v42 · Coach Cockpit Edition</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -251,8 +251,8 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v40 (Automatic Trigger Audit)</div>
-  <div class="title">Daily Trading Journal v40</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v42 (Reliability Patch)</div>
+  <div class="title">Daily Trading Journal v42</div>
 </header>
 
 <div class="daybar">
@@ -301,7 +301,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
       <div id="cockpitAutoTriggerBox" class="result-inner">Automatic trigger audit will appear when scanner evidence is available.</div>
     </div>
     <div class="card">
-      <div class="card-title">V41 · INDEPENDENT OPPORTUNITY BOARD &amp; LIFECYCLE</div>
+      <div class="card-title">V42 · INDEPENDENT OPPORTUNITY BOARD &amp; LIFECYCLE</div>
       <div id="v41OpportunityPanel" class="result-inner">V41 opportunity audit will render after the journal loads.</div>
     </div>
   </div>
@@ -4832,7 +4832,7 @@ function renderCoachContext(){
  try{renderAfternoonTradePlan();}catch(e){}
 }
 
-function ciDataQuality(day, key){
+function ciDataQualityV41(day, key){
  const issues=[], missing=[], warnings=[]; const d=day||DAY; const seen=new Set();
   const trades=Array.isArray(d.trades)?d.trades:[];
   if(d.trades!=null&&!Array.isArray(d.trades))issues.push('Trade records are not stored as an array.');
@@ -4912,7 +4912,7 @@ function ciAutomaticSetupScan(day,key){
 }
 function ciBaseExport(type, key, day, trades, stats){
  const d=day||DAY; const c=type==='history'?null:computeCoachContext('c930',d); const quality=ciDataQuality(d,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v41 methodology-aligned 9-setup opportunity lifecycle journal / V40-compatible additive migration',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v42 reliability-patched 9-setup opportunity lifecycle journal / V41-compatible additive migration',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,automaticSetupScan:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -5138,7 +5138,7 @@ function v29NormalizeTimestamp(t){
 }
 function v29Time(t){const n=v29NormalizeTimestamp(t);return n?n.minute:null;}
 function v29StampKey(t){const n=v29NormalizeTimestamp(t);return n?n.key:String(t??'').trim();}
-function v29CsvRows(text){
+function v29CsvRowsV41(text){
  const rows=[];let row=[],cell='',q=false;
  for(let i=0;i<text.length;i++){
   const c=text[i];
@@ -5878,6 +5878,215 @@ finalizeAutomaticTrigger = function(trigger,engine,playbookBlocks=false){
 };
 // Bind after the source's original boot; boot/loadDay is asynchronous and this script runs before its next paint.
 try{v41Ensure(DAY);v41RenderPanel(true);}catch(e){console.warn('V41 initial panel',e);}
+
+
+/* ============================================================
+   V42 RELIABILITY PATCH — additive, backward-compatible
+   No Coach trading thresholds or entry rules are added here.
+============================================================ */
+const V42_VERSION = 'V42';
+function v42SafeDayRecord(entry){
+  if(!entry || typeof entry!=='object') return null;
+  const key=String(entry.key||entry.date||'');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+  let saved=entry.saved;
+  if(saved==null && entry.day!=null) saved=entry.day;
+  if(!saved || typeof saved!=='object' || Array.isArray(saved)) return null;
+  return {key,saved};
+}
+async function getAllSavedDays(){
+  const byDate=new Map();
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k || !k.startsWith(STORAGE_PREFIX) || [WEIGHTS_KEY,RULES_KEY].includes(k)) continue;
+    const key=k.slice(STORAGE_PREFIX.length);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+    try{
+      const parsed=JSON.parse(localStorage.getItem(k));
+      const safe=v42SafeDayRecord({key,saved:parsed});
+      if(safe) byDate.set(key,safe);
+    }catch(err){ console.warn('V42 skipped corrupt local history day:',key,err); }
+  }
+  if(usingDb){
+    try{
+      const cloudDays=await cloudListDays();
+      (Array.isArray(cloudDays)?cloudDays:[]).forEach(raw=>{
+        const x=v42SafeDayRecord(raw); if(!x) return;
+        const local=byDate.get(x.key);
+        const lt=Date.parse(local?.saved?._journalMeta?.updatedAt||'')||0;
+        const ct=Date.parse(x.saved?._journalMeta?.updatedAt||'')||0;
+        if(!local || ct>=lt) byDate.set(x.key,x);
+      });
+    }catch(err){ console.warn('V42 cloud history read failed; retaining local records:',err); }
+  }
+  return Array.from(byDate.values()).sort((a,b)=>b.key.localeCompare(a.key));
+}
+function v42ShowJsonFallback(filename,content,errorText=''){
+  let modal=document.getElementById('v42JsonFallback');
+  if(!modal){
+    modal=document.createElement('div'); modal.id='v42JsonFallback';
+    modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:14px';
+    modal.innerHTML='<div style="width:min(720px,100%);max-height:90vh;overflow:auto;background:#12181F;border:1px solid #3FD5E0;border-radius:12px;padding:14px;color:#E6EDF3;font:12px ui-monospace,monospace"><div style="font-size:14px;font-weight:800;margin-bottom:8px">History JSON copy fallback</div><div id="v42FallbackMessage" style="color:#F5A524;margin-bottom:8px"></div><textarea id="v42FallbackText" readonly style="width:100%;height:48vh;background:#0E141A;color:#E6EDF3;border:1px solid #354454;border-radius:8px;padding:8px;font:11px ui-monospace,monospace"></textarea><div style="display:flex;gap:8px;margin-top:10px"><button id="v42FallbackCopy" style="flex:1;padding:10px;background:#16323A;color:#3FD5E0;border:1px solid #3FD5E0;border-radius:8px">Copy JSON</button><button id="v42FallbackClose" style="padding:10px;background:#202833;color:#E6EDF3;border:1px solid #526070;border-radius:8px">Close</button></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('#v42FallbackClose').onclick=()=>modal.remove();
+    modal.querySelector('#v42FallbackCopy').onclick=async()=>{
+      const ta=modal.querySelector('#v42FallbackText');
+      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(ta.value); else {ta.focus();ta.select();document.execCommand('copy');} alert('JSON copy attempt complete. If clipboard permission is blocked, select the text and copy manually.'); }
+      catch(e){ta.focus();ta.select();alert('Clipboard blocked. JSON text selected; copy it manually.');}
+    };
+  }
+  modal.querySelector('#v42FallbackText').value=content;
+  modal.querySelector('#v42FallbackMessage').textContent=filename+' · '+(errorText||'Mobile/WebView download may be blocked. Copy the JSON below as a reliable fallback.');
+  return modal;
+}
+function ciDownload(filename,content,mime){
+  try{
+    const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'});
+    if(!blob.size) throw new Error('Export generated an empty file.');
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);
+    a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+    // Anchor downloads can fail silently in iOS/PWA/WebView. Offer a copyable fallback for history JSON.
+    if(filename.includes('history') && filename.endsWith('.json')) v42ShowJsonFallback(filename,content);
+    return true;
+  }catch(err){
+    console.error('V42 download failed:',err);
+    if(filename.includes('history') && filename.endsWith('.json')) v42ShowJsonFallback(filename,content,String(err.message||err));
+    else alert('Export download failed: '+String(err.message||err));
+    return false;
+  }
+}
+async function ciExport(type,format){
+  try{
+    let days=null,day=DAY,key=dateKey,trades=Array.isArray(DAY.trades)?DAY.trades.slice():[],stats=null;
+    if(type==='history'){
+      days=await getAllSavedDays();
+      if(!Array.isArray(days)||!days.length){alert('History export ke liye koi valid saved day nahi mila. Local/cloud history check karo.');return;}
+      trades=[];
+      days.forEach(x=>{
+        const saved=x.saved&&typeof x.saved==='object'?x.saved:{};
+        (Array.isArray(saved.trades)?saved.trades:[]).forEach(t=>{if(t&&typeof t==='object')trades.push(Object.assign({date:x.key},t));});
+      });
+      stats=computeInsights(trades);day={days:days.map(x=>({date:x.key,day:x.saved}))};key='historical';
+    }else if(type==='trade'){
+      const id=document.getElementById('ciExportTrade')?.value||'';
+      const t=id?trades.find(x=>String(x.id)===id):trades[trades.length-1];
+      if(!t){alert('Is din ka koi trade record nahi hai.');return;}
+      trades=[t];
+    }
+    const obj=ciBaseExport(type,key,day,trades,stats);
+    if(type==='history'){
+      obj.sourceData={days:days.map(x=>({date:x.key,day:x.saved}))};
+      obj.derivedCalculations.automaticSetupScan=null;
+      obj.derivedCalculations.automaticSetupScans=days.map(x=>({date:x.key,...ciAutomaticSetupScan(x.saved,x.key)}));
+      if(stats){stats.byMaximumIndicationDirection=groupStats(trades,t=>t.ctx&&t.ctx.maxIndicationDirection);stats.byLegacySignalCount=groupStats(trades,t=>t.ctx&&t.ctx.signals!=null?String(t.ctx.signals)+'/5':null);stats.byOrderFlowStatus=groupStats(trades,t=>t.ctx&&t.ctx.orderFlowStatus);}
+      obj.derivedCalculations.historicalStatistics=stats;obj.tradeRecords=trades;
+      const histIssues=[];
+      days.forEach(x=>{try{const q=ciDataQuality(x.saved,x.key);(q.issues||[]).forEach(i=>histIssues.push(x.key+': '+i));}catch(err){histIssues.push(x.key+': data-quality audit failed: '+String(err.message||err));}});
+      obj.dataQuality={issues:histIssues,missing:[],valid:histIssues.length===0,days:days.length,trades:trades.length};obj.missingFields=[];obj.conflicts=histIssues;
+    }
+    const ext=format==='json'?'json':'md';
+    const content=format==='json'?JSON.stringify(obj,null,2):ciToMarkdown(obj);
+    if(!content || content==='{}')throw new Error('Export serialization returned empty content.');
+    ciDownload('coach-journal-'+type+'-'+(key||dateKey)+'.'+ext,content,format==='json'?'application/json;charset=utf-8':'text/markdown;charset=utf-8');
+  }catch(err){
+    console.error('V42 export failed:',err);
+    alert('Export failed safely: '+String(err.message||err)+'. History JSON fallback will be shown when JSON content was generated.');
+  }
+}
+function v42NormalizeTime(value){
+  const s=String(value||'').trim().toUpperCase();
+  let m=s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/);
+  if(m){let h=Number(m[1]);if(h<1||h>12||Number(m[2])>59)return null;if(m[3]==='AM'){if(h===12)h=0;}else if(h!==12)h+=12;return String(h).padStart(2,'0')+':'+m[2];}
+  m=s.match(/^(\d{1,2}):(\d{2})(?::00)?$/);
+  if(!m)return null;const h=Number(m[1]),min=Number(m[2]);if(h>23||min>59)return null;return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0');
+}
+function v42SyncHalfIbLegacy(event){
+  if(!event||event.type!=='close_access')return;
+  DAY.opening=DAY.opening||{};
+  DAY.opening.halfIbAccess='yes';
+  DAY.opening.halfIbSide=event.side;
+  DAY.opening.longHalfIBClose=event.side==='up';
+  DAY.opening.shortHalfIBClose=event.side==='down';
+  // Acceptance is deliberately not inferred from the access candle; it remains a separate observation.
+}
+function addHalfIbEvent(){
+  const val=id=>{const e=document.getElementById(id);return e?e.value:'';};
+  const time=v42NormalizeTime(val('hib_event_time')),timeframe=val('hib_event_tf'),type=val('hib_event_type'),side=val('hib_event_side');
+  const ib=calcIB();
+  if(!time){alert('Event time HH:MM format mein bharo (24-hour).');return;}
+  if(type==='close_access'&&!ib){alert('Half-IB access event se pehle Morning A aur B ka valid IB complete hona zaroori hai.');return;}
+  const expectedLevel=ib?(side==='up'?ib.halfUpper:ib.halfLower):null;
+  const entered=val('hib_event_level');
+  const level=type==='close_access'?expectedLevel:Number(entered);
+  if(level==null||!Number.isFinite(Number(level))){alert('Valid Half-IB level bharo.');return;}
+  if(type==='close_access'&&entered!==''&&Math.abs(Number(entered)-expectedLevel)>0.051){alert('Entered Half-IB level locked calcIB() se match nahi karta. Correct level: '+expectedLevel.toFixed(2));return;}
+  const nums={o:val('hib_event_o'),h:val('hib_event_h'),l:val('hib_event_l'),c:val('hib_event_c')};
+  if(type==='close_access'&&timeframe!=='15m'){alert('Access event ke liye completed 15m candle hi select karo.');return;}
+  if(type==='close_access'&&!['o','h','l','c'].every(k=>nums[k]!==''&&Number.isFinite(Number(nums[k])))){alert('15m close-access event ke liye poora candle OHLC required hai.');return;}
+  if(type==='close_access'){
+    const O=Number(nums.o),H=Number(nums.h),L=Number(nums.l),C=Number(nums.c);
+    if(H<Math.max(O,C)||L>Math.min(O,C)||H<L){alert('Candle OHLC geometry invalid hai.');return;}
+    if((side==='up'&&C<=level)||(side==='down'&&C>=level)){alert('15m close declared direction mein locked Half-IB level ke paar nahi hai.');return;}
+  }
+  DAY.opening=DAY.opening||{};if(!Array.isArray(DAY.opening.halfIbEvents))DAY.opening.halfIbEvents=[];
+  const event={time,timeframe,type,side,level:Number(level),o:nums.o===''?null:Number(nums.o),h:nums.h===''?null:Number(nums.h),l:nums.l===''?null:Number(nums.l),c:nums.c===''?null:Number(nums.c)};
+  DAY.opening.halfIbEvents.push(event);DAY.opening.halfIbEvents.sort((a,b)=>String(a.time).localeCompare(String(b.time)));DAY.opening.halfIbEvents.forEach((e,i)=>e.sequence=i+1);
+  v42SyncHalfIbLegacy(event);
+  ['hib_event_time','hib_event_level','hib_event_o','hib_event_h','hib_event_l','hib_event_c'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  scheduleAutoSave();renderHalfIbEvents();try{renderOpening();renderCoachContext();renderCoachCockpit();v41RenderPanel(true);}catch(e){}
+}
+// Pre-fill the locked calculated level when the side selector changes.
+(function v42BindHalfIbLevel(){
+  const sideEl=document.getElementById('hib_event_side'),levelEl=document.getElementById('hib_event_level'),typeEl=document.getElementById('hib_event_type');
+  const fill=()=>{if(!sideEl||!levelEl||typeEl?.value!=='close_access')return;const ib=calcIB();if(ib)levelEl.value=(sideEl.value==='up'?ib.halfUpper:ib.halfLower).toFixed(2);};
+  sideEl?.addEventListener('change',fill);typeEl?.addEventListener('change',fill);document.getElementById('op_Ah')?.addEventListener('input',fill);document.getElementById('op_Al')?.addEventListener('input',fill);document.getElementById('op_Bh')?.addEventListener('input',fill);document.getElementById('op_Bl')?.addEventListener('input',fill);
+})();
+function v41PushLifecycle(d,setupId,stage,reasonCode,detail,source='ENGINEERING_RECOMMENDATION'){
+  const {o}=v41Ensure(d),states=o.v41LifecycleState,key=String(setupId),prior=states[key];
+  if(prior&&['TRADED','MISSED','EXPIRED'].includes(prior.stage)&&prior.provenance==='MANUAL_INPUT')return prior;
+  const nextDetail=detail||'',same=prior&&prior.stage===stage&&prior.reasonCode===(reasonCode||null)&&String(prior.detail||'')===nextDetail&&prior.provenance===source;
+  if(same)return prior;
+  const event={setupId:Number(setupId),stage,reasonCode:reasonCode||null,detail:nextDetail,timestamp:new Date().toISOString(),provenance:source};
+  o.v41LifecycleEvents=Array.isArray(o.v41LifecycleEvents)?o.v41LifecycleEvents:[];o.v41LifecycleEvents.push(event);if(o.v41LifecycleEvents.length>1000)o.v41LifecycleEvents=o.v41LifecycleEvents.slice(-1000);
+  states[key]=event;try{scheduleAutoSave();}catch(e){}return event;
+}
+// Keep existing Coach-defined combo pairs. Attach period/color metadata for auditability; never infer a new combo.
+function detectOfCombos(){
+  const events=(Array.isArray(DAY.orderflow)?DAY.orderflow:[]).map((e,i)=>({e,i})).filter(x=>x.e&&['IB','IS','RB','RS'].includes(x.e.tag));
+  const hasAllTimes=events.length>1&&events.every(x=>/^([01]?\d|2[0-3]):[0-5]\d$/.test(String(x.e.time||'')));
+  const ordered=hasAllTimes?events.slice().sort((a,b)=>toMin(a.e.time)-toMin(b.e.time)||a.i-b.i):events;
+  const seq=ordered.map(x=>x.e.tag),found=[];
+  for(let i=1;i<seq.length;i++){
+    const c=OF_COMBOS[seq[i-1]+'>'+seq[i]];
+    if(c)found.push(Object.assign({},c,{fromTime:hasAllTimes?String(ordered[i-1].e.time):null,toTime:hasAllTimes?String(ordered[i].e.time):null,fromIndex:ordered[i-1].i,toIndex:ordered[i].i,fromPeriod:ordered[i-1].e.period||null,toPeriod:ordered[i].e.period||null,fromColor:ordered[i-1].e.color||null,toColor:ordered[i].e.color||null,chronologyKnown:hasAllTimes}));
+  }
+  return {seq,found,orderSource:hasAllTimes?'recorded timestamps':'manual entry order',orderAmbiguous:events.length>1&&!hasAllTimes,chronologyKnown:hasAllTimes};
+}
+// CSV parser already maps Volume/Vol/V. Mark missing volume explicitly rather than fabricating zero.
+function v29CsvRows(text){
+  return v29CsvRowsV41(text).map(b=>Object.assign({},b,{volumeStatus:b.volume==null?'DATA_NOT_AVAILABLE':'IMPORTED'}));
+}
+// V42: 1–2 point feed seams are low-severity continuity warnings, not OHLC errors.
+function ciDataQuality(day,key){
+  const q=ciDataQualityV41(day,key);
+  const d=day||DAY, bars=Array.isArray(d.opening?.opening5m)?d.opening.opening5m:[];
+  if(bars.length===3&&bars.every(b=>b&&['o','h','l','c'].every(k=>Number.isFinite(strictFiniteNumber(b[k]))))){
+    for(let i=1;i<3;i++){
+      const gap=Math.abs(strictFiniteNumber(bars[i-1].c)-strictFiniteNumber(bars[i].o));
+      if(gap>0.051&&gap<=2.01){
+        const old='Opening 5m continuity gap between candle '+i+' close ('+bars[i-1].c+') and candle '+(i+1)+' open ('+bars[i].o+'); verify timestamps/feed alignment.';
+        q.warnings=(q.warnings||[]).filter(x=>x!==old);q.warnings.push('Minor opening 5m feed/rounding seam ('+gap.toFixed(2)+' pts) between candles '+i+' and '+(i+1)+'; retain OHLC, verify feed alignment.');
+      }
+    }
+  }
+  // Preserve a truthful status for missing imported candle volume.
+  const imported=Array.isArray(d.opening?.v29Candles)?d.opening.v29Candles:[];
+  const missingVol=imported.filter(b=>b&&b.volume==null).length;
+  if(missingVol)q.warnings=(q.warnings||[]).concat([missingVol+' imported 15m candle(s) have no volume column/value (DATA_NOT_AVAILABLE); OHLC scan remains separate.']);
+  return q;
+}
+
 </script>
 
 </body>
