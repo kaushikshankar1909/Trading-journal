@@ -1,6 +1,6 @@
 <!--
-TRADING JOURNAL v44 + FUTURES ISOLATED CSV ADD-ON — EXECUTION Q&A + STANDING INSTRUCTION UPDATE (V43 BACKWARD-COMPATIBLE ADD-ON)
-V44 FUTURES ADD-ON: isolated NIFTY Futures 15m CSV import stores OHLC, comma-formatted Volume, and VWAP in DAY.futures15m; selected journal date only; Spot CSV/storage/scanner remains untouched; daily/trade JSON includes futuresCandles and Markdown export shows separate Futures table; no setup rule/scanner changes.
+TRADING JOURNAL v45 + SPOT/FUTURES INTELLIGENCE TAB — EXECUTION Q&A + STANDING INSTRUCTION UPDATE (V43 BACKWARD-COMPATIBLE ADD-ON)
+V44 FUTURES ADD-ON: isolated NIFTY Futures 15m CSV import stores OHLC, Volume, and VWAP separately. V45 ADD-ON: dedicated Spot + Futures Intelligence tab; Spot structure and Futures volume remain separate; multi-date Futures history archive; C-period evidence audit; Half-IB close ledger; descriptive basis view; no broker execution.
 TRADING JOURNAL v41 — METHODOLOGY-ALIGNED OPPORTUNITY & LIFECYCLE JOURNAL
 V44 additive upgrade: dedicated Execution / Trade Trigger Q&A tab; separate instrument price basis; indicative/actionable/WAIT plan resolver; explicit 14:40 and both-IV >=40 option guard; volume/Order Flow nulls are setup-specific evidence gaps, not universal blockers; additive JSON persistence and AI-export standing instructions. V41 additive upgrade: independent opportunity board, contextual divergence, process lifecycle, provenance-aware AI export, and backward-compatible additive state.
 V40 scoped upgrades: deterministic trigger-state resolver is linked to the existing S1–S9 scanner; only source-verifiable completed trigger evidence can become TRIGGER CONFIRMED; scanner-only context/access states remain WAITING; explicit failed/conflicting conditions become INVALID / NO TRADE; legacy manual confirmation and watchlist stage cannot override the resolver; unique confirmed setup may be suggested automatically without overwriting a user selection; cockpit and trade plan share the same status. No broker execution and no new Coach threshold.
@@ -21,7 +21,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v44 · Coach Cockpit Edition</title>
+<title>Daily Trading Journal v45 · Coach Cockpit Edition</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -253,8 +253,8 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 </div>
 
 <header>
-  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v44 (Execution Q&A Add-on)</div>
-  <div class="title">Daily Trading Journal v44</div>
+  <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v45 (Spot + Futures Intelligence)</div>
+  <div class="title">Daily Trading Journal v45</div>
 </header>
 
 <div class="daybar">
@@ -270,6 +270,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
   <button data-section="morning">MORNING</button>
   <button data-section="midday">MIDDAY</button>
   <button data-section="afternoon">AFTERNOON</button>
+  <button data-section="intelligence">SPOT + FUTURES</button>
   <button data-section="execution">EXECUTION Q&A</button>
   <button data-section="trades">TRADES</button>
   <button data-section="engine">ENGINE</button>
@@ -1040,6 +1041,54 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
     <div class="card"><div class="card-title">INSIGHTS (saare saved din)</div><div id="insightsBox"></div></div>
   </div>
 
+  <div id="section-intelligence" class="section">
+    <div class="hint-box" style="padding:12px 14px;line-height:1.65">
+      <b>V45 · SPOT + FUTURES INTELLIGENCE</b><br>
+      NIFTY SPOT = Market Profile / price structure / IB / Half-IB / candle-close evidence. NIFTY FUTURES = execution-side volume and VWAP evidence. Dono data streams alag rahenge. Yeh analysis &amp; journal tab hai — <b>automatic order placement / broker execution nahi hota.</b> Scanner result ya evidence alignment ko trade permission mat samajhna.
+    </div>
+    <div class="card">
+      <div class="card-title">SESSION DATA OVERVIEW</div>
+      <div id="v45Overview" class="result-inner">Loading selected-session data…</div>
+      <div class="candidate-actions"><button type="button" id="v45RefreshBtn">↻ Refresh intelligence</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title">C-PERIOD BLUFF / REVERSAL · COACH EVIDENCE AUDIT</div>
+      <div class="hint-box" style="padding:0 14px 10px">Coach-confirmed instrument split as supplied by you: C-period price / structure NIFTY SPOT se; C-period volume NIFTY FUTURES se. Volume benchmark = same 15-minute time slot ka available previous 2-month historical Futures average. Price-above-average metric ka exact formula source mein unresolved hai, isliye manual evidence input ko hi dikhaya jayega — code khud price-average formula invent nahi karega.</div>
+      <div id="v45CPeriod" class="result-inner">C-period audit will appear when data is available.</div>
+      <div class="candidate-grid">
+        <label>Coach price-above-average condition<select id="v45PriceAboveAvg"><option value="">Unknown — price metric not defined</option><option value="yes">Manually confirmed above average</option><option value="no">Not above average</option></select></label>
+        <label>Futures C-period volume vs 2-month average<select id="v45FuturesVolumeConfirm"><option value="">Not checked / unknown</option><option value="yes">Futures chart: above average</option><option value="no">Futures chart: not above average</option></select></label>
+      </div>
+      <div class="hint-box" style="padding:0 14px 12px">These are evidence confirmations, not trade buttons. The Futures volume chart confirmation is kept manual until Coach clarifies whether the 2-month benchmark is per 15m candle or the combined 30m C-period total.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">HALF-IB ACCESS · SPOT CLOSE VERIFICATION</div>
+      <div id="v45HalfIB" class="result-inner">Waiting for IB and Spot candles.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">COMBINED MARKET VIEW · SEPARATE PRICE BASES</div>
+      <div id="v45Combined" class="result-inner">Waiting for Spot and Futures data.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">2-MONTH FUTURES VOLUME HISTORY · BULK IMPORT</div>
+      <div class="hint-box" style="padding:0 14px 10px">Historical benchmark ke liye pichhle 2 calendar months ke NIFTY Futures 15m candles import karein. Multi-date CSV yahan upload/paste kar sakte hain. Yeh archive alag local storage mein save hota hai; selected day ke Spot/Futures records ko overwrite nahi karta. Same timestamp re-import hone par update hoga. Expiry/contract rollover ke across volume series ka source consistent rakhein; app contract adjustment invent nahi karega.</div>
+      <div class="field-row"><span class="lbl">Import multi-date NIFTY FUTURES 15m CSV</span><input type="file" id="v45HistFutFile" accept=".csv,.txt,text/csv" style="width:210px;font-size:11px"></div>
+      <div class="textarea-wrap"><span class="lbl">Or paste historical Futures CSV</span><textarea id="v45HistFutText" rows="4" placeholder="Date/Timestamp,Open,High,Low,Close,Volume,VWAP&#10;2026-10-01 10:15,...."></textarea></div>
+      <div class="candidate-actions"><button type="button" id="v45HistFutImport">Import historical Futures candles</button><button type="button" id="v45HistFutClear" style="border-color:#526070;background:#12181F;color:#E6EDF3">Clear historical archive</button><button type="button" id="v45HistFutExport">Export archive backup JSON</button></div>
+      <div id="v45HistoryAudit" class="result-box">No separate historical Futures archive imported yet.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">MARKET PROFILE / ORDER FLOW / MOMENTUM HIERARCHY</div>
+      <div class="result-inner">
+        <div class="kv-row"><span>Market Profile</span><b>60% · Primary context</b></div>
+        <div class="kv-row"><span>Order Flow</span><b>20% · Execution confidence</b></div>
+        <div class="kv-row"><span>Momentum + Options</span><b>20% · Supporting directional context</b></div>
+        <div class="hint-box" style="padding:8px 10px">Yeh analytical priority hierarchy hai, mathematical score nahi. Futures 15m OHLCV + VWAP se true delta, bid/ask imbalance, absorption ya exhaustion prove nahi hota. Uske liye actual footprint / bid-ask / tick-level evidence chahiye.</div>
+      </div>
+    </div>
+    <div id="v45MovedImports"></div>
+  </div>
+
   <div id="section-engine" class="section">
     <div class="hint-box" style="padding:12px 4px 14px">🧠 Coach Rules Engine — V33. Market Profile context first; Order Flow execution confidence; Momentum / Options directional anchor. No invented fixed signal score. Unknown data stays unknown.</div>
 
@@ -1063,8 +1112,8 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
         <label>LEGACY / IGNORED — aligned stocks count<input id="v29AlignedCount" inputmode="numeric" placeholder="e.g. 8"></label>
         <label>LEGACY / IGNORED — stocks with data<input id="v29EnteredCount" inputmode="numeric" placeholder="e.g. 12"></label>
         <label>LEGACY / IGNORED — Setup 4 checkpoint time<input id="v29OptionTime" placeholder="09:30"></label>
-        <label>2-month 15m average C-volume<input id="v29AvgVol" inputmode="decimal" placeholder="Setup 1 benchmark"></label>
-        <label>Setup 1 C-period price condition vs average<select id="v29PriceAboveAvg"><option value="">Unknown — metric not defined</option><option value="yes">Price condition manually confirmed above average</option><option value="no">Not above average</option></select></label>
+        <label>LEGACY / NOT USED — old manual C-volume average<input id="v29AvgVol" inputmode="decimal" placeholder="Futures benchmark now shown in V45 tab"></label>
+        <label>Setup 1 price condition vs average (same input as V45 C-period panel)<select id="v29PriceAboveAvg"><option value="">Unknown — metric not defined</option><option value="yes">Price condition manually confirmed above average</option><option value="no">Not above average</option></select></label>
         <label>Setup 2 rotation / rejection<select id="v29Rotation"><option value="">Unknown</option><option value="yes">OAIR rotation/rejection observed</option><option value="no">Not observed</option></select></label>
         <label>Setup 3 failed auction confirmed<select id="v29FA"><option value="">Unknown</option><option value="yes">Two excess attempts / no proper tail</option><option value="no">Not confirmed</option></select></label>
         <label>LEGACY / IGNORED — Setup 4 CE Fib state<select id="v29CE"><option value="">Unknown</option><option value="above">15m close above Fib VAH</option><option value="inside">Inside Fib VA</option><option value="below">Below Fib VAL</option></select></label>
@@ -1439,7 +1488,7 @@ function formatDateKey(key) {
 /* ============================================================
    NAV
 ============================================================ */
-const SECTIONS = ["cockpit","premarket","morning","midday","afternoon","execution","trades","engine","learning","summary"];
+const SECTIONS = ["cockpit","premarket","morning","midday","afternoon","intelligence","execution","trades","engine","learning","summary"];
 function showSection(id) {
   if (!SECTIONS.includes(id)) return;
   SECTIONS.forEach(s => {
@@ -1452,6 +1501,7 @@ function showSection(id) {
   if (id === 'summary') renderSummary();
   if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
   if (id === 'execution') { try { v44Render(); } catch (e) { console.warn('V44 execution render',e); } }
+  if (id === 'intelligence') { try { v45Render(); } catch (e) { console.warn('V45 intelligence render',e); } }
   if (id === 'engine') { try { rbRender(); teachRender(); engRender(); } catch (e) {} }
 }
 document.querySelectorAll('.nav button').forEach(b => {
@@ -4964,7 +5014,7 @@ const CI_AI_INSTRUCTIONS=[
 'Never promise future profitability.'
 ];
 CI_AI_INSTRUCTIONS.push(
-'V44 FUTURES DATA ISOLATION: NIFTY Futures 15-minute OHLC/Volume/VWAP imported through the Futures-only CSV panel is stored separately as sourceData.day.futures15m (and surfaced in exports as futuresCandles). Never mix it with Spot CSV candles, never overwrite Spot data, and never use Futures values as Spot references or vice versa. Futures import is raw evidence storage only; it does not alter any scanner/setup threshold or trade permission.',
+'V44/V45 DATA ISOLATION: NIFTY Futures 15-minute OHLC/Volume/VWAP stays separate from NIFTY Spot candles. Spot is the price-structure source; Futures is the C-period volume / execution-evidence source as user-reported Coach clarification. Never merge price arrays or copy Spot/Futures price levels across instruments. The historical Futures archive is separate local storage and can be exported as a JSON backup. C-period combined 30m volume average is a diagnostic only until Coach confirms per-15m vs combined-period aggregation. No broker order placement or automatic execution.',
 'V44 EXECUTION Q&A: Treat opening/Morning Context and Execution / Trade Trigger as separate modules. Read opening.executionTrigger as MANUAL_INPUT; never let a dropdown create setup validity or trigger confirmation. Distinguish setup, Coach trade classification (Counter / Momentum / Market Profile), management mode (INTRADAY / SWING), direction, selected instrument, trigger-time candle close, current execution price, structural SL anchor, T1/T2 and manual gate. Trigger price/time is not the same as current entry/fill.',
 'Price-basis invariant: Entry, SL, T1, T2 and RR must all use the exact same selected instrument basis. NIFTY Spot levels cannot be copied into Futures or option premium. ITM CE, ITM PE and ATM premium require levels from the selected option chart; otherwise SL/T1/T2 remain UNDEF. No live price feed or broker execution is available.',
 'Plan states: INDICATIVE means a provisional structural estimate with confirmation incomplete; ACTIONABLE is only a journal review state when the setup/trigger evidence, manual approval, current price, valid same-basis SL and targets, setup/type compatibility and all hard gates are satisfied; WAIT / NO TRADE / UNDEF applies to missing mandatory inputs, invalid anchor, incompatible price basis, context-only setup, obstruction, uncertain gate, or hard-gate failure. ACTIONABLE is not an instruction to place an order.',
@@ -4989,7 +5039,7 @@ function ciAutomaticSetupScan(day,key){
 }
 function ciBaseExport(type, key, day, trades, stats){
  const d=day||DAY; const c=type==='history'?null:computeCoachContext('c930',d); const quality=ciDataQuality(d,key);
- return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v44 Execution Q&A + Futures-isolated CSV add-on / V43 backward-compatible additive migration',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,futuresCandles:type==='history'?[]:(d.futures15m||[]).filter(b=>b.date===(key||dateKey)),automaticSetupScan:type==='history'?null:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:type==='history'?null:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:type==='history'?{status:'NOT_APPLICABLE_HISTORY_SCOPE'}:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
+ return {metadata:{exportType:type,exportedAt:new Date().toISOString(),time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false}),timezone:'Asia/Kolkata',date:key||dateKey,journalVersion:'v45 Spot + Futures Intelligence + v44 Execution Q&A / backward-compatible additive migration',schemaVersion:JOURNAL_SCHEMA_VERSION},analysisRules:ciRulebookForExport(),sourceData:{day:day||DAY},derivedCalculations:{coachContext:type==='history'?null:c,futuresCandles:type==='history'?[]:(d.futures15m||[]).filter(b=>b.date===(key||dateKey)),automaticSetupScan:type==='history'?null:ciAutomaticSetupScan(d,key||dateKey),multiSetupCandidates:Array.isArray((d.opening||{}).setupCandidates)?(d.opening||{}).setupCandidates:[],multiSetupRule:'Evaluate each independently eligible formation; do not wait exclusively for one pending setup. Same setup across instruments is recorded independently. In the same instrument, if the awaited setup does not form and another formation develops, evaluate the second under its own rules. Coach says live screen and experience guide execution; no blanket automatic trade rule.',legacyEvidenceAudit:(()=>{try{return computeSignalsCount(d);}catch(e){return null;}})(),legacySignals:null,participation:Object.fromEntries(CHECKPOINTS.map(cp=>[cp.key,computeFromValues((d).participation||{},parseFloat((d).niftyPrice)||0,cp.key)])),setup4EarlyAnchor:{description:'09:30 ITM Option Anchor snapshot; cutoff-safe. Later A/B and post-10:15 evidence are reported separately.',ceFibState:(()=>{const o=(d).opening||{};const f=o.fibCE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),peFibState:(()=>{const o=(d).opening||{};const f=o.fibPE||{};const h=parseFloat(f.h),l=parseFloat(f.l),p=parseFloat(f.p930);if(![h,l,p].every(Number.isFinite)||h<=l)return 'UNRESOLVED';const val=l+.382*(h-l),vah=l+.618*(h-l);return p>vah?'ABOVE_FIB_VAH':(p<val?'BELOW_FIB_VAL':'INSIDE_FIB_VA');})(),participation930:participationAuditForDay((d),'c930'),spotCandle0915to0930:((d).opening||{}).spot930||null,opening5m:((d).opening||{}).opening5m||[],openingDataIntegrity:classifyOpeningAt930(d).dataIntegrity,earlyOpeningType930:classifyOpeningAt930(d),laterOpeningClassification:type==='history'?null:(()=>{return withJournalDay(d,()=>{const r=calcOpening();return r?{base:r.base||null,subtype:r.sub&&r.sub.type||null,direction:r.sub&&r.sub.dir||r.orr&&r.orr.dir||null,checkpoint:'after A/B; not part of 09:30 snapshot'}:null;});})(),openingConflictAudit:type==='history'?{status:'NOT_APPLICABLE_HISTORY_SCOPE'}:(()=>{const early=classifyOpeningAt930(d);const later=withJournalDay(d,()=>{const r=calcOpening();return r?((r.sub&&r.sub.dir)||(r.orr&&r.orr.dir)||null):null;});const ed=early.direction==='BULLISH'?'up':(early.direction==='BEARISH'?'down':null);return {early09_30_direction:ed,later_after_AB_direction:later,status:ed&&later&&ed!==later?'CONFLICT — retain both checkpoint facts; do not overwrite 09:30':(ed&&later?'NO_DIRECTION_CONFLICT_DETECTED':'UNRESOLVED — one or both classifications unavailable')};})(),halfIbEventLedger:Array.isArray((d.opening||{}).halfIbEvents)?(d.opening||{}).halfIbEvents:[],setup4Status:evaluateSetup4Evidence(d),setup4MPAlignment:((d).opening||{}).setup4MPAlignment||null,setup4EntryReferenceSpot:(((d).opening||{}).spot930||{}).c||null,triggerTime:((d).opening||{}).triggerTime||null,triggerSpot:((d).opening||{}).triggerSpot||null}},tradeRecords:trades||[],historicalStatistics:stats||null,dataQuality:quality,missingFields:quality.missing,conflicts:quality.issues,qualityWarnings:quality.warnings||[],calculationDefinitions:{coachClarificationNov12_userReportedCoachReply:{provenance:'User supplied direct WhatsApp reply from Coach Visvas Yadav; not independently verified against the archive in this code revision.',principle:'Same setup across different stocks/indexes: execute/evaluate. Same script: if first awaited setup does not form but another formation develops, execute/evaluate the second. Live market experience and what is visible on screen guide the decision.',implementation:'Independent candidate tracking only; each candidate still needs its own setup validity, MP context, trigger evidence, risk review and applicable SL/target rules. Not a blanket instruction to trade every formation.'},coachClarificationNov7:{positionSizing:'Manual selected tier; no automatic tier deduction. Full size may fit balanced low-volatility structure; reduce in confusion/high volatility/weak alignment/low confidence. Exact tier is not prescribed.',poorRRorEarlyEntry:'Reduced size warning only; exact percentage unresolved. Do not equate 0.25% and 25%.',marketProfileSL:'2–3 periods are for observing context change, not a universal SL trigger; intraday options execution uses 15m Order Flow; swing counts periods around important reference.',indications:'No fixed list. Existing five fields are a partial evidence audit only, not a Coach-defined 2/5 or 3+/5 score.',manualInputs:{sizingStructure:(d.opening||{}).sizingStructure||null,sizingVolatility:(d.opening||{}).sizingVolatility||null,sizingAlignment:(d.opening||{}).sizingAlignment||null,sizingSetupRisk:(d.opening||{}).sizingSetupRisk||null,sizingChosenPct:(d.opening||{}).sizingChosenPct||null,setup4MPAlignment:(d.opening||{}).setup4MPAlignment||null,mpContextTimeframe:(d.opening||{}).mpContextTimeframe||null,mpPeriodsObserved:(d.opening||{}).mpPeriodsObserved||null,mpReferenceLevel:(d.opening||{}).mpReferenceLevel||null,mpContextChanged:(d.opening||{}).mpContextChanged||null,mpOrderflow15mNote:(d.opening||{}).mpOrderflow15mNote||null}},indicationCount:'Count of distinct recorded directional evidence items; Market Profile Opening Type, Half-IB access and VA acceptance are separate items. Half-IB-related close/HH-HL flags are displayed as structure notes to avoid double-counting.',contextConfidence:'Descriptive evidence summary only; no percentage or arbitrary weight formula. c930 coachContext is cutoff-isolated and excludes later evidence.',legacySignalCheckpoint:'Full-day derived five-item map; it is not the 09:30 cutoff snapshot.',legacySignals:'DEPRECATED evidence-audit compatibility field only; not a Coach score, not a fixed denominator, and never a trade/no-trade threshold.',participation:'Raw directional alignment counts are strict positive / negative / exact zero. 7+ alignment is PROVISIONAL until all 12 stocks are populated; only a complete 12-stock sample is labeled confirmed. Strong bullish >=+0.50% and strong bearish <=-0.50% are separate implementation display buckets only. Coach flat wording 0.05 to 0.10% is preserved; signed-band interpretation remains unresolved.' ,legacySignalAudit:'Five-field map is a partial evidence audit only. Coach 7-Nov directly clarified that indications are not fixed and depend on market structure. No 2/5, 3+/5 or 0–1/5 automatic threshold is used.'},aiAnalysisInstructions:CI_AI_INSTRUCTIONS};
 }
 function ciDownload(filename, content, mime){
  const blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -5359,26 +5409,34 @@ function v29Scan(options={}){
  q.postIB={count:postIBRaw.length,validCount:postIBValid.length,issues:postIBAudit.issues,missing:postIBAudit.missing,usable:postIBValid.length>0,complete:v29SessionComplete(postIBValid)};
  const autoIBEnabled=options.readOnly?((DAY.opening||{}).v29AutoIB!==false):(document.getElementById('v29AutoIB')?.checked!==false);
  const ib=!autoIBEnabled?{ready:false,reason:'Auto IB disabled.'}:v29IB();
- const vah=v29Num(x.v29VAH)??v29Num((DAY.levels||{}).vah),val=v29Num(x.v29VAL)??v29Num((DAY.levels||{}).val),fibVah=v29Num(x.v29FibVAH),fibVal=v29Num(x.v29FibVAL),avg=v29Num(x.v29AvgVol);
+ const vah=v29Num(x.v29VAH)??v29Num((DAY.levels||{}).vah),val=v29Num(x.v29VAL)??v29Num((DAY.levels||{}).val),fibVah=v29Num(x.v29FibVAH),fibVal=v29Num(x.v29FibVAL);
  const tpoVal=(x.v29TPO!=null&&x.v29TPO!=='')?x.v29TPO:(((DAY.opening||{}).valueTpoAcceptance==='yes'||(DAY.opening||{}).valueTpoAcceptance==='no')?(DAY.opening||{}).valueTpoAcceptance:'');
  const results=[];
- // Setup 1: C period range extension and close back inside IB, with 2-month avg volume gate.
+ // Setup 1: Spot supplies the C-period structure; Futures supplies the C-period volume evidence.
+ // The Coach's 2-month 15m benchmark aggregation is not fully specified, so the combined 30m
+ // average is diagnostic only; a manual Futures-chart confirmation remains required.
  const cBars=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<645&&v29BarClosedForScan(b,scanDate);});
  const _o=DAY.opening||{};
  const pxAbove=(x.v29PriceAboveAvg!=null&&x.v29PriceAboveAvg!=='')?x.v29PriceAboveAvg:(_o.cPriceAboveAvg||'');
- const csvVol=avg!=null&&avg>0&&cBars.length>=2&&cBars.every(b=>b.volume!=null);
  const volManual=_o.cVolumeAboveAvg||'';
+ const futBench=v45CPeriodBenchmarkSync(scanDate,DAY);
  const S1=(status,detail,extra)=>results.push(Object.assign({id:1,name:V29_SETUP_NAMES[0],status,detail},extra||{}));
- if(pxAbove==='no')S1('DID_NOT_FORM','Aapne record kiya: price C-period mein average se upar nahi tha. Coach ko price + volume dono chahiye.',{manual:true});
- else if(!csvVol&&volManual==='no')S1('DID_NOT_FORM','Aapne record kiya: C-period volume (futures) 2-month average se upar nahi tha. Coach ko price + volume dono chahiye.',{manual:true});
+ if(pxAbove==='no')S1('DID_NOT_FORM','Aapne record kiya: Coach price-above-average condition confirm nahi hui. Price metric ka exact formula source mein unresolved hai.',{manual:true});
  else if(!ib.ready)S1('INSUFFICIENT_DATA','IB not complete/available.');
- else if(cBars.length<2)S1('INSUFFICIENT_DATA','C-period (10:15–10:45) two completed 15m candles not both available.');
- else{
-  const geo=b=>b.close!=null&&((b.high>ib.ibh&&b.close>=ib.ibl&&b.close<=ib.ibh)||(b.low<ib.ibl&&b.close>=ib.ibl&&b.close<=ib.ibh));
-  const hit=cBars.find(b=>geo(b)&&(!csvVol||b.volume>avg));
-  if(!hit)S1('DID_NOT_FORM','C-period mein IB se bahar extension + IB ke andar return close wala pattern nahi bana'+(csvVol?' (volume filter ke saath)':'')+'.');
-  else if(pxAbove==='yes'&&(csvVol||volManual==='yes'))S1('DEVELOPING','C-period extension + return close inside IB + volume above average ('+(csvVol?'CSV volume vs 2-month avg':'futures volume, aapne manually Haan chuna')+') + price above average. Coach delta drop bhi dekhne ko kehta hai; delta OHLC scanner mein nahi hai, isliye bluff/reversal CONFIRMED nahi hai aur ye TRIGGERED nahi.',{bar:hit.timestamp});
-  else S1('INSUFFICIENT_DATA','Candle pattern bana hai ('+hit.timestamp+'). Ab Q&A mein bharo: C-period price average se upar? aur futures chart par C-period volume 2-month average se upar? (spot mein volume nahi hota; Coach: volume/order flow futures se).',{bar:hit.timestamp});
+ else if(cBars.length<2)S1('INSUFFICIENT_DATA','Spot C-period (10:15–10:45) ke dono completed 15m candles required hain.');
+ else if(futBench.currentTotal==null)S1('INSUFFICIENT_DATA','NIFTY Futures C-period ke dono completed 15m candles ka Volume missing hai. Spot volume ko substitute nahi kiya jayega.');
+ else if(futBench.sample<1||futBench.avgTotal==null)S1('INSUFFICIENT_DATA','Previous 2-month Futures C-period benchmark unavailable. '+futBench.sample+' complete historical sessions found; bulk historical Futures CSV import karein.');
+ else if(volManual==='no'&&futBench.above===true)S1('CONFLICTING_EVIDENCE','Manual Futures chart confirmation says NOT ABOVE average, but provisional combined 30m diagnostic is above average. Verify the benchmark aggregation before interpreting.');
+ else if(volManual==='no')S1('DID_NOT_FORM','Aapne Futures chart par C-period volume ko 2-month average se upar confirm nahi kiya.');
+ else if(volManual!=='yes')S1('INSUFFICIENT_DATA','Futures C-period volume data imported. Combined 30m benchmark diagnostic: '+Math.round(futBench.currentTotal)+' vs avg '+Math.round(futBench.avgTotal)+' across '+futBench.sample+' sessions. Coach ke 15m-vs-30m aggregation ko fully specify karne tak Futures chart par volume-above-average ko manually confirm karein.');
+ else if(futBench.above===false)S1('CONFLICTING_EVIDENCE','Manual Futures volume confirmation says ABOVE average, but the provisional combined 30m benchmark is below/equal to its historical average. Verify aggregation and source chart before proceeding.');
+ else {
+  const cHigh=Math.max(...cBars.map(b=>b.high)),cLow=Math.min(...cBars.map(b=>b.low)),lastC=cBars.slice().sort((a,b)=>v29StampKey(a.timestamp).localeCompare(v29StampKey(b.timestamp))).slice(-1)[0];
+  const extended=cHigh>ib.ibh||cLow<ib.ibl;
+  const returned=lastC.close>=ib.ibl&&lastC.close<=ib.ibh;
+  if(!extended||!returned)S1('DID_NOT_FORM','Spot C-period range extension beyond IB plus final completed C-period close back inside IB was not both observed.');
+  else if(pxAbove==='yes'&&volManual==='yes')S1('DEVELOPING','Spot C-period extension + final close back inside IB; Futures volume was manually confirmed above the 2-month benchmark. Provisional combined 30m diagnostic: '+Math.round(futBench.currentTotal)+' vs '+Math.round(futBench.avgTotal)+' ('+futBench.sample+' sessions). Coach delta / Order Flow evidence still needs separate validation; this is not a confirmed trade trigger.',{bar:lastC.timestamp,volumeEvidence:'FUTURES_MANUAL_CONFIRMED + PROVISIONAL_30M_DIAGNOSTIC'});
+  else S1('INSUFFICIENT_DATA','Spot C-period pattern found. Record the Coach price-above-average condition and Futures volume confirmation; unknown stays WAIT.',{bar:lastC.timestamp});
  }
  // Setup 2: OAIR + manual visual rotation/rejection evidence.
  const oair=x.v29Opening==='OAIR',rot=x.v29Rotation;
@@ -5525,6 +5583,7 @@ function v29Render(){
  const _sum='<div class="candidate-card" style="border-color:'+(r.scaleMismatch?'#F2545B':'#3FD5E0')+'"><div class="cc-head"><span>READINESS</span><span class="candidate-status">'+_live.length+' active · '+_blk.length+' blocked · '+(r.results.length-_blk.length-_live.length)+' did not form</span></div><div class="cc-meta">'+(r.scaleMismatch?'<b style="color:#F2545B">CSV galat instrument/scale ka hai.</b> Nifty ka 15m CSV import karo.<br>':'')+(_blk.length?'Blocked setups: '+_blk.map(x=>'S'+x.id).join(', ')+' — har card mein neeche likha hai kaunsa input missing hai. "Auto-fill" button se VA/TPO/Opening khud bhar jaate hain.':'Koi setup data ki wajah se blocked nahi.')+'</div></div>';
  out.innerHTML=_sum+'<div class="card-title">INDEPENDENT SETUP RESULTS · '+r.results.length+'/9</div>'+r.results.sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||a.id-b.id).map(x=>{const tr=(triggerAudit.results||[]).find(y=>y.id===x.id);const ts=tr&&tr.triggerState==='TRIGGER_CONFIRMED'?'TRIGGER CONFIRMED':(tr&&tr.triggerState==='INVALID_NO_TRADE'?'INVALID / NO TRADE':'WAITING / NEEDS MANUAL EVIDENCE');return '<div class="candidate-card"><div class="cc-head"><span>Setup '+x.id+' · '+v29Esc(x.name)+'</span><span class="candidate-status">'+v29Esc(x.status)+'</span></div><div class="cc-meta"><b>Automatic trigger:</b> '+v29Esc(ts)+'<br>'+v29Esc(tr&&tr.triggerDetail||x.detail)+(x.bar?'<br>Evidence candle: '+v29Esc(x.bar):'')+(x.entryReference!=null?'<br>09:30 spot-close reference: '+v29Esc(x.entryReference):'')+(x.tradePermission===false?'<br><b>Order permission:</b> NOT AUTOMATIC — separate live review required':'')+'</div></div>';}).join('');
  try{syncUniqueAutomaticSetup(triggerAudit);renderAfternoonTradePlan();renderCoachCockpit();}catch(e){console.warn('V40 trigger refresh',e);}
+ try{if(typeof v45Render==='function')v45Render();}catch(e){}
 }
 function v29Import(text){
  const incoming=v29CsvRows(text),target=dateKey;
@@ -5584,7 +5643,7 @@ function futParseNumber(value){
  const t=String(value??'').trim().replace(/,/g,'').replace(/[₹$]/g,'');
  if(t==='')return null;const n=Number(t);return Number.isFinite(n)?n:null;
 }
-function futParseCsv(text){
+function futParseCsv(text,includeAllDates=false){
  // Futures-only CSV tokenizer. It intentionally does not call the Spot importer.
  const rows=[];let row=[],cell='',quoted=false;
  for(let i=0;i<text.length;i++){const ch=text[i];
@@ -5613,11 +5672,11 @@ function futParseCsv(text){
   const volumeText=vi>=0?String(r[vi]??'').trim():'';const volume=volumeText?futParseNumber(volumeText):null;
   if(volumeText&&volume===null)throw new Error('Row '+(i+2)+' Volume parse nahi hua.');
   const vwapText=wi>=0?String(r[wi]??'').trim():'';const vwap=vwapText?futParseNumber(vwapText):null;
-  if(n.date!==target){datesIgnored.push(n.date);return;}
+  if(!includeAllDates&&n.date!==target){datesIgnored.push(n.date);return;}
   bars.push({timestamp:n.timestamp,date:n.date,minute:n.minute,open:o,high:h,low:l,close:c,volume,vwap,_row:i+2});
  });
- if(!bars.length)throw new Error('Selected journal date '+target+' ke liye koi Futures candle nahi mili. Other-date rows import nahi ki gayi.');
- bars.sort((a,b)=>a.minute-b.minute);const seen=new Set();for(const b of bars){if(seen.has(b.minute))throw new Error('Duplicate Futures candle timestamp: '+b.timestamp);seen.add(b.minute);}
+ if(!bars.length)throw new Error(includeAllDates?'CSV mein koi valid Futures candle nahi mili.':'Selected journal date '+target+' ke liye koi Futures candle nahi mili. Other-date rows import nahi ki gayi.');
+ bars.sort((a,b)=>a.date.localeCompare(b.date)||a.minute-b.minute);const seen=new Set();for(const b of bars){const k=b.date+'|'+b.minute;if(seen.has(k))throw new Error('Duplicate Futures candle timestamp: '+b.timestamp);seen.add(k);}
  return {bars,target,ignoredDates:[...new Set(datesIgnored)],columns:{volume:vi>=0,vwap:wi>=0}};
 }
 function futImportCsv(text){
@@ -5625,7 +5684,7 @@ function futImportCsv(text){
  const otherDates=existing.filter(b=>b.date!==dateKey),same=existing.filter(b=>b.date===dateKey),map=new Map(same.map(b=>[b.minute,b]));let added=0,replaced=0;
  parsed.bars.forEach(b=>{if(map.has(b.minute))replaced++;else added++;map.set(b.minute,b);});
  const merged=[...otherDates,...[...map.values()].sort((a,b)=>a.minute-b.minute)];DAY.futures15m=merged;DAY.futuresImportAudit={date:dateKey,imported:parsed.bars.length,totalForDate:map.size,added,replaced,volumeAvailable:parsed.columns.volume,vwapAvailable:parsed.columns.vwap,ignoredOtherDates:parsed.ignoredDates,source:'NIFTY FUTURES CSV',importedAt:new Date().toISOString()};
- scheduleAutoSave();futRender();return DAY.futuresImportAudit;
+ scheduleAutoSave();futRender();try{v45Render();}catch(e){}return DAY.futuresImportAudit;
 }
 function futRender(){
  const arr=(DAY.futures15m||[]).filter(b=>b.date===dateKey).sort((a,b)=>a.minute-b.minute),audit=DAY.futuresImportAudit||{};
@@ -5639,7 +5698,7 @@ function futRender(){
 function futBind(){
  const file=document.getElementById('futCsvFile');if(file)file.onchange=async()=>{const f=file.files&&file.files[0];if(!f)return;try{const t=await f.text();document.getElementById('futCsvText').value=t;futImportCsv(t);}catch(e){alert('Futures CSV error: '+e.message);}};
  document.getElementById('futImportBtn')?.addEventListener('click',()=>{try{futImportCsv(document.getElementById('futCsvText').value);}catch(e){alert('Futures CSV error: '+e.message);}});
- document.getElementById('futClearBtn')?.addEventListener('click',()=>{if(!confirm('Sirf '+dateKey+' ka Futures data clear karein? Spot data nahi chhuyega.'))return;DAY.futures15m=(DAY.futures15m||[]).filter(b=>b.date!==dateKey);DAY.futuresImportAudit={date:dateKey,cleared:true};scheduleAutoSave();futRender();});
+ document.getElementById('futClearBtn')?.addEventListener('click',()=>{if(!confirm('Sirf '+dateKey+' ka Futures data clear karein? Spot data nahi chhuyega.'))return;DAY.futures15m=(DAY.futures15m||[]).filter(b=>b.date!==dateKey);DAY.futuresImportAudit={date:dateKey,cleared:true};scheduleAutoSave();futRender();try{v45Render();}catch(e){}});
  futRender();
 }
 function v29Bind(){
@@ -5678,7 +5737,6 @@ const V29_QA=[
  {id:'v29Rotation',s:'S2',q:'OAIR mein price IB midpoint ke aaspaas rotate hui aur IB edge se reject hui?',o:[['Haan','yes'],['Nahi','no']]},
  {id:'v29FA',s:'S3',q:'Do baar excess attempt (~20-25 pts) bina proper tail ke, aur neutral-center mein 15m reversal dikha?',o:[['Haan','yes'],['Nahi','no']]},
  {id:'v29PriceAboveAvg',s:'S1',q:'C-period (10:15-10:45) mein price average se upar tha? (volume bhi chahiye: CSV volume + 2-month avg)',o:[['Haan','yes'],['Nahi','no']]},
- {id:'cVolumeAboveAvg',store:true,s:'S1',q:'Futures chart par C-period (10:15-10:45) volume 2-month average se upar tha? (spot mein volume nahi hota)',o:[['Haan','yes'],['Nahi','no']]},
  {id:'v29Swing',s:'S5',q:'15m par genuine Dow HH/LL break hua?',o:[['HH break','up'],['LL break','down'],['Nahi hua','no']],note:'HH/LL select kiya to neeche Fib VAH/VAL, P1/P2/P3 aur break time bhi bharo.'},
  {id:'v29TPO',s:'S8',q:'Prior VA ke andar multi-period TPO acceptance mila?',o:[['Haan','yes'],['Nahi','no']]},
  {id:'v29Trend',s:'S9',q:'Trend day (OTF) dikha: IB ke bahar range extension, frozen VWAP, 0-1 VWAP tests, shifting POC?',o:[['Bullish trend','up'],['Bearish trend','down'],['Nahi','no']]}
@@ -5699,6 +5757,93 @@ function v29QARender(){
   v29Persist();v29Render();
  };
 }
+/* V45 Spot + Futures Intelligence — evidence dashboard only; no broker/order execution. */
+const V45_FUTURES_HISTORY_KEY='v45_futures_history_v1';
+function v45Esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function v45Time(b){const s=String(b?.timestamp||'');const m=s.match(/(?:T|\s)(\d{1,2}:\d{2})/);return m?m[1]:null;}
+function v45ReadArchive(){try{const x=JSON.parse(localStorage.getItem(V45_FUTURES_HISTORY_KEY)||'[]');return Array.isArray(x)?x:[];}catch(e){return[];}}
+function v45WriteArchive(a){localStorage.setItem(V45_FUTURES_HISTORY_KEY,JSON.stringify(a));}
+function v45CPeriodBenchmarkSync(scanDate,scanDay=DAY){
+ const map=new Map(),add=(arr)=>{(Array.isArray(arr)?arr:[]).forEach(b=>{if(!b?.date)return;const minute=Number.isFinite(Number(b.minute))?Number(b.minute):({ '10:15':615,'10:30':630 }[v45Time(b)]);if(!Number.isFinite(minute))return;map.set(b.date+'|'+minute,b);});};
+ add(v45ReadArchive());
+ try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith(STORAGE_PREFIX))continue;const d=k.slice(STORAGE_PREFIX.length);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))continue;try{const saved=JSON.parse(localStorage.getItem(k)||'{}');add(saved.futures15m);}catch(e){}}}catch(e){}
+ add(scanDay?.futures15m);
+ const start=v45TwoMonthStart(scanDate),sessions=new Map();
+ for(const b of map.values()){
+  const t=v45Time(b)||(Number(b.minute)===615?'10:15':(Number(b.minute)===630?'10:30':null));
+  if(!['10:15','10:30'].includes(t)||b.volume==null||b.volume===''||!Number.isFinite(Number(b.volume)))continue;
+  if(b.date>=start&&b.date<scanDate){if(!sessions.has(b.date))sessions.set(b.date,{});sessions.get(b.date)[t]=Number(b.volume);}
+ }
+ const complete=[...sessions.values()].filter(x=>Number.isFinite(x['10:15'])&&Number.isFinite(x['10:30']));
+ const avgTotal=complete.length?complete.reduce((a,x)=>a+x['10:15']+x['10:30'],0)/complete.length:null;
+ const avg1015=complete.length?complete.reduce((a,x)=>a+x['10:15'],0)/complete.length:null;
+ const avg1030=complete.length?complete.reduce((a,x)=>a+x['10:30'],0)/complete.length:null;
+ const current=(scanDay?.futures15m||[]).filter(b=>b.date===scanDate&&[615,630].includes(Number(b.minute))&&v29BarClosedForScan(b,scanDate));
+ const byTime={};current.forEach(b=>{const t=v45Time(b)||(Number(b.minute)===615?'10:15':'10:30');if(b.volume!=null&&b.volume!==''&&Number.isFinite(Number(b.volume)))byTime[t]=Number(b.volume);});
+ const currentTotal=Number.isFinite(byTime['10:15'])&&Number.isFinite(byTime['10:30'])?byTime['10:15']+byTime['10:30']:null;
+ return {start,sample:complete.length,avgTotal,avg1015,avg1030,current1015:byTime['10:15']??null,current1030:byTime['10:30']??null,currentTotal,above:currentTotal!=null&&avgTotal!=null?currentTotal>avgTotal:null,aggregation:'PROVISIONAL_COMBINED_30M_DIAGNOSTIC'};
+}
+async function v45AllFutures(){
+ const map=new Map();
+ v45ReadArchive().forEach(b=>{if(b?.date&&Number.isFinite(Number(b.minute)))map.set(b.date+'|'+b.minute,b);});
+ try{const days=await getAllSavedDays();days.forEach(x=>(Array.isArray(x.saved?.futures15m)?x.saved.futures15m:[]).forEach(b=>{if(b?.date&&Number.isFinite(Number(b.minute)))map.set(b.date+'|'+b.minute,b);}));}catch(e){}
+ (Array.isArray(DAY.futures15m)?DAY.futures15m:[]).forEach(b=>{if(b?.date&&Number.isFinite(Number(b.minute)))map.set(b.date+'|'+b.minute,b);});
+ return [...map.values()];
+}
+function v45TwoMonthStart(date){const d=new Date(date+'T12:00:00');d.setMonth(d.getMonth()-2);return d.toISOString().slice(0,10);}
+function v45RenderHistoryAudit(){const el=document.getElementById('v45HistoryAudit');if(!el)return;const a=v45ReadArchive();const dates=new Set(a.map(x=>x.date));const vols=a.filter(x=>x.volume!=null&&x.volume!==''&&Number.isFinite(Number(x.volume)));el.innerHTML='<b>Historical archive</b><br>'+a.length+' Futures 15m candles · '+dates.size+' sessions · '+vols.length+' candles with numeric Volume<br>Archive range: '+(dates.size?[...dates].sort()[0]+' to '+[...dates].sort().slice(-1)[0]:'Not imported')+'<br><span style="color:#E5B454">Benchmark uses complete 10:15 + 10:30 C-period pairs inside the previous 2 calendar months. Missing sessions are not filled or estimated.</span>';}
+async function v45Render(){
+ const overview=document.getElementById('v45Overview');if(!overview)return;
+ const priceControl=document.getElementById('v45PriceAboveAvg'),legacyPrice=document.getElementById('v29PriceAboveAvg'),volumeControl=document.getElementById('v45FuturesVolumeConfirm');if(priceControl&&legacyPrice&&document.activeElement!==priceControl)priceControl.value=legacyPrice.value||'';if(volumeControl&&document.activeElement!==volumeControl)volumeControl.value=DAY.opening?.cVolumeAboveAvg||'';
+ const spot=(DAY.opening?.v29Candles||[]).filter(b=>v45Time(b)).sort((a,b)=>String(a.timestamp).localeCompare(String(b.timestamp)));
+ const fut=(DAY.futures15m||[]).filter(b=>b.date===dateKey).sort((a,b)=>a.minute-b.minute);
+ const spotCbars=['10:15','10:30'].map(t=>spot.find(b=>v45Time(b)===t&&v29BarClosedForScan(b,dateKey))||null),futCbars=['10:15','10:30'].map(t=>fut.find(b=>(v45Time(b)===t||Number(b.minute)===(t==='10:15'?615:630))&&v29BarClosedForScan(b,dateKey))||null);
+ const spotC=spotCbars[1]||null,futC=futCbars[1]||null;
+ const benchmark=v45CPeriodBenchmarkSync(dateKey,DAY),start=benchmark.start,histSlot=Array.from({length:benchmark.sample});
+ const avg=benchmark.avgTotal,currentCTotal=benchmark.currentTotal;
+ const spotVol=spot.filter(b=>b.volume!=null).length,futVol=fut.filter(b=>b.volume!=null).length;
+ overview.innerHTML='<div class="ci-grid"><div class="ci-stat">NIFTY SPOT 15m<b>'+spot.length+' candles</b><span class="ci-muted">'+spotVol+' with Volume · price structure source</span></div><div class="ci-stat">NIFTY FUTURES 15m<b>'+fut.length+' candles</b><span class="ci-muted">'+futVol+' with Volume · execution evidence source</span></div><div class="ci-stat">Historical Futures archive<b>'+(v45ReadArchive().length+(DAY.futures15m||[]).length)+' locally indexed candles</b><span class="ci-muted">2-month C-slot sample: '+benchmark.sample+' sessions</span></div><div class="ci-stat">Selected date<b>'+v45Esc(dateKey)+'</b><span class="ci-muted">Spot/Futures remain separate</span></div></div><div class="hint-box" style="padding:8px 10px">Spot CSV is stored in DAY.opening.v29Candles. Futures CSV is stored separately in DAY.futures15m. The historical benchmark archive is separate again. No cross-instrument price substitution.</div>';
+ // C-period audit: Spot price/structure + Futures volume. The undefined price-average formula remains manual/unknown.
+ let scan=null;try{scan=v29Scan();}catch(e){}
+ const ib=scan?.ib||null,manualPrice=document.getElementById('v29PriceAboveAvg')?.value||'',manualVolume=DAY.opening?.cVolumeAboveAvg||'';
+ const cHigh=spotCbars.every(Boolean)?Math.max(...spotCbars.map(b=>Number(b.high))):null,cLow=spotCbars.every(Boolean)?Math.min(...spotCbars.map(b=>Number(b.low))):null,cClose=spotC?Number(spotC.close):null;
+ const cSpotComplete=spotCbars.every(Boolean);
+ const extension=!!(ib?.ready&&cSpotComplete&&((cHigh>ib.ibh)||(cLow<ib.ibl)));
+ const closeInside=!!(ib?.ready&&cSpotComplete&&cClose<=ib.ibh&&cClose>=ib.ibl);
+ const vol=currentCTotal;
+ const volAbove=vol!=null&&avg!=null?vol>avg:null;
+ const halfExceeded=!!(ib?.ready&&cSpotComplete&&((cHigh>ib.ibh+0.5*ib.len)||(cLow<ib.ibl-0.5*ib.len)));
+ const cEl=document.getElementById('v45CPeriod');
+ if(cEl)cEl.innerHTML='<div class="kv-row"><span>Spot C-period candles (10:15 + 10:30)</span><b>'+(cSpotComplete?'BOTH AVAILABLE':'INCOMPLETE')+'</b></div><div class="kv-row"><span>Spot C-period range high / low / final close</span><b>'+(cSpotComplete?[cHigh,cLow,cClose].join(' / '):'UNDEF')+'</b></div><div class="kv-row"><span>IB source</span><b>'+(ib?.ready?'Morning A+B · IBH '+ib.ibh+' · IBL '+ib.ibl+' · Length '+ib.len:'IB NOT READY')+'</b></div><div class="kv-row"><span>Spot extension beyond IB</span><b>'+(cSpotComplete&&ib?.ready?(extension?'YES':'NOT OBSERVED'):'UNRESOLVED')+'</b></div><div class="kv-row"><span>Completed Spot close back inside IB</span><b>'+(cSpotComplete&&ib?.ready?(closeInside?'YES':'NO'):'UNRESOLVED')+'</b></div><div class="kv-row"><span>Futures C-period volume (10:15 + 10:30)</span><b>'+(vol==null?'INCOMPLETE / MISSING':vol.toLocaleString('en-IN'))+'</b></div><div class="kv-row"><span>Previous 2-month avg C-period volume</span><b>'+(avg==null?'NOT AVAILABLE':Math.round(avg).toLocaleString('en-IN'))+'</b></div><div class="kv-row"><span>Futures Volume vs average</span><b>'+(volAbove==null?'UNRESOLVED':(volAbove?'ABOVE AVERAGE':'NOT ABOVE AVERAGE'))+'</b></div><div class="kv-row"><span>Coach price-above-average condition</span><b>'+(manualPrice==='yes'?'MANUALLY MARKED YES':manualPrice==='no'?'MANUALLY MARKED NO':'UNKNOWN · METRIC NOT DEFINED')+'</b></div><div class="kv-row"><span>Futures chart volume confirmation</span><b>'+(manualVolume==='yes'?'MANUALLY CONFIRMED ABOVE':manualVolume==='no'?'MANUALLY CONFIRMED NOT ABOVE':'NOT RECORDED')+'</b></div><div class="kv-row"><span>Spot extension beyond 50% IB length</span><b>'+(cSpotComplete&&ib?.ready?(halfExceeded?'YES':'NO'):'UNRESOLVED')+'</b></div><div class="hint-box" style="padding:8px 10px">Historical sample: '+benchmark.sample+' prior sessions with BOTH 10:15 and 10:30 Futures bars, from '+start+' to '+dateKey+' (selected day excluded). Average = arithmetic mean of each session combined 30-minute C-period volume. Coach source confirms a 2-month 15m average but does not fully specify per-15m versus combined-30m aggregation; treat this combined view as a research diagnostic until confirmed. Missing sessions are not synthesized.</div><div class="result-box '+(extension&&closeInside&&volAbove===true&&manualPrice==='yes'&&manualVolume==='yes'?'pos':'')+'"><b>Evidence status: '+(extension&&closeInside&&volAbove===true&&manualPrice==='yes'&&manualVolume==='yes'?'RECORDED CONDITIONS ALIGN — REVIEW ONLY':'WAIT / INCOMPLETE / NOT CONFIRMED')+'</b><br>Even when conditions align, this panel does not authorize a trade or fade. If >50% IB extension is observed, Coach&#39;s dominant institutional volume prohibition still needs actual validated evidence; 15m OHLCV alone cannot prove institutional dominance.</div>';
+ // Half-IB access ledger from completed Spot candle closes only.
+ const half=document.getElementById('v45HalfIB');
+ if(half){if(!ib?.ready)half.innerHTML='IB NOT READY — Morning A+B High/Low required.';else{const events=spot.filter(b=>{const t=v45Time(b);if(!t||t<'10:15'||!v29BarClosedForScan(b,dateKey))return false;const c=Number(b.close);return c>ib.upper||c<ib.lower;});half.innerHTML='<div class="kv-row"><span>Half-IB Upper / Lower</span><b>'+ib.upper+' / '+ib.lower+'</b></div><div class="kv-row"><span>Completed Spot 15m closes beyond Half-IB</span><b>'+events.length+'</b></div>'+(events.length?events.map(b=>'<div class="kv-row"><span>'+v45Esc(v45Time(b))+' close</span><b>'+b.close+' · '+(Number(b.close)>ib.upper?'ABOVE UPPER':'BELOW LOWER')+'</b></div>').join(''):'No qualifying completed close found in imported Spot candles.')+'<div class="hint-box" style="padding:8px 10px">A wick/touch is not counted. A close beyond Half-IB records ACCESS only; it is not an entry signal or trade permission. The existing S1–S9 scanner remains the authoritative journal implementation for its full setup checks.</div>';}}
+ const combined=document.getElementById('v45Combined');
+ if(combined){const basis=spotC&&futC?Number(futC.close)-Number(spotC.close):null;combined.innerHTML='<div class="kv-row"><span>Spot C-period final close (10:30 candle)</span><b>'+(spotC?.close??'UNDEF')+'</b></div><div class="kv-row"><span>Futures C-period final close (10:30 candle)</span><b>'+(futC?.close??'UNDEF')+'</b></div><div class="kv-row"><span>Futures minus Spot (descriptive basis)</span><b>'+(basis==null?'UNDEF':basis.toFixed(2))+'</b></div><div class="kv-row"><span>Futures VWAP (10:30 candle)</span><b>'+(futC?.vwap??'UNDEF')+'</b></div><div class="hint-box" style="padding:8px 10px">Basis is descriptive only. Spot and Futures price series are not merged, and no entry/SL/target is copied across instruments. A 15m OHLCV bar + VWAP does not establish delta, stacked imbalance, absorption or exhaustion.</div>'; }
+ v45RenderHistoryAudit();
+}
+function v45ImportHistorical(text){
+ const parsed=futParseCsv(text,true),old=v45ReadArchive(),map=new Map(old.map(b=>[b.date+'|'+b.minute,b]));let added=0,replaced=0;
+ parsed.bars.forEach(b=>{const k=b.date+'|'+b.minute;if(map.has(k))replaced++;else added++;map.set(k,{date:b.date,minute:b.minute,timestamp:b.timestamp,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume,vwap:b.vwap,source:'BULK_HISTORICAL_CSV'});});
+ const merged=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.minute-b.minute);v45WriteArchive(merged);v45RenderHistoryAudit();v45Render();alert('Historical Futures archive saved: '+parsed.bars.length+' imported rows · '+added+' added · '+replaced+' updated.');
+}
+function v45Bind(){
+ // Move the existing, fully bound Spot scanner and Futures importer into this single dedicated tab.
+ const host=document.getElementById('v45MovedImports');['v29AutoScanCard','futuresDataCard'].forEach(id=>{const el=document.getElementById(id);if(el&&host)host.appendChild(el);});
+ document.getElementById('v45RefreshBtn')?.addEventListener('click',()=>v45Render());
+ const syncControls=()=>{const p=document.getElementById('v45PriceAboveAvg'),old=document.getElementById('v29PriceAboveAvg'),v=document.getElementById('v45FuturesVolumeConfirm');if(p&&old&&document.activeElement!==p)p.value=old.value||'';if(v&&document.activeElement!==v)v.value=DAY.opening?.cVolumeAboveAvg||'';};
+ ['op_Ah','op_Al','op_Bh','op_Bl','v29PriceAboveAvg'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{syncControls();v45Render();}));
+ document.getElementById('v45PriceAboveAvg')?.addEventListener('change',e=>{const old=document.getElementById('v29PriceAboveAvg');if(old){old.value=e.target.value;old.dispatchEvent(new Event('change',{bubbles:true}));}v29Persist();v29Render();v45Render();});
+ document.getElementById('v45FuturesVolumeConfirm')?.addEventListener('change',e=>{DAY.opening=DAY.opening||{};DAY.opening.cVolumeAboveAvg=e.target.value||null;scheduleAutoSave();v29Render();v45Render();});
+ syncControls();
+ const file=document.getElementById('v45HistFutFile');file?.addEventListener('change',async()=>{const f=file.files?.[0];if(!f)return;try{document.getElementById('v45HistFutText').value=await f.text();}catch(e){alert('File read error: '+e.message);}});
+ document.getElementById('v45HistFutImport')?.addEventListener('click',()=>{try{v45ImportHistorical(document.getElementById('v45HistFutText').value);}catch(e){alert('Historical Futures CSV error: '+e.message);}});
+ document.getElementById('v45HistFutClear')?.addEventListener('click',()=>{if(!confirm('Separate historical Futures archive clear karein? Selected-day Futures candles isse nahi mitengi.'))return;v45WriteArchive([]);v45RenderHistoryAudit();v45Render();});
+ document.getElementById('v45HistFutExport')?.addEventListener('click',()=>{const data=v45ReadArchive();ciDownload('v45-futures-history-'+dateKey+'.json',JSON.stringify({exportedAt:new Date().toISOString(),instrument:'NIFTY FUTURES',records:data},null,2),'application/json;charset=utf-8');});
+ v45RenderHistoryAudit();
+}
+try{v45Bind();}catch(e){console.warn('V45 bind',e);}
+
 try{v29Bind();}catch(e){console.warn('V29 scanner binding',e);}
 try{v29QARender();}catch(e){console.warn('V29 QA',e);}
 
