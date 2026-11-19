@@ -1,5 +1,6 @@
 <!--
-TRADING JOURNAL v45 + SPOT/FUTURES INTELLIGENCE TAB — EXECUTION Q&A + STANDING INSTRUCTION UPDATE (V43 BACKWARD-COMPATIBLE ADD-ON)
+TRADING JOURNAL v45 + SPOT/FUTURES INTELLIGENCE TAB — V46 SAVED-DAYS HISTORY VISIBILITY PATCH (BACKWARD-COMPATIBLE)
+V46 HISTORY FIX: Saved Days list now refreshes whenever Summary opens and has a manual Refresh control; localStorage reads are guarded; local/cloud dates are merged without allowing equal/unknown cloud timestamps to overwrite local copies; history rendering reports errors instead of silently leaving a blank list. No trading logic, journal fields, schema or saved-day format changed.
 V44 FUTURES ADD-ON: isolated NIFTY Futures 15m CSV import stores OHLC, Volume, and VWAP separately. V45 ADD-ON: dedicated Spot + Futures Intelligence tab; Spot structure and Futures volume remain separate; multi-date Futures history archive; C-period evidence audit; Half-IB close ledger; descriptive basis view; no broker execution.
 TRADING JOURNAL v41 — METHODOLOGY-ALIGNED OPPORTUNITY & LIFECYCLE JOURNAL
 V44 additive upgrade: dedicated Execution / Trade Trigger Q&A tab; separate instrument price basis; indicative/actionable/WAIT plan resolver; explicit 14:40 and both-IV >=40 option guard; volume/Order Flow nulls are setup-specific evidence gaps, not universal blockers; additive JSON persistence and AI-export standing instructions. V41 additive upgrade: independent opportunity board, contextual divergence, process lifecycle, provenance-aware AI export, and backward-compatible additive state.
@@ -1241,7 +1242,7 @@ Wed Nov 18 2026 09:15:00 GMT+0530 (India Standard Time),...'></textarea></div>
     </div>
 
     <div class="card">
-      <div class="label-sm" style="padding:14px 14px 0">SAVED DAYS</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 0"><div class="label-sm">SAVED DAYS</div><button type="button" id="historyRefreshBtn" style="border:1px solid #3FD5E0;border-radius:7px;background:#16323A;color:#3FD5E0;padding:5px 9px;font:700 10px ui-monospace,monospace">REFRESH</button></div>
       <div id="historyList"></div>
     </div>
 
@@ -1498,7 +1499,7 @@ function showSection(id) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.section===id));
   if (id === 'cockpit') { try { renderCoachCockpit(); renderSetup4Audit(); } catch(e) {} }
   if (id === 'learning') { try { llLoad(); } catch(e) {} }
-  if (id === 'summary') renderSummary();
+  if (id === 'summary') { renderSummary(); renderHistory(); } // V46: refresh saved dates whenever Summary opens.
   if (id === 'trades') { try { renderTradeSection(); } catch (e) {} }
   if (id === 'execution') { try { v44Render(); } catch (e) { console.warn('V44 execution render',e); } }
   if (id === 'intelligence') { try { v45Render(); } catch (e) { console.warn('V45 intelligence render',e); } }
@@ -3462,60 +3463,131 @@ function renderDayBanner() {
   else { pill.textContent=doneCount+'/3 checkpoints'; pill.style.color=COL.amber; pill.style.background=COL.amber+'22'; }
 }
 
-async function getAllSavedDays() {
-  const byDate=new Map();
-  // Start with local records so local-only dates remain visible even when cloud sync is active.
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(k&&k.indexOf(STORAGE_PREFIX)===0&&k!==WEIGHTS_KEY&&k!==RULES_KEY){
-      const key=k.slice(STORAGE_PREFIX.length);
-      if(/^\d{4}-\d{2}-\d{2}$/.test(key))try{byDate.set(key,{key,saved:JSON.parse(localStorage.getItem(k))});}catch(e){}
+async function v46GetAllSavedDays() {
+  // V46: read local dates defensively, preserve local-only days, and merge cloud copies by timestamp.
+  const byDate = new Map();
+  const normalize = (key, raw) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key || ''))) return null;
+    let value = raw;
+    if (typeof value === 'string') {
+      try { value = JSON.parse(value); } catch (_) { return null; }
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    // Accept both the current direct DAY object and legacy {saved}/{day} wrappers.
+    if (value.saved && typeof value.saved === 'object' && !Array.isArray(value.saved)) value = value.saved;
+    else if (value.day && typeof value.day === 'object' && !Array.isArray(value.day)) value = value.day;
+    return { key: String(key), saved: value };
+  };
+
+  // Local storage access itself can throw in some iOS file/WebView contexts.
+  try {
+    const storage = window.localStorage;
+    for (let i = 0; i < storage.length; i++) {
+      const storageKey = storage.key(i);
+      if (!storageKey || storageKey.indexOf(STORAGE_PREFIX) !== 0) continue;
+      if (storageKey === WEIGHTS_KEY || storageKey === RULES_KEY) continue;
+      const dayKey = storageKey.slice(STORAGE_PREFIX.length);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) continue;
+      try {
+        const record = normalize(dayKey, storage.getItem(storageKey));
+        if (record) byDate.set(dayKey, record);
+      } catch (err) {
+        console.warn('[V46] Skipped unreadable local history day:', dayKey, err);
+      }
+    }
+  } catch (err) {
+    console.warn('[V46] Local history storage is unavailable:', err);
+  }
+
+  // Cloud is additive: a cloud failure must never erase dates found locally.
+  if (usingDb) {
+    try {
+      const cloudDays = await cloudListDays();
+      (Array.isArray(cloudDays) ? cloudDays : []).forEach(raw => {
+        if (!raw) return;
+        const key = String(raw.key || raw.date || '');
+        const record = normalize(key, raw.saved != null ? raw.saved : (raw.day != null ? raw.day : raw));
+        if (!record) return;
+        const local = byDate.get(key);
+        const localTime = Date.parse(local && local.saved && local.saved._journalMeta && local.saved._journalMeta.updatedAt || '') || 0;
+        const cloudTime = Date.parse(record.saved && record.saved._journalMeta && record.saved._journalMeta.updatedAt || '') || 0;
+        // Prefer cloud only when it is demonstrably newer; equal/unknown timestamps keep local.
+        if (!local || cloudTime > localTime) byDate.set(key, record);
+      });
+    } catch (err) {
+      console.warn('[V46] Cloud history read failed; retaining local history:', err);
     }
   }
-  if(usingDb){
-    const cloudDays=await cloudListDays();
-    cloudDays.forEach(x=>{
-      if(!x||!/^\d{4}-\d{2}-\d{2}$/.test(x.key||''))return;
-      const local=byDate.get(x.key),lt=Date.parse(local&&local.saved&&local.saved._journalMeta&&local.saved._journalMeta.updatedAt||'')||0;
-      const ct=Date.parse(x.saved&&x.saved._journalMeta&&x.saved._journalMeta.updatedAt||'')||0;
-      if(!local||ct>=lt)byDate.set(x.key,x);
-    });
-  }
-  return Array.from(byDate.values()).sort((a,b)=>b.key.localeCompare(a.key));
+  return Array.from(byDate.values()).sort((a, b) => b.key.localeCompare(a.key));
 }
 
+let v46HistoryRenderSequence = 0;
 async function renderHistory() {
   const box = document.getElementById('historyList');
-  const days = await getAllSavedDays();
-  if (days.length === 0) { box.innerHTML = '<div class="history-empty">Koi saved day nahi abhi.</div>'; return; }
-  box.innerHTML = "";
-  days.forEach(({key, saved}) => {
-    const nifty = parseFloat(saved.niftyPrice) || 0;
-    let r = null;
-    for (const cp of ["now","c930","c920","c908"]) { r = computeFromValues(saved.participation||{}, nifty, cp); if (r) break; }
-    const row = document.createElement('div');
-    row.className = 'history-item' + (key === todayKey() ? ' today-item' : '');
-    row.innerHTML = `
-      <div class="hdate">${formatDateKey(key)}${key===todayKey()?'<span>Today</span>':'<span>Tap to edit →</span>'}</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="hchip" style="color:${r?signalColor(r.signal):'#7C8896'};background:${r?signalColor(r.signal)+'22':'transparent'}">${r?r.signal:'–'}</span>
-      </div>`;
-    const delBtn = document.createElement('button');
-    delBtn.className = 'hdel'; delBtn.textContent = '✕';
-    delBtn.onclick = async (ev) => {
-      ev.stopPropagation();
-      if (confirm('Delete '+formatDateKey(key)+'?')) {
-        localStorage.removeItem(STORAGE_PREFIX+key);
-        if (usingDb) await cloudDeleteDay(key);
-        if (dateKey===key) await loadDay(todayKey(),{skipFlush:true});
-        await renderHistory();
+  if (!box) return;
+  const sequence = ++v46HistoryRenderSequence;
+  box.innerHTML = '<div class="history-empty">Saved dates load ho rahi hain…</div>';
+  try {
+    const days = await getAllSavedDays();
+    if (sequence !== v46HistoryRenderSequence) return;
+    if (!days.length) {
+      box.innerHTML = '<div class="history-empty">Koi saved day nahi mila. Agar pehle dates thi, Backup / Restore se history recover karne ka option check karein.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="history-empty" style="padding-top:8px">' + days.length + ' saved day(s)</div>';
+    const fragment = document.createDocumentFragment();
+    days.forEach(({ key, saved }) => {
+      const nifty = parseFloat(saved && saved.niftyPrice) || 0;
+      let result = null;
+      for (const cp of ['now', 'c930', 'c920', 'c908']) {
+        result = computeFromValues(saved && saved.participation || {}, nifty, cp);
+        if (result) break;
       }
-    };
-    row.querySelector('div[style]').appendChild(delBtn);
-    row.onclick = () => loadDay(key);
-    box.appendChild(row);
-  });
+      const row = document.createElement('div');
+      row.className = 'history-item' + (key === todayKey() ? ' today-item' : '');
+      const date = document.createElement('div');
+      date.className = 'hdate';
+      date.textContent = formatDateKey(key);
+      const hint = document.createElement('span');
+      hint.textContent = key === todayKey() ? 'Today' : 'Tap to edit →';
+      date.appendChild(hint);
+      const right = document.createElement('div');
+      right.style.cssText = 'display:flex;align-items:center;gap:8px';
+      const chip = document.createElement('span');
+      chip.className = 'hchip';
+      chip.textContent = result ? result.signal : '–';
+      chip.style.color = result ? signalColor(result.signal) : '#7C8896';
+      chip.style.background = result ? signalColor(result.signal) + '22' : 'transparent';
+      right.appendChild(chip);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'hdel';
+      delBtn.type = 'button';
+      delBtn.textContent = '✕';
+      delBtn.setAttribute('aria-label', 'Delete ' + formatDateKey(key));
+      delBtn.onclick = async ev => {
+        ev.stopPropagation();
+        if (!confirm('Delete ' + formatDateKey(key) + '?')) return;
+        try { localStorage.removeItem(STORAGE_PREFIX + key); } catch (err) { console.warn('[V46] Local delete failed:', err); }
+        if (usingDb) await cloudDeleteDay(key);
+        if (dateKey === key) await loadDay(todayKey(), { skipFlush: true });
+        await renderHistory();
+      };
+      right.appendChild(delBtn);
+      row.appendChild(date);
+      row.appendChild(right);
+      row.onclick = () => loadDay(key);
+      fragment.appendChild(row);
+    });
+    box.appendChild(fragment);
+  } catch (err) {
+    console.error('[V46] Saved-days rendering failed:', err);
+    if (sequence === v46HistoryRenderSequence) {
+      box.innerHTML = '<div class="history-empty">Saved history load nahi ho payi: ' + String(err && err.message || err).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) + '</div>';
+    }
+  }
 }
+
+document.getElementById('historyRefreshBtn')?.addEventListener('click', () => renderHistory());
 
 document.getElementById('jumpDateBtn').onclick = () => {
   const v = document.getElementById('jumpDate').value;
@@ -6186,32 +6258,10 @@ function v42SafeDayRecord(entry){
   return {key,saved};
 }
 async function getAllSavedDays(){
-  const byDate=new Map();
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(!k || !k.startsWith(STORAGE_PREFIX) || [WEIGHTS_KEY,RULES_KEY].includes(k)) continue;
-    const key=k.slice(STORAGE_PREFIX.length);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
-    try{
-      const parsed=JSON.parse(localStorage.getItem(k));
-      const safe=v42SafeDayRecord({key,saved:parsed});
-      if(safe) byDate.set(key,safe);
-    }catch(err){ console.warn('V42 skipped corrupt local history day:',key,err); }
-  }
-  if(usingDb){
-    try{
-      const cloudDays=await cloudListDays();
-      (Array.isArray(cloudDays)?cloudDays:[]).forEach(raw=>{
-        const x=v42SafeDayRecord(raw); if(!x) return;
-        const local=byDate.get(x.key);
-        const lt=Date.parse(local?.saved?._journalMeta?.updatedAt||'')||0;
-        const ct=Date.parse(x.saved?._journalMeta?.updatedAt||'')||0;
-        if(!local || ct>=lt) byDate.set(x.key,x);
-      });
-    }catch(err){ console.warn('V42 cloud history read failed; retaining local records:',err); }
-  }
-  return Array.from(byDate.values()).sort((a,b)=>b.key.localeCompare(a.key));
+  // V46 supersedes the older V42 history reader while retaining its public function name.
+  return v46GetAllSavedDays();
 }
+
 function v42ShowJsonFallback(filename,content,errorText=''){
   let modal=document.getElementById('v42JsonFallback');
   if(!modal){
