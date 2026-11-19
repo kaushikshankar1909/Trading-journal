@@ -1,7 +1,5 @@
 <!--
-V51 FIX: cache the expensive historical Futures localStorage scan for 15 seconds, reuse the current V29 scan in the scanner panel, reduce periodic cockpit rescans from every 3 seconds to every 15 seconds, remove duplicate startup scan, and show a copyable JSON fallback for Daily JSON (Compact) on mobile browsers. No trading rules or saved-data schema changed.
-V50 FIX: moved V29 scanner binding, input loading, first render and QA render from the end of the first script section to the end of the complete document, after V41/V44 lexical declarations and functions initialize. This removes the startup temporal-dead-zone ordering hazard. No scanner rules, trade logic, journal fields or saved-data schema changed.
-TRADING JOURNAL v50 — DEFERRED SCANNER INITIALIZATION (BACKWARD-COMPATIBLE)
+TRADING JOURNAL v45 + SPOT/FUTURES INTELLIGENCE TAB — V46 SAVED-DAYS HISTORY VISIBILITY PATCH (BACKWARD-COMPATIBLE)
 V46 HISTORY FIX: Saved Days list now refreshes whenever Summary opens and has a manual Refresh control; localStorage reads are guarded; local/cloud dates are merged without allowing equal/unknown cloud timestamps to overwrite local copies; history rendering reports errors instead of silently leaving a blank list. No trading logic, journal fields, schema or saved-day format changed.
 V44 FUTURES ADD-ON: isolated NIFTY Futures 15m CSV import stores OHLC, Volume, and VWAP separately. V45 ADD-ON: dedicated Spot + Futures Intelligence tab; Spot structure and Futures volume remain separate; multi-date Futures history archive; C-period evidence audit; Half-IB close ledger; descriptive basis view; no broker execution.
 TRADING JOURNAL v41 — METHODOLOGY-ALIGNED OPPORTUNITY & LIFECYCLE JOURNAL
@@ -12,12 +10,9 @@ TRADING JOURNAL v39 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V39 scoped upgrades: (1) OF_COMBOS #5/#6 now have a state-aware existing-runner exit alert, with chronology checks and explicit acknowledgement that is never treated as broker-confirmed execution; the existing no-new-entry gate remains authoritative. (2) A single canonical trade-plan resolver owns final setup-specific SL reference, T1/T2/T3 target zones and RR display, while preserving V38 structural calculations and withholding unsupported numeric anchors. All nine setups, existing gates, trade-lock validation, historical records, persistence, exports, replay and V28-compatible data schema are retained. No numerical absorption evaluator or unsupported Coach rule is introduced.
 V38 technical fixes: ORR requires a valid A-period range before B-period reversal can be classified; OTD close must be on the correct side of its tested reference; Tick Acceptance no longer infers acceptance without valid A-period OHLC; malformed numeric inputs are rejected consistently in participation, delta, P&L/target, Fib/IV, IB and scanner OHLC validation; incomplete trade-size tier no longer displays a false zero-lot recommendation; Day Type ladder now exposes its existing close-location input for the no-Half-IB branch; trade logging blocks malformed/wrong-side SL or T1 values and malformed supplied size/partial fields; data-quality checks handle malformed record arrays and blank Half-IB OHLC safely. Existing Coach thresholds, setup logic outside these technical guards, and V28-compatible data schema are retained.
 TRADING JOURNAL v37 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
-V49 scoped fix: Scanner initialization is deferred until the V29 scanner module has completed declaration and binding. Early startup/date-load renders skip scanner calls while its lexical constants are still in the temporal dead zone; once initialized, the scanner is explicitly loaded and rendered. Existing scanner logic and journal schema are unchanged.\nV47 scoped update: Added Daily JSON (Compact) with only the requested compact fields; maps existing Spot candles from DAY.opening.v29Candles, Futures from DAY.futures15m, Order Flow from DAY.orderflow, and existing Morning/MP/participation/scanner fields without adding inputs or schema keys. Session candle starts are restricted to 09:15–15:15 (09:00 excluded). Legacy five-field checklist remains evidence-only with no displayed score/count; removed generic uncertain/missing-doubt-state execution block and historical five-field score aggregation. No new trading logic or input fields; existing Coach rules and 14:40 cutoff preserved.\nV37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
+V37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
 
-TRADING JOURNAL v48 — DEPLOYMENT FIX (TXT SOURCE)
-V48 fix: removed accidental literal \n\n text outside HTML; updated browser title and visible journal heading to v48. No journal data schema or trading logic changed.
-
-TRADING JOURNAL v47 — CLEAN COMPACT JSON EXPORT
+TRADING JOURNAL v36 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V35 audit upgrades: date-switch autosave flush + stale-load guard + delete-safe navigation; timestamp-aware local/cloud conflict resolution and local-only history merge; IST-based 14:40 cutoff with recorded trigger-time handling; nearest eligible structural T1 selection; malformed nonblank Volume rejection; duplicate helper removed; finite-number guards for participation/Order Flow/Fib; lakh delta parsing; timestamp-ordered Order Flow sequences when all event times exist; history JSON carries per-day read-only scanner results; Trade Plan links the nine scanner results without treating scanner status as order permission. Existing methodology thresholds and numeric Coach rules are not expanded.
 Base: original user-supplied V28 Coach Multi-Setup journal; all existing sections, local/cloud persistence, saved-day schema, trade logs, learning lab, exports and legacy backup/restore are retained.
 Preserved V33 architecture and existing journal functionality: Morning tab A/B periods are the authoritative IB source (A 09:15–09:45, B 09:45–10:15); IB/Half-IB calculate from those entered period highs/lows and no longer require opening CSV candles; CSV remains the source for post-IB 15-minute candle checks; candle-dependent setups are gated independently so missing/invalid CSV does not suppress valid Morning-tab/manual evidence; complete-pair 30-minute OHLC bars derived from exact session-aligned 15-minute pairs; separate Market Profile VA and instrument Fib VA inputs; date-persisted evidence fields; auto-scan and auto-IB toggles. No look-ahead: Setup 4 remains locked to 09:30 inputs. Missing TPO, Order Flow, VWAP, POC, participation, option premium, historical volume or visual auction evidence is never fabricated. Existing V28 data remains backward-compatible. Triggered means setup evidence only, not automatic trade permission or order execution. This is a complete HTML document. V33 fixes: post-IB session completeness is checked only from 10:15–15:00 (20 candle starts); the 15:15-start candle is excluded; pre-IB CSV gaps do not invalidate post-IB evidence; valid post-IB candles remain usable when unrelated pre-IB rows are incomplete; Setup 1 now explicitly gates on Coach's separate price-above-average condition, while preserving the unspecified price metric as NEEDS_COACH_RULE until the user records it; scanner retains the 7-Nov no-fixed-indication-list rule and never converts indication counts into a trade score. Export fix: actual nine-setup v29Scan results are included separately from manual candidates; historical export scanning is date-scoped and read-only; Setup 8 excludes 15:15-start candles. V34 audit patch: Setup 4 has one shared CE/PE + c930 + manual 09:30 Market Profile alignment evaluator across UI/scanner/export; CE/PE and/or anchor mapping now surfaces conflicts instead of score cancellation; Setup 4 uses only locked 09:30 data and exposes the 09:30 spot close as reference, not order permission; unsupported fixed five-signal scoring, universal RRR<1:1 no-trade, generic doubt no-trade, and Friday 50%/second-trade hard blocks are removed or downgraded; Setup 7 access and Setup 8 setup evidence are explicitly not order permission; post-IB denominator display is 20; explicit timezone-bearing timestamps normalize to IST.
@@ -27,7 +22,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v51 · Freeze + Compact Export Fix</title>
+<title>Daily Trading Journal v46.1 · Scanner Startup + Compact Export Fix</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -260,7 +255,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 
 <header>
   <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v45 (Spot + Futures Intelligence)</div>
-  <div class="title">Daily Trading Journal v51</div>
+  <div class="title">Daily Trading Journal v46.1</div>
 </header>
 
 <div class="daybar">
@@ -927,7 +922,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
       <!-- Coach: "First watch options strike ITM as per Fibonacci value area... for confidence we need other process to follow." -->
       <div class="hint-box" style="padding:0 14px 6px"><span class="muted">Engine ka plan ITM Anchor direction se banta hai — Signals Count card se alag hai.</span></div>
       <div class="result-box" id="patternWarnBox" style="margin-top:8px">Pattern warning: Trade log bharo (TRADES tab)</div>
-      <div class="hint-box" style="padding:0 14px 8px"><b>Coach clarification (7 Nov):</b> 2/5 aur 3+/5 ka matlab kisi fixed five-indication checklist ko mechanically count karna nahi. Indications market structure ke hisaab se badalti hain. Low volatility mein Half-IB access mushkil ho sakta hai; C-period, IB access, day structure aur strategy ko context ke hisaab se dekho. Neeche ka legacy checklist sirf recorded evidence audit hai — final bias, trade permission, ya fixed signal score nahi.</div>
+      <div class="hint-box" style="padding:0 14px 8px"><b>Coach clarification (7 Nov):</b> Indications ko kisi fixed checklist ki tarah mechanically count nahi karna. Evidence market structure, volatility, C-period, IB access aur strategy ke context mein alag-alag review karo. Neeche ka legacy checklist sirf recorded evidence notes hai — score, final bias ya trade permission nahi.</div>
       <div class="toggle-q">Independent time-confirmation direction (separate 15m event; manual)</div><div class="toggle-group" id="tg_timeConfirmationSide"><button data-val="up">UP</button><button data-val="down">DOWN</button><button data-val="none">No separate confirmation</button></div>
     </div>
 
@@ -1630,7 +1625,7 @@ async function saveDay(silent) {
   const key=dateKey, snapshot=JSON.parse(JSON.stringify(DAY));
   if(!/^\d{4}-\d{2}-\d{2}$/.test(key||''))return;
   snapshot._journalMeta={...(snapshot._journalMeta||{}),schemaVersion:'v41',updatedAt:new Date().toISOString()};
-  try { localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(snapshot)); if(typeof v45InvalidateBenchmarkHistoryCache==='function' && Array.isArray(snapshot.futures15m))v45InvalidateBenchmarkHistoryCache(); }
+  try { localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(snapshot)); }
   catch (e) { if (!silent) alert('Local save failed — storage blocked ho sakta hai.'); return; }
   const cloudWasEnabled=usingDb;
   if (cloudWasEnabled) await cloudSaveDay(key, snapshot);
@@ -1651,7 +1646,7 @@ async function loadDay(key, options={}) {
   // Flush the outgoing date before changing globals; otherwise a pending debounce could
   // save the previous day's object under the newly selected date.
   if(!options.skipFlush&&/^\d{4}-\d{2}-\d{2}$/.test(oldKey||'')){
-    try{localStorage.setItem(STORAGE_PREFIX+oldKey,JSON.stringify(oldSnapshot));if(typeof v45InvalidateBenchmarkHistoryCache==='function'&&Array.isArray(oldSnapshot.futures15m))v45InvalidateBenchmarkHistoryCache();}catch(e){console.error('local day-switch flush failed',e);}
+    try{localStorage.setItem(STORAGE_PREFIX+oldKey,JSON.stringify(oldSnapshot));}catch(e){console.error('local day-switch flush failed',e);}
     if(usingDb)await cloudSaveDay(oldKey,oldSnapshot);
   }
   if(sequence!==dayLoadSequence)return;
@@ -2718,22 +2713,21 @@ function computeSignalsCount(dayOverride) {
   ];
   const flags = {};
   defs.forEach(x=>{flags[x.key]=!!(x.dir && same(x.dir));});
-  const count = defs.filter(x=>x.dir && same(x.dir)).length;
   const conflicts = defs.filter(x=>x.dir && opposite(x.dir)).map(x=>x.label);
   const available = defs.filter(x=>x.available).length;
   const missing = defs.filter(x=>!x.available).map(x=>x.label);
-  return {count,matchingObservations:count,isCoachScore:false,flags,bias,available,missing,conflicts,details:defs,provisional:available<5,label:'PARTIAL EVIDENCE AUDIT ONLY — NOT A COACH-DEFINED SCORE OR TRADE PERMISSION'};
+  return {isCoachScore:false,flags,bias,available,missing,conflicts,details:defs,provisional:available<5,label:'EVIDENCE NOTES (NOT A SCORE)'};
 }
 function renderSignalsCount() {
   const box = document.getElementById('signalsCountBox'); if (!box) return;
   const r = computeSignalsCount();
-  if (!r) { box.innerHTML = '<div class="big-num">Evidence audit</div><div class="sub">09:30 ITM CE/PE anchor unavailable. Legacy observations are not a score or trade gate.</div>'; return; }
+  if (!r) { box.innerHTML = '<div class="big-num" style="font-size:20px">Evidence notes (not a score)</div><div class="sub">Directional anchor / source data not yet available. Record individual observations only.</div>'; return; }
   const names = {s1_openingType:'Opening Type',s2_halfIBBreak:'Half-IB 15m access',s3_va80Acceptance:'VA 80% acceptance',s4_tickAcceptance:'Tick observation',s5_timeConfirmation:'Time observation'};
-  const list = Object.keys(r.flags).map(k => (r.flags[k] ? '✅ ' : '⬜ ') + names[k]).join(' · ');
-  box.innerHTML = '<div class="big-num" style="font-size:20px">Evidence audit — not a Coach score</div><div class="sub">Initial ITM anchor reference: '+r.bias.toUpperCase()+' · Individual legacy observations only; no score/count</div><div class="sub" style="margin-top:6px">'+list+'</div>'+
+  const list = Object.keys(r.flags).map(k => (r.flags[k] ? '✓ ' : '— ') + names[k]).join(' · ');
+  box.innerHTML = '<div class="big-num" style="font-size:20px">Evidence notes (not a score)</div><div class="sub">Initial ITM anchor reference: '+r.bias.toUpperCase()+'</div><div class="sub" style="margin-top:6px">'+list+'</div>'+
     (r.conflicts.length?'<div class="sub" style="color:#F2545B;margin-top:6px">Opposite observations to review: '+r.conflicts.join(', ')+'</div>':'')+
     (r.missing.length?'<div class="sub" style="margin-top:6px">Not recorded: '+r.missing.join(', ')+'</div>':'')+
-    '<div class="sub" style="margin-top:6px">Coach: indications are not a fixed list. Use C period, IB access, day structure, strategy and the current volatility regime as applicable. This audit does not declare 2/5 or 3+/5, and does not force a directional decision.</div>';
+    '<div class="sub" style="margin-top:6px">Market-structure evidence only. No fixed five-item list, count, threshold or trade permission is generated.</div>';
   try { renderCoachContext(); } catch(e) {}
 }
 function renderToggleGroup(id, val) {
@@ -3773,7 +3767,7 @@ function timeBucket(t) {
 function tradeContext() {
   const o = DAY.opening, c = {};
   try { const d = new Date(dateKey + 'T00:00:00'); c.friday = d.getDay() === 5; } catch (e) {}
-  try { const s = computeSignalsCount(); c.signals = s ? s.count : null; c.bias = s ? s.bias : null; } catch (e) {}
+  try { const s = computeSignalsCount(); c.evidenceNotes = s ? s.flags : null; c.bias = s ? s.bias : null; } catch (e) {}
   try { const ci = computeCoachContext(); c.indications = ci.counts; c.maxIndicationDirection = ci.maximum; c.contextEvidence = ci.evidence; c.orderFlowStatus = ci.orderFlow.status; c.participationStatus = ci.participation.status; c.momentumStatus = ci.momentum.status; c.contextConfidence = ci.confidence; } catch (e) {}
   try { const r = calcOpening(); c.opening = r ? (r.base + (r.sub ? '+' + r.sub.type : '') + (r.orr ? '+ORR' : '')) : null; } catch (e) {}
   try { c.dayType = calcDayType(); } catch (e) {}
@@ -5147,7 +5141,6 @@ async function ciExport(type,format){
  const ext=format==='json'?'json':'md'; const content=format==='json'?JSON.stringify(obj,null,2):ciToMarkdown(obj);ciDownload('coach-journal-'+type+'-'+(key||dateKey)+'.'+ext,content,format==='json'?'application/json;charset=utf-8':'text/markdown;charset=utf-8');
 }
 ['ciDailyJson','ciDailyMd','ciTradeJson','ciTradeMd','ciHistoryJson','ciHistoryMd'].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=()=>ciExport(id.includes('Daily')?'daily':(id.includes('Trade')?'trade':'history'),id.endsWith('Json')?'json':'md');});
-const ciCompactBtn=document.getElementById('ciDailyCompactJson');if(ciCompactBtn)ciCompactBtn.onclick=ciExportCompactJson;
 
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
@@ -5168,11 +5161,11 @@ function renderEverything() {
   renderOfTally();
   try { renderNlm(); } catch(e) { v42ReportError('NLM render',e); } try { renderPmCheck(); } catch(e) { v42ReportError('PM check render',e); } try { renderCBench(); } catch(e) { v42ReportError('C-bench render',e); }
   try { renderTradeSection(); refreshTradesCache().then(() => { try { renderTradeSection(); } catch(e) { v42ReportError('Trade section async render',e); } }).catch(e=>v42ReportError('Trade cache refresh',e)); } catch(e) { v42ReportError('Trade section render',e); }
-  try { renderCoachContext(); } catch(e) { v42ReportError('Coach context render',e); } try { renderCoachCockpit(); } catch(e) { v42ReportError('Coach cockpit render',e); } try { ciRefreshExportUI(); } catch(e) { v42ReportError('Export status render',e); } if (window.__v29ScannerReady === true) { try { v29LoadInputs(); v29Render(); } catch(e) { v42ReportError('Scanner render',e); } }
+  try { renderCoachContext(); } catch(e) { v42ReportError('Coach context render',e); } try { renderCoachCockpit(); } catch(e) { v42ReportError('Coach cockpit render',e); } try { ciRefreshExportUI(); } catch(e) { v42ReportError('Export status render',e); } try { v29LoadInputs(); v29Render(); } catch(e) { v42ReportError('Scanner render',e); }
   try { if (typeof v44Render === 'function') v44Render(); } catch(e) { v42ReportError('V44 execution render',e); }
 }
 
-if (typeof setInterval === 'function') setInterval(() => { try { renderCoachContext(); } catch(e) { v42ReportError('Periodic coach context refresh',e); } try { renderCoachCockpit(); } catch(e) { v42ReportError('Periodic cockpit refresh',e); } try { ciRefreshExportUI(); } catch(e) { v42ReportError('Periodic export refresh',e); } }, 15000);
+if (typeof setInterval === 'function') setInterval(() => { try { renderCoachContext(); } catch(e) { v42ReportError('Periodic coach context refresh',e); } try { renderCoachCockpit(); } catch(e) { v42ReportError('Periodic cockpit refresh',e); } try { ciRefreshExportUI(); } catch(e) { v42ReportError('Periodic export refresh',e); } }, 3000);
 
 
 function renderCoachCockpit() {
@@ -5277,12 +5270,8 @@ function renderCoachCockpit() {
   try { if (typeof v41RenderPanel === 'function') v41RenderPanel(); } catch (e) { console.warn('V41 panel render', e); }
 }
 
-(async function boot(){
-  await initStorage();
-  showSection('premarket');
-  await loadDay(todayKey());
-  await renderHistory();
-})();
+// V46.1: boot is intentionally deferred until every later script block has initialized.
+// This avoids startup-time access to later lexical bindings in scanner / cockpit modules.
 
 /* ============================================================
    V35 COACH 9-SETUP 15-MINUTE / 30-MINUTE OHLC SCANNER
@@ -5586,10 +5575,10 @@ const V40_SETUP_META = {
   5:{setup:'momentum_fib',type:'momentum'}, 6:{setup:'institutional_momentum',type:'momentum'},
   7:{setup:'half_ib',type:'mp'}, 8:{setup:'va_80',type:'mp'}, 9:{setup:'trend_continuation',type:'mp'}
 };
-function automaticTriggerAudit(dayData,scanDate,precomputedScan){
+function automaticTriggerAudit(dayData,scanDate){
   const d=dayData||DAY, o=d.opening||{}, auditDate=scanDate||dateKey;
-  let scan=precomputedScan||null;
-  try{if(!scan)scan=withJournalDay(d,()=>v29Scan({date:auditDate,day:d,readOnly:true,useStoredInputs:true}));}
+  let scan;
+  try{scan=withJournalDay(d,()=>v29Scan({date:auditDate,day:d,readOnly:true,useStoredInputs:true}));}
   catch(e){return {complete:false,scaleMismatch:false,results:[],error:String(e&&e.message||e)};}
   const results=(scan.results||[]).map(r=>{
     let state='WAITING_NEEDS_MANUAL_EVIDENCE', detail=r.detail||'Required setup evidence is not complete.', direction=null;
@@ -5651,7 +5640,7 @@ function v29Render(){
  futRender();
  try{v29QARender();}catch(e){}
  const el=document.getElementById('v29DataQuality'),ibEl=document.getElementById('v29IBResult'),out=document.getElementById('v29ScanResults'),tbl=document.getElementById('v29CandleTables');if(!el||!out)return;
- const r=v29Scan(),n=(r.rawBars||r.bars).length,thirty=v29Build30m(r.bars),triggerAudit=automaticTriggerAudit(DAY,dateKey,r);
+ const r=v29Scan(),n=(r.rawBars||r.bars).length,thirty=v29Build30m(r.bars),triggerAudit=automaticTriggerAudit();
  const strictAudit=document.getElementById('v29StrictData')?.checked!==false;
  const auditIssues=strictAudit?r.q.issues:r.q.issues.filter(x=>!/^Out-of-order timestamp|^Post-IB candle gap/.test(x));
  el.innerHTML='<b>CSV DATA AUDIT · SELECTED DAY '+v29Esc(dateKey)+'</b><br>15m candles: '+n+' · Post-IB valid candles: '+(r.q.postIB?.validCount??0)+'/20 (raw '+(r.q.postIB?.count??0)+') · Post-IB window: '+(r.q.postIB?.complete?'COMPLETE':'INCOMPLETE')+' · Derived complete 30m OHLC candles: '+thirty.length+' · Structural issues: <span style="color:'+(r.q.issues.length?'#F2545B':'#3DDC84')+'">'+r.q.issues.length+'</span> · Missing OHLC rows: '+r.q.missing.length+'<br>'+(auditIssues.concat(r.q.missing).map(v29Esc).join('<br>')||'No structural issues detected. Volume is optional; missing Volume does not block candle import.')+(r.q.postIB?.issues?.length&&strictAudit?'<br>Post-IB issues: '+r.q.postIB.issues.map(v29Esc).join(' · '):'')+(r.q.postIB?.missing?.length?'<br>Post-IB missing rows: '+r.q.postIB.missing.map(v29Esc).join(' · '):'')+(r.q.sourceOrderIssues.length&&strictAudit?'<br><span style="color:#E5B454">Source CSV row-order warnings (sorted for chronology): '+r.q.sourceOrderIssues.map(v29Esc).join(' · ')+'</span>':'');
@@ -5930,26 +5919,14 @@ function v29QARender(){
 }
 /* V45 Spot + Futures Intelligence — evidence dashboard only; no broker/order execution. */
 const V45_FUTURES_HISTORY_KEY='v45_futures_history_v1';
-// Cache the expensive historical localStorage scan; the selected day's Futures rows are still added fresh per call.
-let v45BenchmarkHistoryCache=null;
-function v45InvalidateBenchmarkHistoryCache(){v45BenchmarkHistoryCache=null;}
-function v45HistoricalBenchmarkMap(){
- const now=Date.now();
- if(v45BenchmarkHistoryCache&&now-v45BenchmarkHistoryCache.at<15000)return new Map(v45BenchmarkHistoryCache.entries);
- const map=new Map();
- const add=(arr)=>{(Array.isArray(arr)?arr:[]).forEach(b=>{if(!b?.date)return;const minute=Number.isFinite(Number(b.minute))?Number(b.minute):({'10:15':615,'10:30':630}[v45Time(b)]);if(!Number.isFinite(minute))return;map.set(b.date+'|'+minute,b);});};
- add(v45ReadArchive());
- try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith(STORAGE_PREFIX))continue;const d=k.slice(STORAGE_PREFIX.length);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))continue;try{const saved=JSON.parse(localStorage.getItem(k)||'{}');add(saved.futures15m);}catch(e){}}}catch(e){}
- v45BenchmarkHistoryCache={at:now,entries:[...map.entries()]};
- return map;
-}
 function v45Esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function v45Time(b){const s=String(b?.timestamp||'');const m=s.match(/(?:T|\s)(\d{1,2}:\d{2})/);return m?m[1]:null;}
 function v45ReadArchive(){try{const x=JSON.parse(localStorage.getItem(V45_FUTURES_HISTORY_KEY)||'[]');return Array.isArray(x)?x:[];}catch(e){return[];}}
-function v45WriteArchive(a){localStorage.setItem(V45_FUTURES_HISTORY_KEY,JSON.stringify(a));v45InvalidateBenchmarkHistoryCache();}
+function v45WriteArchive(a){localStorage.setItem(V45_FUTURES_HISTORY_KEY,JSON.stringify(a));}
 function v45CPeriodBenchmarkSync(scanDate,scanDay=DAY){
- const map=v45HistoricalBenchmarkMap();
- const add=(arr)=>{(Array.isArray(arr)?arr:[]).forEach(b=>{if(!b?.date)return;const minute=Number.isFinite(Number(b.minute))?Number(b.minute):({ '10:15':615,'10:30':630 }[v45Time(b)]);if(!Number.isFinite(minute))return;map.set(b.date+'|'+minute,b);});};
+ const map=new Map(),add=(arr)=>{(Array.isArray(arr)?arr:[]).forEach(b=>{if(!b?.date)return;const minute=Number.isFinite(Number(b.minute))?Number(b.minute):({ '10:15':615,'10:30':630 }[v45Time(b)]);if(!Number.isFinite(minute))return;map.set(b.date+'|'+minute,b);});};
+ add(v45ReadArchive());
+ try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith(STORAGE_PREFIX))continue;const d=k.slice(STORAGE_PREFIX.length);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))continue;try{const saved=JSON.parse(localStorage.getItem(k)||'{}');add(saved.futures15m);}catch(e){}}}catch(e){}
  add(scanDay?.futures15m);
  const start=v45TwoMonthStart(scanDate),sessions=new Map();
  for(const b of map.values()){
@@ -6027,11 +6004,12 @@ function v45Bind(){
 }
 try{v45Bind();}catch(e){console.warn('V45 bind',e);}
 
-// V50: scanner startup is intentionally deferred until ALL journal script sections (including V41/V44) have initialized.
+try{v29Bind();}catch(e){console.warn('V29 scanner binding',e);}
+try{v29QARender();}catch(e){console.warn('V29 QA',e);}
 
 </script>
 
-<!-- V41 ADDITIVE UPGRADE: all legacy V40 modules remain in place. -->
+\n\n<!-- V41 ADDITIVE UPGRADE: all legacy V40 modules remain in place. -->
 <script>
 /*
  V41 methodology-aligned opportunity audit.
@@ -6377,7 +6355,7 @@ function v42ShowJsonFallback(filename,content,errorText=''){
   if(!modal){
     modal=document.createElement('div'); modal.id='v42JsonFallback';
     modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:14px';
-    modal.innerHTML='<div style="width:min(720px,100%);max-height:90vh;overflow:auto;background:#12181F;border:1px solid #3FD5E0;border-radius:12px;padding:14px;color:#E6EDF3;font:12px ui-monospace,monospace"><div style="font-size:14px;font-weight:800;margin-bottom:8px">JSON download / copy fallback</div><div id="v42FallbackMessage" style="color:#F5A524;margin-bottom:8px"></div><textarea id="v42FallbackText" readonly style="width:100%;height:48vh;background:#0E141A;color:#E6EDF3;border:1px solid #354454;border-radius:8px;padding:8px;font:11px ui-monospace,monospace"></textarea><div style="display:flex;gap:8px;margin-top:10px"><button id="v42FallbackCopy" style="flex:1;padding:10px;background:#16323A;color:#3FD5E0;border:1px solid #3FD5E0;border-radius:8px">Copy JSON</button><button id="v42FallbackClose" style="padding:10px;background:#202833;color:#E6EDF3;border:1px solid #526070;border-radius:8px">Close</button></div></div>';
+    modal.innerHTML='<div style="width:min(720px,100%);max-height:90vh;overflow:auto;background:#12181F;border:1px solid #3FD5E0;border-radius:12px;padding:14px;color:#E6EDF3;font:12px ui-monospace,monospace"><div style="font-size:14px;font-weight:800;margin-bottom:8px">History JSON copy fallback</div><div id="v42FallbackMessage" style="color:#F5A524;margin-bottom:8px"></div><textarea id="v42FallbackText" readonly style="width:100%;height:48vh;background:#0E141A;color:#E6EDF3;border:1px solid #354454;border-radius:8px;padding:8px;font:11px ui-monospace,monospace"></textarea><div style="display:flex;gap:8px;margin-top:10px"><button id="v42FallbackCopy" style="flex:1;padding:10px;background:#16323A;color:#3FD5E0;border:1px solid #3FD5E0;border-radius:8px">Copy JSON</button><button id="v42FallbackClose" style="padding:10px;background:#202833;color:#E6EDF3;border:1px solid #526070;border-radius:8px">Close</button></div></div>';
     document.body.appendChild(modal);
     modal.querySelector('#v42FallbackClose').onclick=()=>modal.remove();
     modal.querySelector('#v42FallbackCopy').onclick=async()=>{
@@ -6397,161 +6375,16 @@ function ciDownload(filename,content,mime){
     const url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);
     a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
-    // Anchor downloads can fail silently in iOS/PWA/WebView. Show a copyable fallback for history and Daily Compact JSON.
-    if((filename.includes('history') || filename.includes('daily-compact')) && filename.endsWith('.json')) v42ShowJsonFallback(filename,content);
+    // Anchor downloads can fail silently in iOS/PWA/WebView. Offer a copyable fallback for history JSON.
+    if(filename.includes('history') && filename.endsWith('.json')) v42ShowJsonFallback(filename,content);
     return true;
   }catch(err){
     console.error('V42 download failed:',err);
-    if((filename.includes('history') || filename.includes('daily-compact')) && filename.endsWith('.json')) v42ShowJsonFallback(filename,content,String(err.message||err));
+    if(filename.includes('history') && filename.endsWith('.json')) v42ShowJsonFallback(filename,content,String(err.message||err));
     else alert('Export download failed: '+String(err.message||err));
     return false;
   }
 }
-
-function ciCompactBool(v){
-  if(v===true||v==='yes'||v==='true'||v===1)return true;
-  if(v===false||v==='no'||v==='false'||v===0)return false;
-  return null;
-}
-function ciCompactNumber(v){
-  const n=strictFiniteNumber(v);
-  return Number.isFinite(n)?n:null;
-}
-function ciCompactTime(b){
-  let m=b&&b.minute!=null&&b.minute!==''&&Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b&&b.timestamp);
-  if(m==null&&b&&b.time){
-    const z=v42NormalizeTime(b.time);
-    if(z)m=Number(z.slice(0,2))*60+Number(z.slice(3,5));
-  }
-  if(m==null)return null;
-  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-}
-function ciCompactCandles(rows, key, includeVwap){
-  if(!Array.isArray(rows))return null;
-  return rows.filter(b=>{
-    if(!b||typeof b!=='object')return false;
-    const d=b.date||v29DateKey(b.timestamp);
-    const t=b.minute!=null&&b.minute!==''&&Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b.timestamp);
-    return d===key&&t!=null&&t>=555&&t<930;
-  }).sort((a,b)=>{
-    const ta=a.minute!=null&&a.minute!==''&&Number.isFinite(Number(a.minute))?Number(a.minute):v29Time(a.timestamp);
-    const tb=b.minute!=null&&b.minute!==''&&Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b.timestamp);
-    return ta-tb;
-  }).map(b=>{
-    const x={t:ciCompactTime(b),o:ciCompactNumber(b.open),h:ciCompactNumber(b.high),l:ciCompactNumber(b.low),c:ciCompactNumber(b.close),v:ciCompactNumber(b.volume)};
-    if(includeVwap)x.vwap=ciCompactNumber(b.vwap);
-    return x;
-  });
-}
-function ciCompactExportObject(){
-  const d=DAY||{},o=d.opening||{},key=dateKey;
-  const opening=(()=>{try{return calcOpening();}catch(e){return null;}})();
-  const ib=(()=>{try{return calcIB();}catch(e){return null;}})();
-  const scan=(()=>{try{return withJournalDay(d,()=>v29Scan({date:key,day:d,useStoredInputs:true,readOnly:true}));}catch(e){return null;}})();
-  const results=scan&&Array.isArray(scan.results)?scan.results:[];
-  const partNow=(()=>{try{return computeFromValues(d.participation||{},ciCompactNumber(d.niftyPrice)||0,'now');}catch(e){return null;}})();
-  const part930=(()=>{try{return computeFromValues(d.participation||{},ciCompactNumber(d.niftyPrice)||0,'c930');}catch(e){return null;}})();
-  const part=partNow||part930;
-  const ofRows=Array.isArray(d.orderflow)?d.orderflow:null;
-  const of=ofRows?ofRows.filter(e=>e&&typeof e==='object').map(e=>{
-    const du=parseDeltaK(e.du),dd=parseDeltaK(e.dd);
-    const delta=Number.isFinite(du)&&Number.isFinite(dd)?du-dd:null;
-    return {t:ciCompactTime({time:e.time}),tag:e.tag||null,delta:delta==null?null:(delta>0?'+':'')+String(Math.round(delta))};
-  }):null;
-  const hib=Array.isArray(o.halfIbEvents)?o.halfIbEvents.map(e=>({
-    t:e&&e.time||null,
-    side:e&&e.side||null,
-    lvl:ciCompactNumber(e&&e.level),
-    c:ciCompactNumber(e&&e.c)
-  })):null;
-  const vwapCount=(()=>{
-    const x=o.vwapTestCount;
-    if(x==null||x==='')return null;
-    const map={zero:0,one:1,two:2,three:3,four:4};
-    return Object.prototype.hasOwnProperty.call(map,String(x).toLowerCase())?map[String(x).toLowerCase()]:ciCompactNumber(x);
-  })();
-  const tickSide=(o.tickAcceptance==='accepted'||o.tickAcceptance==='accept')?(o.tickAcceptanceSide||null):(o.tickAcceptance==='rejected'?'rejected':null);
-  const sub=opening&&(opening.sub||opening.orr);
-  const openType=opening?(opening.base||null):null;
-  const cands=ciCompactCandles(o.v29Candles,key,false);
-  const futs=ciCompactCandles(d.futures15m,key,true);
-  const compact={
-    d:key,
-    spot:cands,
-    fut:futs,
-    of,
-    anchor:{
-      ce930:ciCompactNumber(o.fibCE&&o.fibCE.p930),
-      ceLatest:ciCompactNumber(o.fibCE&&o.fibCE.p),
-      pe930:ciCompactNumber(o.fibPE&&o.fibPE.p930),
-      peLatest:ciCompactNumber(o.fibPE&&o.fibPE.p)
-    },
-    lvl:{
-      pdh:ciCompactNumber(d.levels&&d.levels.pdh),
-      pdl:ciCompactNumber(d.levels&&d.levels.pdl),
-      vah:ciCompactNumber(d.levels&&d.levels.vah),
-      val:ciCompactNumber(d.levels&&d.levels.val),
-      poc:ciCompactNumber(d.levels&&d.levels.poc)
-    },
-    ib:{
-      h:ib?ciCompactNumber(ib.ibHigh):null,
-      l:ib?ciCompactNumber(ib.ibLow):null,
-      half:ib?(ciCompactNumber(ib.ibHigh)+ciCompactNumber(ib.ibLow))/2:null
-    },
-    open:{type:openType,drive:sub?sub.type==='DRIVE':(opening&&opening.bFilled?false:null)},
-    shape:o.profileShape||null,
-    cPeriod:{
-      rejected:ciCompactBool(o.cPeriodRejected),
-      bluffDir:o.cPeriodBluffDir||null,
-      volStrong:ciCompactBool(o.cVolumeStrong)
-    },
-    hib,
-    va:{
-      entry20:ciCompactBool(o.value20pct),
-      tpo:ciCompactBool(o.valueTpoAcceptance),
-      openedOutside:ciCompactBool(o.valueOpenedOutsideVA)
-    },
-    part:{
-      bull:part?part.alignedBull:null,
-      bear:part?part.alignedBear:null,
-      flat:part?(part.total-part.alignedBull-part.alignedBear):null,
-      done:part?part.total===12:null
-    },
-    S:Object.fromEntries(Array.from({length:9},(_,i)=>{
-      const id=i+1,r=results.find(x=>Number(x.id)===id);
-      return [String(id),r&&r.status?r.status:null];
-    })),
-    tick:{
-      accept:tickSide,
-      indep:ciCompactBool(o.tickAcceptanceIndependent)
-    },
-    vwap:{tests:vwapCount,reaction:o.vwapReaction||null}
-  };
-  return compact;
-}
-async function ciExportCompactJson(){
-  const btn=document.getElementById('ciDailyCompactJson');
-  if(btn&&btn.dataset.exportBusy==='1')return;
-  if(btn){btn.dataset.exportBusy='1';btn.disabled=true;btn.textContent='Preparing JSON…';}
-  try{
-    // Yield one frame so the tap is acknowledged before the synchronous scanner/serialization work.
-    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-    const obj=ciCompactExportObject();
-    const content=JSON.stringify(obj);
-    if(!content||content==='{}')throw new Error('Compact JSON serialization returned empty content.');
-    const filename='coach-journal-daily-compact-'+dateKey+'.json';
-    const ok=ciDownload(filename,content,'application/json;charset=utf-8');
-    const bytes=new Blob([content]).size;
-    console.info('Compact JSON export:',bytes,'bytes; download handler:',ok?'invoked':'failed');
-    if(bytes<3000||bytes>6000)console.info('Compact export size is outside the 3–6 KB target; actual data volume determines size.');
-  }catch(err){
-    console.error('Compact JSON export failed:',err);
-    alert('Compact JSON export failed safely: '+String(err.message||err));
-  }finally{
-    if(btn){btn.dataset.exportBusy='0';btn.disabled=false;btn.textContent='Daily JSON (Compact)';}
-  }
-}
-
 async function ciExport(type,format){
   try{
     if(DAY&&DAY.opening&&Array.isArray(DAY.opening.halfIbEvents))v42SyncHalfIbLegacy(null,DAY);
@@ -6720,7 +6553,7 @@ function ciDataQuality(day,key){
   const current=num(q.current),trigger=num(q.triggerPrice);let sl=num(q.slPrice),t1=num(q.t1Price),t2=num(q.t2Price);
   const spotBasis=basis==='NIFTY_SPOT';const autoSl=spotBasis?spotLevel(q.slAnchor,ib,L):null;if(sl==null&&autoSl!=null)sl=autoSl;
   const autoT1=spotBasis?targetCalc(q.t1Anchor,dir,ib,setup):null,autoT2=spotBasis?targetCalc(q.t2Anchor,dir,ib,setup):null;if(t1==null&&autoT1!=null)t1=autoT1;if(t2==null&&autoT2!=null)t2=autoT2;
-  const hard=[];if(!setup||setup==='none')hard.push('No setup selected');if(setup==='4')hard.push('S4 is context-only; it cannot independently grant entry permission');if(!q.mode)hard.push('Management mode missing');if(!q.type)hard.push('Coach trade classification missing');if(!dir)hard.push('Direction missing');if(!basis)hard.push('Instrument / price basis missing');if(!triggerTime||trigger==null)hard.push('Trigger time or trigger reference price missing');if(current==null)hard.push('Current execution price missing');if(!q.slAnchor||q.slAnchor==='NONE'||sl==null)hard.push('Valid numeric SL anchor missing');if(t1==null||t2==null)hard.push('T1 and T2 numeric structural targets missing');if(q.gate==='OBSTRUCTION')hard.push('Execution obstruction selected');if(q.approval!=='yes')hard.push('Manual context approval not recorded');
+  const hard=[];if(!setup||setup==='none')hard.push('No setup selected');if(setup==='4')hard.push('S4 is context-only; it cannot independently grant entry permission');if(!q.mode)hard.push('Management mode missing');if(!q.type)hard.push('Coach trade classification missing');if(!dir)hard.push('Direction missing');if(!basis)hard.push('Instrument / price basis missing');if(!triggerTime||trigger==null)hard.push('Trigger time or trigger reference price missing');if(current==null)hard.push('Current execution price missing');if(!q.slAnchor||q.slAnchor==='NONE'||sl==null)hard.push('Valid numeric SL anchor missing');if(t1==null||t2==null)hard.push('T1 and T2 numeric structural targets missing');if(!q.gate)hard.push('Gate / doubt state missing');if(q.gate==='OBSTRUCTION')hard.push('Execution obstruction selected');if(q.approval!=='yes')hard.push('Manual context approval not recorded');
   // Setup-to-trade-type mapping is not universally hard-coded here; preserve the trader's manual Coach classification and flag unresolved mismatches in notes rather than inventing a universal mapping.
   if(basis&&basis!=='NIFTY_SPOT'&&q.basisCheck!=='yes')hard.push('Selected Futures / Option price basis not confirmed from its own instrument chart');
   if(q.type==='mp'&&q.mode==='INTRADAY'&&q.slAnchor==='VWAP_FILTER'&&num(DAY.opening?.trailVwap)==null)hard.push('VWAP-based SL selected but VWAP is not recorded');
@@ -6762,21 +6595,141 @@ function ciDataQuality(day,key){
 })();
 </script>
 
-<script>
-// V50 STARTUP BARRIER: all three classic-script sections have now executed.
-// Only now bind and render V29, whose render path calls V41/V44-era functions.
-try {
-  v29Bind();
-  v29LoadInputs();
-  window.__v29ScannerReady = true;
-  // Do not run a second full scan here. The boot() -> loadDay() path calls renderEverything() once storage is ready.
-} catch (e) {
-  window.__v29ScannerReady = false;
-  console.error('V50 scanner startup failed', e && e.stack ? e.stack : e);
-  try { v42ReportError('Scanner startup', e); } catch (_) {}
-}
-try { v29QARender(); } catch (e) { console.error('V29 QA startup failed', e); }
-</script>
-
 </body>
 </html>
+
+<script>
+/* V46.1 STARTUP + COMPACT DAILY EXPORT PATCH. Existing journal schema and Coach rules are untouched. */
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const hasOwn = (o,k) => !!o && Object.prototype.hasOwnProperty.call(o,k);
+  const raw = v => v == null || String(v).trim() === '' ? null : v;
+  const num = v => {
+    if (v == null || String(v).trim() === '') return null;
+    const n = (typeof strictFiniteNumber === 'function') ? strictFiniteNumber(v) : Number(String(v).replace(/,/g,''));
+    return Number.isFinite(n) ? n : null;
+  };
+  const bool = v => v === true || v === 'yes' ? true : (v === false || v === 'no' ? false : null);
+  const time = b => {
+    if (!b) return null;
+    if (b.time != null && String(b.time).trim()) return String(b.time).trim().slice(0,5);
+    const stamp = String(b.timestamp || '');
+    const m = stamp.match(/(?:T|\s)(\d{1,2}:\d{2})/);
+    if (m) return m[1].padStart(5,'0');
+    if (Number.isFinite(Number(b.minute))) {
+      const n = Number(b.minute);
+      return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+    }
+    return null;
+  };
+  const candleRows = (arr, withVwap) => {
+    if (!Array.isArray(arr)) return null;
+    return arr.map(b => {
+      const row = {t:time(b),o:num(b&&b.open),h:num(b&&b.high),l:num(b&&b.low),c:num(b&&b.close),v:num(b&&b.volume)};
+      if (withVwap) row.vwap = num(b&&b.vwap);
+      return row;
+    });
+  };
+  function compactPayload(){
+    const d = (typeof DAY === 'object' && DAY) ? DAY : {};
+    const o = d.opening || {}, L = d.levels || {};
+    const fibCE = o.fibCE || {}, fibPE = o.fibPE || {};
+    const ibRaw = (typeof calcIB === 'function') ? calcIB() : null;
+    const opRaw = (typeof calcOpening === 'function') ? calcOpening() : null;
+    const openType = opRaw ? (opRaw.base === 'OAIR' ? 'OAIR' : (opRaw.sub && opRaw.sub.type === 'DRIVE' ? 'OD' : (opRaw.sub && opRaw.sub.type === 'OTD' ? 'OTD' : (opRaw.orr ? 'ORR' : raw(opRaw.sub && opRaw.sub.type))))) : null;
+    const opening = {type:openType,drive:opRaw ? !!(opRaw.sub && opRaw.sub.type === 'DRIVE') : null};
+    const shapeRaw = raw(o.profileShape || o.pShapeType);
+    const shapeMap = {'P':'P','P-shape':'P','B':'B','B-shape':'B','D':'D','D-shape':'D','Double D':'DoubleD','DoubleD':'DoubleD','Double-D':'DoubleD'};
+    const shape = shapeRaw == null ? null : (shapeMap[shapeRaw] || shapeRaw);
+    const spot = candleRows(o.v29Candles, false);
+    const fut = candleRows(d.futures15m, true);
+    const of = Array.isArray(d.orderflow) ? d.orderflow.filter(e=>e&&['IB','RB','IS','RS'].includes(e.tag)).map(e=>{
+      const plus = raw(e.du), minus = raw(e.dd);
+      const delta = plus == null && minus == null ? null : (plus == null ? '-'+minus : (minus == null ? '+'+plus : '+'+plus+' / -'+minus));
+      return {t:raw(e.time),tag:e.tag,delta};
+    }) : null;
+    const hib = Array.isArray(o.halfIbEvents) ? o.halfIbEvents.map(e=>({t:raw(e&&e.time),side:raw(e&&e.side),lvl:num(e&&e.level),c:num(e&&e.c)})) : null;
+    let part = null;
+    if (d.participation && typeof participationAuditForDay === 'function') {
+      const a = participationAuditForDay(d,'c930');
+      part = {bull:Number.isFinite(a.alignedBull)?a.alignedBull:null,bear:Number.isFinite(a.alignedBear)?a.alignedBear:null,flat:Number.isFinite(a.zero)?a.zero:null,done:Number.isFinite(a.entered)?a.entered===12:null};
+    }
+    let scan = null, audit = null;
+    try { if (typeof v29Scan === 'function') scan = v29Scan({date:dateKey,day:d,useStoredInputs:true,readOnly:true}); } catch(e) { console.warn('[V46.1] Compact export scanner read failed:',e); }
+    try { if (typeof automaticTriggerAudit === 'function') audit = automaticTriggerAudit(d,dateKey); } catch(e) { console.warn('[V46.1] Compact export trigger audit failed:',e); }
+    const states = {};
+    for (let i=1;i<=9;i++) {
+      const tr = audit && Array.isArray(audit.results) ? audit.results.find(x=>Number(x.id)===i) : null;
+      const sr = scan && Array.isArray(scan.results) ? scan.results.find(x=>Number(x.id)===i) : null;
+      states[String(i)] = tr ? (tr.triggerState==='TRIGGER_CONFIRMED'?'TRIGGER':(tr.triggerState==='INVALID_NO_TRADE'?'INVALID':'WAITING')) : (sr ? (['INVALIDATED','DID_NOT_FORM'].includes(sr.status)?'INVALID':'WAITING') : null);
+    }
+    const partAudit = part;
+    const out = {
+      d:raw(dateKey),
+      spot,
+      fut,
+      of,
+      anchor:{ce930:num(fibCE.p930),ceLatest:num(fibCE.p),pe930:num(fibPE.p930),peLatest:num(fibPE.p)},
+      lvl:{pdh:num(L.pdh),pdl:num(L.pdl),vah:num(L.vah),val:num(L.val),poc:num(L.poc)},
+      ib:{h:ibRaw?num(ibRaw.ibHigh):null,l:ibRaw?num(ibRaw.ibLow):null,half:ibRaw?num(ibRaw.len/2):null},
+      open:opening,
+      shape,
+      cPeriod:{rejected:bool(o.cPeriodRejected),bluffDir:raw(o.cPeriodBluffDir),volStrong:bool(o.cVolumeStrong)},
+      hib,
+      va:{entry20:bool(o.value20pct),tpo:bool(o.valueTpoAcceptance),openedOutside:bool(o.valueOpenedOutsideVA)},
+      part:partAudit,
+      S:states,
+      tick:{accept:raw(o.tickAcceptanceSide),indep:bool(o.tickAcceptanceIndependent)},
+      vwap:{tests:num(o.vwapTestCount),reaction:raw(o.vwapReaction)}
+    };
+    return out;
+  }
+  function showCompactFallback(filename, content, reason){
+    const old=$('v46CompactFallback'); if(old)old.remove();
+    const modal=document.createElement('div'); modal.id='v46CompactFallback';
+    modal.style.cssText='position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:12px';
+    modal.innerHTML='<div style="width:min(720px,100%);max-height:92vh;overflow:auto;background:#12181F;border:1px solid #3FD5E0;border-radius:12px;padding:14px;color:#E6EDF3;font:12px ui-monospace,monospace"><b style="font-size:14px">Compact JSON · Copy fallback</b><p id="v46CompactReason" style="color:#E5B454"></p><textarea id="v46CompactText" readonly style="width:100%;height:55vh;background:#0E141A;color:#E6EDF3;border:1px solid #354454;border-radius:8px;padding:8px;font:11px ui-monospace,monospace"></textarea><div style="display:flex;gap:8px;margin-top:10px"><button id="v46CompactCopy" style="flex:1;padding:10px;background:#16323A;color:#3FD5E0;border:1px solid #3FD5E0;border-radius:8px">Copy JSON</button><button id="v46CompactClose" style="padding:10px;background:#202833;color:#E6EDF3;border:1px solid #526070;border-radius:8px">Close</button></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('#v46CompactReason').textContent=filename+' · '+(reason||'Mobile browser download may be blocked; copy the JSON below.');
+    modal.querySelector('#v46CompactText').value=content;
+    modal.querySelector('#v46CompactClose').onclick=()=>modal.remove();
+    modal.querySelector('#v46CompactCopy').onclick=async()=>{const ta=modal.querySelector('#v46CompactText');try{if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(ta.value);else{ta.focus();ta.select();document.execCommand('copy');}alert('Copy attempt complete. If clipboard is blocked, select and copy the JSON manually.');}catch(e){ta.focus();ta.select();alert('Clipboard blocked; JSON selected for manual copy.');}};
+  }
+  function exportCompact(){
+    const btn=$('ciDailyCompactJson'); if(btn){btn.disabled=true;btn.textContent='Preparing…';}
+    try{
+      const payload=compactPayload();
+      const content=JSON.stringify(payload);
+      if(!content||content==='{}')throw new Error('Compact JSON serialization returned empty content.');
+      const filename='daily-compact-'+(payload.d||'unknown-date')+'.json';
+      let downloaded=false;
+      try{
+        const blob=new Blob([content],{type:'application/json;charset=utf-8'});
+        const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);downloaded=true;
+      }catch(err){console.warn('[V46.1] Compact download fallback:',err);}
+      // Always show the copyable fallback on mobile-compatible UI so a silent WebView download cannot lose the export.
+      showCompactFallback(filename,content,downloaded?'If the file did not appear in Downloads, use Copy JSON below.':'Download was unavailable; use Copy JSON below.');
+      const kb=(new Blob([content]).size/1024).toFixed(2);
+      console.info('[V46.1] Compact JSON generated:',kb+' KB',payload);
+    }catch(err){console.error('[V46.1] Compact JSON export failed:',err);alert('Compact JSON export failed: '+String(err&&err.message||err));}
+    finally{if(btn){btn.disabled=false;btn.textContent='Daily JSON (Compact)';}}
+  }
+  const button=$('ciDailyCompactJson'); if(button)button.addEventListener('click',exportCompact);
+})();
+
+// Start only after every inline script (including V41/V44 lexical declarations) has executed.
+(async function v46DeferredBoot(){
+  try{
+    await initStorage();
+    showSection('premarket');
+    await loadDay(todayKey());
+    await renderHistory();
+  }catch(err){
+    console.error('[V46.1] Deferred journal startup failed:',err);
+    const host=document.getElementById('v29ScanResults');
+    if(host)host.innerHTML='<div class="result-box" style="color:#F2545B">Journal startup warning: '+String(err&&err.message||err)+'</div>';
+  }
+})();
+</script>
+
