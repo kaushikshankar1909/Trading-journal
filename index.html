@@ -10,7 +10,7 @@ TRADING JOURNAL v39 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V39 scoped upgrades: (1) OF_COMBOS #5/#6 now have a state-aware existing-runner exit alert, with chronology checks and explicit acknowledgement that is never treated as broker-confirmed execution; the existing no-new-entry gate remains authoritative. (2) A single canonical trade-plan resolver owns final setup-specific SL reference, T1/T2/T3 target zones and RR display, while preserving V38 structural calculations and withholding unsupported numeric anchors. All nine setups, existing gates, trade-lock validation, historical records, persistence, exports, replay and V28-compatible data schema are retained. No numerical absorption evaluator or unsupported Coach rule is introduced.
 V38 technical fixes: ORR requires a valid A-period range before B-period reversal can be classified; OTD close must be on the correct side of its tested reference; Tick Acceptance no longer infers acceptance without valid A-period OHLC; malformed numeric inputs are rejected consistently in participation, delta, P&L/target, Fib/IV, IB and scanner OHLC validation; incomplete trade-size tier no longer displays a false zero-lot recommendation; Day Type ladder now exposes its existing close-location input for the no-Half-IB branch; trade logging blocks malformed/wrong-side SL or T1 values and malformed supplied size/partial fields; data-quality checks handle malformed record arrays and blank Half-IB OHLC safely. Existing Coach thresholds, setup logic outside these technical guards, and V28-compatible data schema are retained.
 TRADING JOURNAL v37 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
-V47 scoped update: Added Daily JSON (Compact) with only the requested compact fields; maps existing Spot candles from DAY.opening.v29Candles, Futures from DAY.futures15m, Order Flow from DAY.orderflow, and existing Morning/MP/participation/scanner fields without adding inputs or schema keys. Session candle starts are restricted to 09:15–15:15 (09:00 excluded). Legacy five-field checklist remains evidence-only with no displayed score/count; removed generic uncertain/missing-doubt-state execution block and historical five-field score aggregation. No new trading logic or input fields; existing Coach rules and 14:40 cutoff preserved.\nV37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
+V49 scoped fix: Scanner initialization is deferred until the V29 scanner module has completed declaration and binding. Early startup/date-load renders skip scanner calls while its lexical constants are still in the temporal dead zone; once initialized, the scanner is explicitly loaded and rendered. Existing scanner logic and journal schema are unchanged.\nV47 scoped update: Added Daily JSON (Compact) with only the requested compact fields; maps existing Spot candles from DAY.opening.v29Candles, Futures from DAY.futures15m, Order Flow from DAY.orderflow, and existing Morning/MP/participation/scanner fields without adding inputs or schema keys. Session candle starts are restricted to 09:15–15:15 (09:00 excluded). Legacy five-field checklist remains evidence-only with no displayed score/count; removed generic uncertain/missing-doubt-state execution block and historical five-field score aggregation. No new trading logic or input fields; existing Coach rules and 14:40 cutoff preserved.\nV37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
 
 TRADING JOURNAL v48 — DEPLOYMENT FIX (TXT SOURCE)
 V48 fix: removed accidental literal \n\n text outside HTML; updated browser title and visible journal heading to v48. No journal data schema or trading logic changed.
@@ -25,7 +25,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v48 · Deployment Fix</title>
+<title>Daily Trading Journal v49 · Scanner Init Fix</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -258,7 +258,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 
 <header>
   <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v45 (Spot + Futures Intelligence)</div>
-  <div class="title">Daily Trading Journal v48</div>
+  <div class="title">Daily Trading Journal v49</div>
 </header>
 
 <div class="daybar">
@@ -5166,7 +5166,7 @@ function renderEverything() {
   renderOfTally();
   try { renderNlm(); } catch(e) { v42ReportError('NLM render',e); } try { renderPmCheck(); } catch(e) { v42ReportError('PM check render',e); } try { renderCBench(); } catch(e) { v42ReportError('C-bench render',e); }
   try { renderTradeSection(); refreshTradesCache().then(() => { try { renderTradeSection(); } catch(e) { v42ReportError('Trade section async render',e); } }).catch(e=>v42ReportError('Trade cache refresh',e)); } catch(e) { v42ReportError('Trade section render',e); }
-  try { renderCoachContext(); } catch(e) { v42ReportError('Coach context render',e); } try { renderCoachCockpit(); } catch(e) { v42ReportError('Coach cockpit render',e); } try { ciRefreshExportUI(); } catch(e) { v42ReportError('Export status render',e); } try { v29LoadInputs(); v29Render(); } catch(e) { v42ReportError('Scanner render',e); }
+  try { renderCoachContext(); } catch(e) { v42ReportError('Coach context render',e); } try { renderCoachCockpit(); } catch(e) { v42ReportError('Coach cockpit render',e); } try { ciRefreshExportUI(); } catch(e) { v42ReportError('Export status render',e); } if (window.__v29ScannerReady === true) { try { v29LoadInputs(); v29Render(); } catch(e) { v42ReportError('Scanner render',e); } }
   try { if (typeof v44Render === 'function') v44Render(); } catch(e) { v42ReportError('V44 execution render',e); }
 }
 
@@ -6013,7 +6013,7 @@ function v45Bind(){
 }
 try{v45Bind();}catch(e){console.warn('V45 bind',e);}
 
-try{v29Bind();}catch(e){console.warn('V29 scanner binding',e);}
+try{v29Bind();window.__v29ScannerReady=true;v29LoadInputs();v29Render();}catch(e){console.warn('V29 scanner binding / initial render',e);window.__v29ScannerReady=false;}
 try{v29QARender();}catch(e){console.warn('V29 QA',e);}
 
 </script>
