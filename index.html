@@ -10,9 +10,9 @@ TRADING JOURNAL v39 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V39 scoped upgrades: (1) OF_COMBOS #5/#6 now have a state-aware existing-runner exit alert, with chronology checks and explicit acknowledgement that is never treated as broker-confirmed execution; the existing no-new-entry gate remains authoritative. (2) A single canonical trade-plan resolver owns final setup-specific SL reference, T1/T2/T3 target zones and RR display, while preserving V38 structural calculations and withholding unsupported numeric anchors. All nine setups, existing gates, trade-lock validation, historical records, persistence, exports, replay and V28-compatible data schema are retained. No numerical absorption evaluator or unsupported Coach rule is introduced.
 V38 technical fixes: ORR requires a valid A-period range before B-period reversal can be classified; OTD close must be on the correct side of its tested reference; Tick Acceptance no longer infers acceptance without valid A-period OHLC; malformed numeric inputs are rejected consistently in participation, delta, P&L/target, Fib/IV, IB and scanner OHLC validation; incomplete trade-size tier no longer displays a false zero-lot recommendation; Day Type ladder now exposes its existing close-location input for the no-Half-IB branch; trade logging blocks malformed/wrong-side SL or T1 values and malformed supplied size/partial fields; data-quality checks handle malformed record arrays and blank Half-IB OHLC safely. Existing Coach thresholds, setup logic outside these technical guards, and V28-compatible data schema are retained.
 TRADING JOURNAL v37 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
-V37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
+V47 scoped update: Added Daily JSON (Compact) with only the requested compact fields; maps existing Spot candles from DAY.opening.v29Candles, Futures from DAY.futures15m, Order Flow from DAY.orderflow, and existing Morning/MP/participation/scanner fields without adding inputs or schema keys. Session candle starts are restricted to 09:15–15:15 (09:00 excluded). Legacy five-field checklist remains evidence-only with no displayed score/count; removed generic uncertain/missing-doubt-state execution block and historical five-field score aggregation. No new trading logic or input fields; existing Coach rules and 14:40 cutoff preserved.\nV37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
 
-TRADING JOURNAL v36 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
+TRADING JOURNAL v47 — CLEAN COMPACT JSON EXPORT
 V35 audit upgrades: date-switch autosave flush + stale-load guard + delete-safe navigation; timestamp-aware local/cloud conflict resolution and local-only history merge; IST-based 14:40 cutoff with recorded trigger-time handling; nearest eligible structural T1 selection; malformed nonblank Volume rejection; duplicate helper removed; finite-number guards for participation/Order Flow/Fib; lakh delta parsing; timestamp-ordered Order Flow sequences when all event times exist; history JSON carries per-day read-only scanner results; Trade Plan links the nine scanner results without treating scanner status as order permission. Existing methodology thresholds and numeric Coach rules are not expanded.
 Base: original user-supplied V28 Coach Multi-Setup journal; all existing sections, local/cloud persistence, saved-day schema, trade logs, learning lab, exports and legacy backup/restore are retained.
 Preserved V33 architecture and existing journal functionality: Morning tab A/B periods are the authoritative IB source (A 09:15–09:45, B 09:45–10:15); IB/Half-IB calculate from those entered period highs/lows and no longer require opening CSV candles; CSV remains the source for post-IB 15-minute candle checks; candle-dependent setups are gated independently so missing/invalid CSV does not suppress valid Morning-tab/manual evidence; complete-pair 30-minute OHLC bars derived from exact session-aligned 15-minute pairs; separate Market Profile VA and instrument Fib VA inputs; date-persisted evidence fields; auto-scan and auto-IB toggles. No look-ahead: Setup 4 remains locked to 09:30 inputs. Missing TPO, Order Flow, VWAP, POC, participation, option premium, historical volume or visual auction evidence is never fabricated. Existing V28 data remains backward-compatible. Triggered means setup evidence only, not automatic trade permission or order execution. This is a complete HTML document. V33 fixes: post-IB session completeness is checked only from 10:15–15:00 (20 candle starts); the 15:15-start candle is excluded; pre-IB CSV gaps do not invalidate post-IB evidence; valid post-IB candles remain usable when unrelated pre-IB rows are incomplete; Setup 1 now explicitly gates on Coach's separate price-above-average condition, while preserving the unspecified price metric as NEEDS_COACH_RULE until the user records it; scanner retains the 7-Nov no-fixed-indication-list rule and never converts indication counts into a trade score. Export fix: actual nine-setup v29Scan results are included separately from manual candidates; historical export scanning is date-scoped and read-only; Setup 8 excludes 15:15-start candles. V34 audit patch: Setup 4 has one shared CE/PE + c930 + manual 09:30 Market Profile alignment evaluator across UI/scanner/export; CE/PE and/or anchor mapping now surfaces conflicts instead of score cancellation; Setup 4 uses only locked 09:30 data and exposes the 09:30 spot close as reference, not order permission; unsupported fixed five-signal scoring, universal RRR<1:1 no-trade, generic doubt no-trade, and Friday 50%/second-trade hard blocks are removed or downgraded; Setup 7 access and Setup 8 setup evidence are explicitly not order permission; post-IB denominator display is 20; explicit timezone-bearing timestamps normalize to IST.
@@ -22,7 +22,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v45 · Coach Cockpit Edition</title>
+<title>Daily Trading Journal v47 · Clean Compact JSON</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -1135,6 +1135,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
       </div>
       <div class="candidate-actions"><button type="button" id="v29AutoFillBtn">Auto-fill from Morning / Pre-market</button><button type="button" id="v29SaveInputs">Save evidence inputs</button><button type="button" id="v29RunBtn">Run all 9 setup scans</button></div>
       <div class="result-box" id="v29DataQuality">No candle data imported yet.</div>
+      <div class="card" id="v46AutoSetupCard" style="margin:10px 0;border:1px solid #3FD5E055"><div class="card-title">V46 · AUTO SETUP DISPLAY + MARKET-MAKER OBSERVATIONS</div><div class="hint-box" style="padding:8px 10px">DISPLAY ONLY · No order execution. Spot/Futures streams remain separate. 09:00 candles are excluded; regular session 09:15–15:30. Entry/SL/T1 is shown only for S2 and S7 when all required evidence and same-basis levels are available.</div><div id="v46AutoSetupDisplay">Import Spot / Futures 15-minute candles to refresh the setup board.</div></div>
       <div id="v29IBResult" class="result-box">IB / Half-IB will calculate from Morning tab A+B High/Low when both periods are complete.</div>
       <div id="v29CandleTables" class="result-box"></div>
       <div id="v29ScanResults"></div>
@@ -1221,6 +1222,7 @@ Wed Nov 18 2026 09:15:00 GMT+0530 (India Standard Time),...'></textarea></div>
   <div style="padding:0 14px 8px"><select id="ciExportTrade" class="of-tag-select"><option value="">Latest trade (default)</option></select></div>
   <div class="ci-actions">
     <button class="weight-save" id="ciDailyJson">Daily JSON</button>
+    <button class="weight-save" id="ciDailyCompactJson">Daily JSON (Compact)</button>
     <button class="weight-save" id="ciDailyMd">Daily Markdown</button>
     <button class="weight-save" id="ciTradeJson">Trade JSON</button>
     <button class="weight-save" id="ciTradeMd">Trade Markdown</button>
@@ -2720,10 +2722,10 @@ function computeSignalsCount(dayOverride) {
 function renderSignalsCount() {
   const box = document.getElementById('signalsCountBox'); if (!box) return;
   const r = computeSignalsCount();
-  if (!r) { box.innerHTML = '<div class="big-num">– / 5</div><div class="sub">Locked 09:30 ITM CE/PE Fibonacci anchor se directional bias establish karo. 5-item map derived hai, Coach ki exact signal-list nahi.</div>'; return; }
+  if (!r) { box.innerHTML = '<div class="big-num">Evidence audit</div><div class="sub">09:30 ITM CE/PE anchor unavailable. Legacy observations are not a score or trade gate.</div>'; return; }
   const names = {s1_openingType:'Opening Type',s2_halfIBBreak:'Half-IB 15m access',s3_va80Acceptance:'VA 80% acceptance',s4_tickAcceptance:'Tick observation',s5_timeConfirmation:'Time observation'};
   const list = Object.keys(r.flags).map(k => (r.flags[k] ? '✅ ' : '⬜ ') + names[k]).join(' · ');
-  box.innerHTML = '<div class="big-num" style="font-size:20px">Evidence audit — not a Coach score</div><div class="sub">Initial ITM anchor reference: '+r.bias.toUpperCase()+' · Recorded matching observations: '+r.count+' (legacy subset only)</div><div class="sub" style="margin-top:6px">'+list+'</div>'+
+  box.innerHTML = '<div class="big-num" style="font-size:20px">Evidence audit — not a Coach score</div><div class="sub">Initial ITM anchor reference: '+r.bias.toUpperCase()+' · Individual legacy observations only; no score/count</div><div class="sub" style="margin-top:6px">'+list+'</div>'+
     (r.conflicts.length?'<div class="sub" style="color:#F2545B;margin-top:6px">Opposite observations to review: '+r.conflicts.join(', ')+'</div>':'')+
     (r.missing.length?'<div class="sub" style="margin-top:6px">Not recorded: '+r.missing.join(', ')+'</div>':'')+
     '<div class="sub" style="margin-top:6px">Coach: indications are not a fixed list. Use C period, IB access, day structure, strategy and the current volatility regime as applicable. This audit does not declare 2/5 or 3+/5, and does not force a directional decision.</div>';
@@ -2907,7 +2909,7 @@ wireToggle('tg_trailPartialBooked', { get:()=>DAY.opening.trailPartialBooked, se
 document.getElementById('op_baseLotSize').oninput = (e) => { DAY.opening.baseLotSize = e.target.value; scheduleAutoSave(); renderOpening(); };
 ['sizingStructure','sizingVolatility','sizingAlignment','sizingSetupRisk','sizingChosenPct','setup4MPAlignment'].forEach(k => { const el=document.getElementById('op_'+k); if(el) el.onchange=(e)=>{ DAY.opening[k]=e.target.value; scheduleAutoSave(); renderOpening(); }; });
 ['mpContextTimeframe','mpPeriodsObserved','mpReferenceLevel','mpContextChanged','mpOrderflow15mNote'].forEach(k => { const el=document.getElementById('op_'+k); if(el) el.onchange=el.oninput=(e)=>{ DAY.opening[k]=e.target.value; scheduleAutoSave(); }; });
-document.getElementById('op_middayTailPeriod').oninput = (e) => { DAY.opening.middayTailPeriod = e.target.value; scheduleAutoSave(); };
+document.getElementById('op_middayTailPeriod').oninput = document.getElementById('op_middayTailPeriod').onchange = (e) => { DAY.opening.middayTailPeriod = e.target.value; scheduleAutoSave(); try{localStorage.setItem(STORAGE_PREFIX+dateKey,JSON.stringify(DAY));}catch(err){} };
 wireToggle('tg_middayTailSide', { get:()=>DAY.opening.middayTailSide, set:(v)=>DAY.opening.middayTailSide=v });
 
 ['bal1h','bal1l','bal2h','bal2l'].forEach(k => {
@@ -5136,10 +5138,11 @@ async function ciExport(type,format){
  if(type==='history'){days=await getAllSavedDays();trades=[];days.forEach(x=>(x.saved.trades||[]).forEach(t=>trades.push(Object.assign({date:x.key},t))));stats=computeInsights(trades);day={days:days.map(x=>({date:x.key,day:x.saved}))};key='historical';}
  else if(type==='trade'){let id=document.getElementById('ciExportTrade').value;let t=id?trades.find(x=>String(x.id)===id):trades[trades.length-1];if(!t){alert('Is din ka koi trade record nahi hai.');return;}trades=[t];}
  const obj=ciBaseExport(type,key,day,trades,stats); if(type==='history'){days.forEach(x=>{if(x&&x.saved&&x.saved.opening&&Array.isArray(x.saved.opening.halfIbEvents))v42SyncHalfIbLegacy(null,x.saved);});
-      obj.sourceData={days:days.map(x=>({date:x.key,day:x.saved}))};obj.derivedCalculations.automaticSetupScan=null;obj.derivedCalculations.automaticSetupScans=days.map(x=>({date:x.key,...ciAutomaticSetupScan(x.saved,x.key)}));if(stats){stats.byMaximumIndicationDirection=groupStats(trades,t=>t.ctx&&t.ctx.maxIndicationDirection);stats.byLegacySignalCount=groupStats(trades,t=>t.ctx&&t.ctx.signals!=null?String(t.ctx.signals)+'/5':null);stats.byOrderFlowStatus=groupStats(trades,t=>t.ctx&&t.ctx.orderFlowStatus);}obj.derivedCalculations.historicalStatistics=stats;obj.tradeRecords=trades;const histIssues=[];days.forEach(x=>{const q=ciDataQuality(x.saved,x.key);q.issues.forEach(i=>histIssues.push(x.key+': '+i));});obj.dataQuality={issues:histIssues,missing:[],valid:histIssues.length===0,days:days.length,trades:trades.length};obj.missingFields=[];obj.conflicts=histIssues;}
+      obj.sourceData={days:days.map(x=>({date:x.key,day:x.saved}))};obj.derivedCalculations.automaticSetupScan=null;obj.derivedCalculations.automaticSetupScans=days.map(x=>({date:x.key,...ciAutomaticSetupScan(x.saved,x.key)}));if(stats){stats.byMaximumIndicationDirection=groupStats(trades,t=>t.ctx&&t.ctx.maxIndicationDirection);stats.byOrderFlowStatus=groupStats(trades,t=>t.ctx&&t.ctx.orderFlowStatus);}obj.derivedCalculations.historicalStatistics=stats;obj.tradeRecords=trades;const histIssues=[];days.forEach(x=>{const q=ciDataQuality(x.saved,x.key);q.issues.forEach(i=>histIssues.push(x.key+': '+i));});obj.dataQuality={issues:histIssues,missing:[],valid:histIssues.length===0,days:days.length,trades:trades.length};obj.missingFields=[];obj.conflicts=histIssues;}
  const ext=format==='json'?'json':'md'; const content=format==='json'?JSON.stringify(obj,null,2):ciToMarkdown(obj);ciDownload('coach-journal-'+type+'-'+(key||dateKey)+'.'+ext,content,format==='json'?'application/json;charset=utf-8':'text/markdown;charset=utf-8');
 }
 ['ciDailyJson','ciDailyMd','ciTradeJson','ciTradeMd','ciHistoryJson','ciHistoryMd'].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=()=>ciExport(id.includes('Daily')?'daily':(id.includes('Trade')?'trade':'history'),id.endsWith('Json')?'json':'md');});
+const ciCompactBtn=document.getElementById('ciDailyCompactJson');if(ciCompactBtn)ciCompactBtn.onclick=ciExportCompactJson;
 
 function renderEverything() {
   document.getElementById('niftyPrice').value = DAY.niftyPrice;
@@ -5654,6 +5657,7 @@ function v29Render(){
  const _blk=r.results.filter(x=>x.status==='INSUFFICIENT_DATA'||x.status==='NEEDS_COACH_RULE'||x.status==='CONFLICTING_EVIDENCE'),_live=r.results.filter(x=>x.status==='TRIGGERED'||x.status==='DEVELOPING');
  const _sum='<div class="candidate-card" style="border-color:'+(r.scaleMismatch?'#F2545B':'#3FD5E0')+'"><div class="cc-head"><span>READINESS</span><span class="candidate-status">'+_live.length+' active · '+_blk.length+' blocked · '+(r.results.length-_blk.length-_live.length)+' did not form</span></div><div class="cc-meta">'+(r.scaleMismatch?'<b style="color:#F2545B">CSV galat instrument/scale ka hai.</b> Nifty ka 15m CSV import karo.<br>':'')+(_blk.length?'Blocked setups: '+_blk.map(x=>'S'+x.id).join(', ')+' — har card mein neeche likha hai kaunsa input missing hai. "Auto-fill" button se VA/TPO/Opening khud bhar jaate hain.':'Koi setup data ki wajah se blocked nahi.')+'</div></div>';
  out.innerHTML=_sum+'<div class="card-title">INDEPENDENT SETUP RESULTS · '+r.results.length+'/9</div>'+r.results.sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||a.id-b.id).map(x=>{const tr=(triggerAudit.results||[]).find(y=>y.id===x.id);const ts=tr&&tr.triggerState==='TRIGGER_CONFIRMED'?'TRIGGER CONFIRMED':(tr&&tr.triggerState==='INVALID_NO_TRADE'?'INVALID / NO TRADE':'WAITING / NEEDS MANUAL EVIDENCE');return '<div class="candidate-card"><div class="cc-head"><span>Setup '+x.id+' · '+v29Esc(x.name)+'</span><span class="candidate-status">'+v29Esc(x.status)+'</span></div><div class="cc-meta"><b>Automatic trigger:</b> '+v29Esc(ts)+'<br>'+v29Esc(tr&&tr.triggerDetail||x.detail)+(x.bar?'<br>Evidence candle: '+v29Esc(x.bar):'')+(x.entryReference!=null?'<br>09:30 spot-close reference: '+v29Esc(x.entryReference):'')+(x.tradePermission===false?'<br><b>Order permission:</b> NOT AUTOMATIC — separate live review required':'')+'</div></div>';}).join('');
+ try{v46RenderAutoSetupLayer();}catch(e){console.warn('V46 setup display',e);}
  try{syncUniqueAutomaticSetup(triggerAudit);renderAfternoonTradePlan();renderCoachCockpit();}catch(e){console.warn('V40 trigger refresh',e);}
  try{if(typeof v45Render==='function')v45Render();}catch(e){}
 }
@@ -5711,6 +5715,91 @@ function v29Import(text){
  }
  return {added,replaced,preserved,total:merged.length,ignored};
 }
+/* V46 ADDITIVE DISPLAY LAYER — no schema migration, no broker/order actions. */
+function v46Esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function v46SessionBars(arr, date){return (Array.isArray(arr)?arr:[]).filter(b=>{
+ const d=b.date||v29DateKey(b.timestamp),t=Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b.timestamp);
+ return d===date&&t!=null&&t>=555&&t<=915&&v29BarIsUsable({timestamp:b.timestamp||date+' '+String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'),open:b.open,high:b.high,low:b.low,close:b.close});
+}).sort((a,b)=>((a.minute??v29Time(a.timestamp))-(b.minute??v29Time(b.timestamp))));}
+function v46HistoricalVolumeSMA(date){
+ let hist=[];try{hist=v45ReadArchive().filter(b=>b.date<date&&Number.isFinite(Number(b.volume))&&Number(b.minute)>=555&&Number(b.minute)<=915).sort((a,b)=>a.date.localeCompare(b.date)||a.minute-b.minute);}catch(e){}
+ const tail=hist.slice(-1050);return {value:tail.length===1050?tail.reduce((a,b)=>a+Number(b.volume),0)/1050:null,count:tail.length};
+}
+function v46PriceSMA(bars,n){if(!bars||bars.length<n)return null;const a=bars.slice(-n);return a.reduce((x,b)=>x+Number(b.close),0)/n;}
+function v46Fmt(x){return x==null||x===''||!Number.isFinite(Number(x))?'—':Number(x).toFixed(2);}
+function v46FindS2(spot,ib,levels){
+ if(!ib?.ready||!spot.length)return null;
+ const vah=v29Num(levels.vah),val=v29Num(levels.val),mid=ib.mid;
+ // Midpoint must be crossed after the session open; a later 15m rejection close at an IB/VA edge is required.
+ let crossedAt=-1;
+ for(let i=1;i<spot.length;i++){
+  const prev=spot[i-1],b=spot[i];
+  if((Number(prev.close)<mid&&Number(b.close)>=mid)||(Number(prev.close)>mid&&Number(b.close)<=mid))crossedAt=i;
+  if(crossedAt<0||i<=crossedAt)continue;
+  const candidates=[];
+  if(b.low<=ib.ibl+5&&b.close>ib.ibl&&b.close>b.open)candidates.push({dir:'up',level:ib.ibl,extreme:b.low,close:b.close,bar:b});
+  if(b.high>=ib.ibh-5&&b.close<ib.ibh&&b.close<b.open)candidates.push({dir:'down',level:ib.ibh,extreme:b.high,close:b.close,bar:b});
+  if(val!=null&&b.low<=val+5&&b.close>val&&b.close>b.open)candidates.push({dir:'up',level:val,extreme:b.low,close:b.close,bar:b});
+  if(vah!=null&&b.high>=vah-5&&b.close<vah&&b.close<b.open)candidates.push({dir:'down',level:vah,extreme:b.high,close:b.close,bar:b});
+  if(candidates.length){const c=candidates[candidates.length-1];return {...c,entry:c.close,sl:c.dir==='up'?c.extreme:c.extreme,target:c.dir==='up'?vah:val};}
+ }
+ return null;
+}
+function v46FindS7(spot,ib,levels){
+ if(!ib?.ready||spot.length<2)return null;
+ for(let i=1;i<spot.length;i++){
+  const a=spot[i-1],b=spot[i];
+  if(a.close>ib.upper&&b.close>ib.upper)return {dir:'up',level:ib.upper,entry:b.close,sl:ib.upper,target:v29Num(levels.vah),bar:b};
+  if(a.close<ib.lower&&b.close<ib.lower)return {dir:'down',level:ib.lower,entry:b.close,sl:ib.lower,target:v29Num(levels.val),bar:b};
+ }
+ return null;
+}
+function v46RenderAutoSetupLayer(){
+ const host=document.getElementById('v46AutoSetupDisplay');if(!host)return;
+ const date=dateKey,spot=v46SessionBars(DAY.opening?.v29Candles||[],date),fut=v46SessionBars(DAY.futures15m||[],date),ib=v29IB(),L=DAY.levels||{},opening=calcOpening();
+ const names=['C-Bluff','OAIR','Failed Auction','Early ITM','Fib','OD / OTD / ORR','Half-IB','VA-80','Trend Day'];
+ const s2base=opening?.base==='OAIR',s2=s2base?v46FindS2(spot,ib,L):null,s7=v46FindS7(spot,ib,L);
+ const s2valid=!!(s2&&Number.isFinite(s2.target)&&((s2.dir==='up'&&s2.target>s2.entry)||(s2.dir==='down'&&s2.target<s2.entry)));
+ const s7valid=!!(s7&&Number.isFinite(s7.target)&&((s7.dir==='up'&&s7.target>s7.entry)||(s7.dir==='down'&&s7.target<s7.entry)));
+ const volSma=v46HistoricalVolumeSMA(date),volNow=fut.filter(b=>{const t=b.minute??v29Time(b.timestamp);return t>=615&&t<645&&b.volume!=null&&Number.isFinite(Number(b.volume));});
+ const volMean=volNow.length?volNow.reduce((a,b)=>a+Number(b.volume),0)/volNow.length:null;
+ const cSpot=spot.filter(b=>{const t=b.minute??v29Time(b.timestamp);return t>=615&&t<645;});
+ const cHigh=cSpot.length?Math.max(...cSpot.map(b=>Number(b.high))):null,cLow=cSpot.length?Math.min(...cSpot.map(b=>Number(b.low))):null;
+ const lastCSpot=cSpot[cSpot.length-1],cReturn=!!(ib.ready&&lastCSpot&&lastCSpot.close<=ib.ibh&&lastCSpot.close>=ib.ibl);
+ const lastSpot=spot[spot.length-1],sma20=v46PriceSMA(spot,20),sma50=v46PriceSMA(spot,50);
+ const brokeUp=ib.ready&&cHigh!=null&&cHigh>ib.ibh,brokeDn=ib.ready&&cLow!=null&&cLow<ib.ibl;
+ const priceOpp=(brokeUp&&lastSpot&&sma20!=null&&sma50!=null&&lastSpot.close<sma20&&lastSpot.close<sma50)||(brokeDn&&lastSpot&&sma20!=null&&sma50!=null&&lastSpot.close>sma20&&lastSpot.close>sma50);
+ const cBluffEvidence=(brokeUp||brokeDn)&&cReturn;
+ const volOk=volSma.value!=null&&volMean!=null&&volMean>volSma.value;
+ const part=participationAuditForDay(DAY,'c930'),net=part.alignedBull-part.alignedBear,dir=net>=6?'up':(net<=-6?'down':null);
+ const recent=spot.slice(-3),follow=recent.length>=2?Math.sign(Number(recent[recent.length-1].close)-Number(recent[recent.length-2].close)):0;
+ const prior=spot.length>=3?Number(spot[spot.length-3].close):null,latest=lastSpot?Number(lastSpot.close):null;
+ const moveSign=prior!=null&&latest!=null?Math.sign(latest-prior):0;
+ const trap=!!(dir&&moveSign!==0&&moveSign!== (dir==='up'?1:-1));
+ const strong=!!(dir&&moveSign!==0&&!trap);
+ const vix=v29Num(DAY.opening?.vix),mpClear=!!(opening&&['OAIR','OAOR'].includes(opening.base)&&opening.base!=='BORDERLINE');
+ const of=Array.isArray(DAY.orderflow)?DAY.orderflow:[];let du=0,dd=0,ofSeen=false;
+ of.forEach(e=>{const u=parseDeltaK(e?.du),d=parseDeltaK(e?.dd);if(Number.isFinite(u)){du+=u;ofSeen=true;}if(Number.isFinite(d)){dd+=d;ofSeen=true;}});
+ const ofContext=!ofSeen?'—':(du>dd?'bullish':(dd>du?'bearish':'neutral'));
+ const fmtTrade=(x)=>x?'<div class="cc-meta">Entry: <b>'+v46Fmt(x.entry)+'</b> · SL: <b>'+v46Fmt(x.sl)+'</b> · T1: <b>'+v46Fmt(x.target)+'</b><br><small>Spot structural references · '+v46Esc(x.bar.timestamp)+' · '+(x.dir==='up'?'CE / bullish':'PE / bearish')+'</small></div>':'';
+ const rows=[
+  {n:'S1 C-Bluff',st:'OBSERVE ONLY',d:cBluffEvidence?(volOk&&priceOpp?'C-period IB excursion + return close inside IB + 1050-volume SMA + opposite-side price SMA20/50 observed; weak 7/13 sample, no entry.':'C-period excursion and return close observed; '+(!volSma.value?'1050 historical volume SMA unavailable.':(!volOk?'volume condition not met.':'price must be opposite both SMA20 and SMA50.'))):((brokeUp||brokeDn)?'C-period excursion seen, but no final 15m close back inside IB yet.':'Await C-period IB excursion; observe only.')},
+  {n:'S2 OAIR',st:trap?'BLOCKED — TRAP':(s2valid?'ACTIONABLE':(s2base?'WAIT / NO REJECTION':'NO DATA')),d:trap?'ENTRY BLOCKED: participation trap warning active.':(s2valid?'15m rejection close after midpoint cross; structural plan only.':(s2base?'Need midpoint cross + IB/VA edge rejection 15m close and valid opposite-VA target.':'Morning Opening Type is not OAIR.')),trade:s2valid&&!trap?s2:null},
+  {n:'S3 Failed Auction',st:'NO DATA',d:'NO DATA — observe only. Excess attempts / tail quality need visual evidence.'},
+  {n:'S4 Early ITM',st:'NO DATA',d:'NO DATA — observe only. 09:30 option premium anchor is not derived from index OHLC.'},
+  {n:'S5 Fib',st:'SKIP',d:'SKIP — weak data (5 mixed days).'},
+  {n:'S6 OD / OTD / ORR',st:'NO DATA',d:'NO DATA — observe only. Morning classifier: '+(opening?(opening.sub?.type|| (opening.orr?'ORR':'unconfirmed')):'unresolved')+'; first-20m subtype still requires validation.'},
+  {n:'S7 Half-IB',st:trap?'BLOCKED — TRAP':(s7valid?'ACTIONABLE':(ib.ready?'WAIT / NO ACCEPTANCE':'NO DATA')),d:trap?'ENTRY BLOCKED: participation trap warning active.':(s7valid?'Two consecutive completed 15m closes beyond Half-IB; acceptance observed.':(ib.ready?'Need two consecutive completed 15m closes beyond the same Half-IB level.':'NO DATA — observe only; A+B IB unavailable.')),trade:s7valid&&!trap?s7:null},
+  {n:'S8 VA-80',st:'SKIP',d:'SKIP — weak data (TPO acceptance 0/1); price-only re-entry is insufficient.'},
+  {n:'S9 Trend Day',st:'NO DATA',d:'NO DATA — observe only. Frozen VWAP / 0–1 tests / POC shift require profile observations.'}
+ ];
+ const rowHtml=rows.map(r=>'<div class="candidate-card"><div class="cc-head"><span>'+r.n+'</span><span class="candidate-status">'+r.st+'</span></div><div class="cc-meta">'+v46Esc(r.d)+'</div>'+(r.trade?fmtTrade(r.trade):'')+'</div>').join('');
+ const partText=trap?'TRAP WARNING — participation strong but price not following':(strong?'STRONG PARTICIPATION + PRICE FOLLOW = valid bias':'—');
+ const vixText=vix==null?'—':(vix<12&&mpClear?'LOW VIX — bade move ka setup; balanced sizing rule follow karein':(vix<12?'VIX LOW, but MP structure unclear':'NORMAL'));
+ const warnings=(trap?'<div class="result-box neg"><b>ENTRY BLOCK WARNING</b><br>Participation net '+net+'; price has moved opposite over the latest 30-minute comparison. Do not enter in participation direction; reversal possibility only, not a reversal signal.</div>':'');
+ host.innerHTML='<div class="candidate-grid" style="grid-template-columns:1fr">'+rowHtml+'</div>'+warnings+'<div class="result-box"><b>MARKET-MAKER OBSERVATIONS</b><div class="kv-row"><span>PARTICIPATION</span><b>'+v46Esc(partText)+'</b></div><div class="kv-row"><span>Participation net (c930)</span><b>'+(part.entered?net+' · '+part.entered+'/12 entered':'—')+'</b></div><div class="kv-row"><span>VIX</span><b>'+v46Esc(vixText)+'</b></div><div class="kv-row"><span>OF CONTEXT</span><b>'+v46Esc(ofContext)+'</b></div><div class="kv-row"><span>OF DU / DD totals</span><b>'+(ofSeen?(v46Fmt(du)+' / '+v46Fmt(dd)):'—')+'</b></div><div class="kv-row"><span>Price SMA 20 / 50 (Spot)</span><b>'+v46Fmt(sma20)+' / '+v46Fmt(sma50)+'</b></div><div class="kv-row"><span>Volume SMA 1050 (Futures)</span><b>'+(volSma.value==null?'UNAVAILABLE · '+volSma.count+'/1050 history rows':v46Fmt(volSma.value))+'</b></div><div class="kv-row"><span>C-period Futures volume avg</span><b>'+v46Fmt(volMean)+'</b></div><div class="hint-box" style="padding:8px 10px">OF DU/DD is context only, not a direction predictor. Volume SMA 1050 is calculated only from imported historical Futures bars; price SMA20/50 is calculated separately from current-session Spot closes. No synthetic data is filled.</div></div>';
+}
+
 function futParseNumber(value){
  const t=String(value??'').trim().replace(/,/g,'').replace(/[₹$]/g,'');
  if(t==='')return null;const n=Number(t);return Number.isFinite(n)?n:null;
@@ -5756,7 +5845,7 @@ function futImportCsv(text){
  const otherDates=existing.filter(b=>b.date!==dateKey),same=existing.filter(b=>b.date===dateKey),map=new Map(same.map(b=>[b.minute,b]));let added=0,replaced=0;
  parsed.bars.forEach(b=>{if(map.has(b.minute))replaced++;else added++;map.set(b.minute,b);});
  const merged=[...otherDates,...[...map.values()].sort((a,b)=>a.minute-b.minute)];DAY.futures15m=merged;DAY.futuresImportAudit={date:dateKey,imported:parsed.bars.length,totalForDate:map.size,added,replaced,volumeAvailable:parsed.columns.volume,vwapAvailable:parsed.columns.vwap,ignoredOtherDates:parsed.ignoredDates,source:'NIFTY FUTURES CSV',importedAt:new Date().toISOString()};
- scheduleAutoSave();futRender();try{v45Render();}catch(e){}return DAY.futuresImportAudit;
+ scheduleAutoSave();futRender();try{v29Render();}catch(e){try{v46RenderAutoSetupLayer();}catch(_){}}try{v45Render();}catch(e){}return DAY.futuresImportAudit;
 }
 function futRender(){
  const arr=(DAY.futures15m||[]).filter(b=>b.date===dateKey).sort((a,b)=>a.minute-b.minute),audit=DAY.futuresImportAudit||{};
@@ -5787,20 +5876,22 @@ function v29Bind(){
 }
 // Fills ONLY empty scanner boxes from fields you already entered elsewhere (never overwrites, never invents).
 function v29AutoFill(){
- const set=(id,v)=>{const e=document.getElementById(id);if(!e||v==null||v==='')return false;if(String(e.value||'').trim()!=='')return false;e.value=v;return true;};
+ const set=(id,v,force=false)=>{const e=document.getElementById(id);if(!e||v==null||v==='')return false;if(!force&&String(e.value||'').trim()!=='')return false;if(String(e.value||'')===String(v))return false;e.value=v;return true;};
  const lv=DAY.levels||{},o=DAY.opening||{};const done=[];
  if(set('v29VAH',lv.vah))done.push('VAH');if(set('v29VAL',lv.val))done.push('VAL');
  if(o.valueTpoAcceptance==='yes'||o.valueTpoAcceptance==='no'){if(set('v29TPO',o.valueTpoAcceptance))done.push('TPO');}
- let c=null;try{c=classifyOpeningAt930(DAY);}catch(e){}
- if(c&&c.status!=='DATA_CONFLICT'){
-  const base=/OAIR/.test(c.base||'')?'OAIR':(/OAOR/.test(c.base||'')?'OAOR':'');
-  const sub=/OPEN DRIVE/.test(c.subtype||'')?'OD':(/OTD/.test(c.subtype||'')?'OTD':'');
-  if(set('v29Opening',base))done.push('Opening');
-  if(set('v29Subtype',sub))done.push('Subtype');
-  if(sub&&c.direction&&set('v29Institutional',c.direction==='BULLISH'?'up':'down'))done.push('Institutional (09:30 candidate, provisional)');
+ // IMPORTANT: Quick Q&A S6 is the Morning A-period / A+B classification, not the separate 09:30 provisional snapshot.
+ let c=null;try{c=calcOpening();}catch(e){}
+ if(c){
+  const base=['OAIR','OAOR'].includes(c.base)?c.base:'';
+  const sub=c.sub?.type==='DRIVE'?'OD':(c.sub?.type==='OTD'?'OTD':(c.orr?'ORR':(c.bFilled?'NONE':'')));
+  const dir=c.sub?.dir||c.orr?.dir||null;
+  if(set('v29Opening',base,true))done.push('Opening (Morning A/B)');
+  if(set('v29Subtype',sub,true))done.push('Subtype (Morning A/B)');
+  if(dir&&set('v29Institutional',dir==='up'?'up':'down',true))done.push('Opening direction (Morning A/B)');
  }
- if(done.length){v29Persist();if(document.getElementById('v29AutoScan')?.checked!==false)v29Render();}
- alert(done.length?('Auto-fill ho gaya: '+done.join(', ')+'. Ye sirf aapke Morning/Pre-market entries se aaya hai; galat lage to badal do.'):'Kuch auto-fill nahi hua: ya to boxes pehle se bhare hain, ya Morning/Pre-market mein source data nahi hai.');
+ if(done.length){v29Persist();try{localStorage.setItem(STORAGE_PREFIX+dateKey,JSON.stringify(DAY));}catch(e){}if(document.getElementById('v29AutoScan')?.checked!==false)v29Render();}
+ alert(done.length?('Auto-fill ho gaya: '+done.join(', ')+'. Source: Morning A/B Opening Type; 09:30 provisional classifier alag hai.'):'Kuch auto-fill nahi hua: boxes pehle se bhare hain, ya Morning A/B ke required fields abhi incomplete hain.');
 }
 const V29_QA=[
  {id:'v29Opening',s:'Base',q:'Aaj ka opening context kya tha?',o:[['OAIR','OAIR'],['OAOR','OAOR']]},
@@ -5826,7 +5917,10 @@ function v29QARender(){
   if(b.id==='v29QAReset'){if(!confirm('Q&A ke saare answers clear karein?'))return;V29_QA.forEach(Q=>{if(Q.store){DAY.opening[Q.id]=null;try{renderToggleGroup('tg_'+Q.id,null);}catch(e){}return;}const e=document.getElementById(Q.id);if(e)e.value='';});}
   else{const e=document.getElementById(b.dataset.qid);if(!e)return;e.value=(e.value===b.dataset.qval)?'':b.dataset.qval;}
   const any=document.getElementById(b.dataset.qid||'v29Opening');if(any)any.dispatchEvent(new Event('change',{bubbles:true}));
-  v29Persist();v29Render();
+  // Persist the complete answer set synchronously before re-render; debounce/cloud save follows normally.
+  v29Persist();
+  try{localStorage.setItem(STORAGE_PREFIX+dateKey,JSON.stringify(DAY));}catch(e){console.warn('Quick Q&A local snapshot save failed',e);}
+  v29Render();
  };
 }
 /* V45 Spot + Futures Intelligence — evidence dashboard only; no broker/order execution. */
@@ -6297,6 +6391,143 @@ function ciDownload(filename,content,mime){
     return false;
   }
 }
+
+function ciCompactBool(v){
+  if(v===true||v==='yes'||v==='true'||v===1)return true;
+  if(v===false||v==='no'||v==='false'||v===0)return false;
+  return null;
+}
+function ciCompactNumber(v){
+  const n=strictFiniteNumber(v);
+  return Number.isFinite(n)?n:null;
+}
+function ciCompactTime(b){
+  let m=b&&b.minute!=null&&b.minute!==''&&Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b&&b.timestamp);
+  if(m==null&&b&&b.time){
+    const z=v42NormalizeTime(b.time);
+    if(z)m=Number(z.slice(0,2))*60+Number(z.slice(3,5));
+  }
+  if(m==null)return null;
+  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+}
+function ciCompactCandles(rows, key, includeVwap){
+  if(!Array.isArray(rows))return null;
+  return rows.filter(b=>{
+    if(!b||typeof b!=='object')return false;
+    const d=b.date||v29DateKey(b.timestamp);
+    const t=b.minute!=null&&b.minute!==''&&Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b.timestamp);
+    return d===key&&t!=null&&t>=555&&t<930;
+  }).sort((a,b)=>{
+    const ta=a.minute!=null&&a.minute!==''&&Number.isFinite(Number(a.minute))?Number(a.minute):v29Time(a.timestamp);
+    const tb=b.minute!=null&&b.minute!==''&&Number.isFinite(Number(b.minute))?Number(b.minute):v29Time(b.timestamp);
+    return ta-tb;
+  }).map(b=>{
+    const x={t:ciCompactTime(b),o:ciCompactNumber(b.open),h:ciCompactNumber(b.high),l:ciCompactNumber(b.low),c:ciCompactNumber(b.close),v:ciCompactNumber(b.volume)};
+    if(includeVwap)x.vwap=ciCompactNumber(b.vwap);
+    return x;
+  });
+}
+function ciCompactExportObject(){
+  const d=DAY||{},o=d.opening||{},key=dateKey;
+  const opening=(()=>{try{return calcOpening();}catch(e){return null;}})();
+  const ib=(()=>{try{return calcIB();}catch(e){return null;}})();
+  const scan=(()=>{try{return withJournalDay(d,()=>v29Scan({date:key,day:d,useStoredInputs:true,readOnly:true}));}catch(e){return null;}})();
+  const results=scan&&Array.isArray(scan.results)?scan.results:[];
+  const partNow=(()=>{try{return computeFromValues(d.participation||{},ciCompactNumber(d.niftyPrice)||0,'now');}catch(e){return null;}})();
+  const part930=(()=>{try{return computeFromValues(d.participation||{},ciCompactNumber(d.niftyPrice)||0,'c930');}catch(e){return null;}})();
+  const part=partNow||part930;
+  const ofRows=Array.isArray(d.orderflow)?d.orderflow:null;
+  const of=ofRows?ofRows.filter(e=>e&&typeof e==='object').map(e=>{
+    const du=parseDeltaK(e.du),dd=parseDeltaK(e.dd);
+    const delta=Number.isFinite(du)&&Number.isFinite(dd)?du-dd:null;
+    return {t:ciCompactTime({time:e.time}),tag:e.tag||null,delta:delta==null?null:(delta>0?'+':'')+String(Math.round(delta))};
+  }):null;
+  const hib=Array.isArray(o.halfIbEvents)?o.halfIbEvents.map(e=>({
+    t:e&&e.time||null,
+    side:e&&e.side||null,
+    lvl:ciCompactNumber(e&&e.level),
+    c:ciCompactNumber(e&&e.c)
+  })):null;
+  const vwapCount=(()=>{
+    const x=o.vwapTestCount;
+    if(x==null||x==='')return null;
+    const map={zero:0,one:1,two:2,three:3,four:4};
+    return Object.prototype.hasOwnProperty.call(map,String(x).toLowerCase())?map[String(x).toLowerCase()]:ciCompactNumber(x);
+  })();
+  const tickSide=(o.tickAcceptance==='accepted'||o.tickAcceptance==='accept')?(o.tickAcceptanceSide||null):(o.tickAcceptance==='rejected'?'rejected':null);
+  const sub=opening&&(opening.sub||opening.orr);
+  const openType=opening?(opening.base||null):null;
+  const cands=ciCompactCandles(o.v29Candles,key,false);
+  const futs=ciCompactCandles(d.futures15m,key,true);
+  const compact={
+    d:key,
+    spot:cands,
+    fut:futs,
+    of,
+    anchor:{
+      ce930:ciCompactNumber(o.fibCE&&o.fibCE.p930),
+      ceLatest:ciCompactNumber(o.fibCE&&o.fibCE.p),
+      pe930:ciCompactNumber(o.fibPE&&o.fibPE.p930),
+      peLatest:ciCompactNumber(o.fibPE&&o.fibPE.p)
+    },
+    lvl:{
+      pdh:ciCompactNumber(d.levels&&d.levels.pdh),
+      pdl:ciCompactNumber(d.levels&&d.levels.pdl),
+      vah:ciCompactNumber(d.levels&&d.levels.vah),
+      val:ciCompactNumber(d.levels&&d.levels.val),
+      poc:ciCompactNumber(d.levels&&d.levels.poc)
+    },
+    ib:{
+      h:ib?ciCompactNumber(ib.ibHigh):null,
+      l:ib?ciCompactNumber(ib.ibLow):null,
+      half:ib?(ciCompactNumber(ib.ibHigh)+ciCompactNumber(ib.ibLow))/2:null
+    },
+    open:{type:openType,drive:sub?sub.type==='DRIVE':(opening&&opening.bFilled?false:null)},
+    shape:o.profileShape||null,
+    cPeriod:{
+      rejected:ciCompactBool(o.cPeriodRejected),
+      bluffDir:o.cPeriodBluffDir||null,
+      volStrong:ciCompactBool(o.cVolumeStrong)
+    },
+    hib,
+    va:{
+      entry20:ciCompactBool(o.value20pct),
+      tpo:ciCompactBool(o.valueTpoAcceptance),
+      openedOutside:ciCompactBool(o.valueOpenedOutsideVA)
+    },
+    part:{
+      bull:part?part.alignedBull:null,
+      bear:part?part.alignedBear:null,
+      flat:part?(part.total-part.alignedBull-part.alignedBear):null,
+      done:part?part.total===12:null
+    },
+    S:Object.fromEntries(Array.from({length:9},(_,i)=>{
+      const id=i+1,r=results.find(x=>Number(x.id)===id);
+      return [String(id),r&&r.status?r.status:null];
+    })),
+    tick:{
+      accept:tickSide,
+      indep:ciCompactBool(o.tickAcceptanceIndependent)
+    },
+    vwap:{tests:vwapCount,reaction:o.vwapReaction||null}
+  };
+  return compact;
+}
+async function ciExportCompactJson(){
+  try{
+    const obj=ciCompactExportObject();
+    const content=JSON.stringify(obj);
+    if(!content||content==='{}')throw new Error('Compact JSON serialization returned empty content.');
+    ciDownload('coach-journal-daily-compact-'+dateKey+'.json',content,'application/json;charset=utf-8');
+    const bytes=new Blob([content]).size;
+    console.info('Compact JSON export:',bytes,'bytes');
+    if(bytes<3000||bytes>6000)console.info('Compact export size is outside the 3–6 KB target; actual data volume determines size.');
+  }catch(err){
+    console.error('Compact JSON export failed:',err);
+    alert('Compact JSON export failed safely: '+String(err.message||err));
+  }
+}
+
 async function ciExport(type,format){
   try{
     if(DAY&&DAY.opening&&Array.isArray(DAY.opening.halfIbEvents))v42SyncHalfIbLegacy(null,DAY);
@@ -6321,7 +6552,7 @@ async function ciExport(type,format){
       obj.sourceData={days:days.map(x=>({date:x.key,day:x.saved}))};
       obj.derivedCalculations.automaticSetupScan=null;
       obj.derivedCalculations.automaticSetupScans=days.map(x=>({date:x.key,...ciAutomaticSetupScan(x.saved,x.key)}));
-      if(stats){stats.byMaximumIndicationDirection=groupStats(trades,t=>t.ctx&&t.ctx.maxIndicationDirection);stats.byLegacySignalCount=groupStats(trades,t=>t.ctx&&t.ctx.signals!=null?String(t.ctx.signals)+'/5':null);stats.byOrderFlowStatus=groupStats(trades,t=>t.ctx&&t.ctx.orderFlowStatus);}
+      if(stats){stats.byMaximumIndicationDirection=groupStats(trades,t=>t.ctx&&t.ctx.maxIndicationDirection);stats.byOrderFlowStatus=groupStats(trades,t=>t.ctx&&t.ctx.orderFlowStatus);}
       obj.derivedCalculations.historicalStatistics=stats;obj.tradeRecords=trades;
       const histIssues=[];
       days.forEach(x=>{try{const q=ciDataQuality(x.saved,x.key);(q.issues||[]).forEach(i=>histIssues.push(x.key+': '+i));}catch(err){histIssues.push(x.key+': data-quality audit failed: '+String(err.message||err));}});
@@ -6465,7 +6696,7 @@ function ciDataQuality(day,key){
   const current=num(q.current),trigger=num(q.triggerPrice);let sl=num(q.slPrice),t1=num(q.t1Price),t2=num(q.t2Price);
   const spotBasis=basis==='NIFTY_SPOT';const autoSl=spotBasis?spotLevel(q.slAnchor,ib,L):null;if(sl==null&&autoSl!=null)sl=autoSl;
   const autoT1=spotBasis?targetCalc(q.t1Anchor,dir,ib,setup):null,autoT2=spotBasis?targetCalc(q.t2Anchor,dir,ib,setup):null;if(t1==null&&autoT1!=null)t1=autoT1;if(t2==null&&autoT2!=null)t2=autoT2;
-  const hard=[];if(!setup||setup==='none')hard.push('No setup selected');if(setup==='4')hard.push('S4 is context-only; it cannot independently grant entry permission');if(!q.mode)hard.push('Management mode missing');if(!q.type)hard.push('Coach trade classification missing');if(!dir)hard.push('Direction missing');if(!basis)hard.push('Instrument / price basis missing');if(!triggerTime||trigger==null)hard.push('Trigger time or trigger reference price missing');if(current==null)hard.push('Current execution price missing');if(!q.slAnchor||q.slAnchor==='NONE'||sl==null)hard.push('Valid numeric SL anchor missing');if(t1==null||t2==null)hard.push('T1 and T2 numeric structural targets missing');if(!q.gate)hard.push('Gate / doubt state missing');if(q.gate==='OBSTRUCTION')hard.push('Execution obstruction selected');if(q.gate==='UNCERTAIN')hard.push('Uncertain state requires manual review');if(q.approval!=='yes')hard.push('Manual context approval not recorded');
+  const hard=[];if(!setup||setup==='none')hard.push('No setup selected');if(setup==='4')hard.push('S4 is context-only; it cannot independently grant entry permission');if(!q.mode)hard.push('Management mode missing');if(!q.type)hard.push('Coach trade classification missing');if(!dir)hard.push('Direction missing');if(!basis)hard.push('Instrument / price basis missing');if(!triggerTime||trigger==null)hard.push('Trigger time or trigger reference price missing');if(current==null)hard.push('Current execution price missing');if(!q.slAnchor||q.slAnchor==='NONE'||sl==null)hard.push('Valid numeric SL anchor missing');if(t1==null||t2==null)hard.push('T1 and T2 numeric structural targets missing');if(q.gate==='OBSTRUCTION')hard.push('Execution obstruction selected');if(q.approval!=='yes')hard.push('Manual context approval not recorded');
   // Setup-to-trade-type mapping is not universally hard-coded here; preserve the trader's manual Coach classification and flag unresolved mismatches in notes rather than inventing a universal mapping.
   if(basis&&basis!=='NIFTY_SPOT'&&q.basisCheck!=='yes')hard.push('Selected Futures / Option price basis not confirmed from its own instrument chart');
   if(q.type==='mp'&&q.mode==='INTRADAY'&&q.slAnchor==='VWAP_FILTER'&&num(DAY.opening?.trailVwap)==null)hard.push('VWAP-based SL selected but VWAP is not recorded');
