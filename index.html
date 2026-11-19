@@ -12,6 +12,9 @@ V38 technical fixes: ORR requires a valid A-period range before B-period reversa
 TRADING JOURNAL v37 — COACH COCKPIT EDITION (AUDITED NINE-SETUP JOURNAL)
 V47 scoped update: Added Daily JSON (Compact) with only the requested compact fields; maps existing Spot candles from DAY.opening.v29Candles, Futures from DAY.futures15m, Order Flow from DAY.orderflow, and existing Morning/MP/participation/scanner fields without adding inputs or schema keys. Session candle starts are restricted to 09:15–15:15 (09:00 excluded). Legacy five-field checklist remains evidence-only with no displayed score/count; removed generic uncertain/missing-doubt-state execution block and historical five-field score aggregation. No new trading logic or input fields; existing Coach rules and 14:40 cutoff preserved.\nV37 verified fixes: Cockpit navigation registered and guarded; cockpit refresh included in periodic render; Setup 4 removes unsupported fixed 7/12 gate and reports percentage alignment descriptively while preserving conflict/partial-data states; validates spot OHLC ordering; historical cockpit phase is explicitly labeled historical rather than using today's clock; visible and export version labels updated. Existing V28-compatible data schema retained.
 
+TRADING JOURNAL v48 — DEPLOYMENT FIX (TXT SOURCE)
+V48 fix: removed accidental literal \n\n text outside HTML; updated browser title and visible journal heading to v48. No journal data schema or trading logic changed.
+
 TRADING JOURNAL v47 — CLEAN COMPACT JSON EXPORT
 V35 audit upgrades: date-switch autosave flush + stale-load guard + delete-safe navigation; timestamp-aware local/cloud conflict resolution and local-only history merge; IST-based 14:40 cutoff with recorded trigger-time handling; nearest eligible structural T1 selection; malformed nonblank Volume rejection; duplicate helper removed; finite-number guards for participation/Order Flow/Fib; lakh delta parsing; timestamp-ordered Order Flow sequences when all event times exist; history JSON carries per-day read-only scanner results; Trade Plan links the nine scanner results without treating scanner status as order permission. Existing methodology thresholds and numeric Coach rules are not expanded.
 Base: original user-supplied V28 Coach Multi-Setup journal; all existing sections, local/cloud persistence, saved-day schema, trade logs, learning lab, exports and legacy backup/restore are retained.
@@ -22,7 +25,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v47 · Clean Compact JSON</title>
+<title>Daily Trading Journal v48 · Deployment Fix</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -255,7 +258,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 
 <header>
   <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v45 (Spot + Futures Intelligence)</div>
-  <div class="title">Daily Trading Journal v45</div>
+  <div class="title">Daily Trading Journal v48</div>
 </header>
 
 <div class="daybar">
@@ -6015,7 +6018,7 @@ try{v29QARender();}catch(e){console.warn('V29 QA',e);}
 
 </script>
 
-\n\n<!-- V41 ADDITIVE UPGRADE: all legacy V40 modules remain in place. -->
+<!-- V41 ADDITIVE UPGRADE: all legacy V40 modules remain in place. -->
 <script>
 /*
  V41 methodology-aligned opportunity audit.
