@@ -22,7 +22,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v46.1 · Scanner Startup + Compact Export Fix</title>
+<title>Daily Trading Journal v46.2 · Scanner Startup + Compact Export Fix</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -255,7 +255,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 
 <header>
   <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v45 (Spot + Futures Intelligence)</div>
-  <div class="title">Daily Trading Journal v46.1</div>
+  <div class="title">Daily Trading Journal v46.2</div>
 </header>
 
 <div class="daybar">
@@ -2144,8 +2144,8 @@ document.getElementById('openDriveHalfBox').innerHTML =
       '<div class="row"><span class="muted">IB High</span><b>' + ib.ibHigh.toFixed(1) + '</b></div>' +
       '<div class="row"><span class="muted">IB Low</span><b>' + ib.ibLow.toFixed(1) + '</b></div>' +
       '<div class="row"><span class="muted">IB Length</span><b>' + ib.len.toFixed(1) + ' pts (' + ib.cat + ')</b></div>' +
-      '<div class="row"><span class="muted">Half-IB Upper</span><b>' + ib.halfUpper.toFixed(1) + '</b></div>' +
-      '<div class="row"><span class="muted">Half-IB Lower</span><b>' + ib.halfLower.toFixed(1) + '</b></div>';
+      '<div class="row"><span class="muted">Half-IB midpoint</span><b>' + ((ib.ibHigh+ib.ibLow)/2).toFixed(1) + '</b></div>' +
+      '<div class="row"><span class="muted">IB extension 1x (upper / lower)</span><b>' + ib.halfUpper.toFixed(1) + ' / ' + ib.halfLower.toFixed(1) + '</b></div>';
   }
 
   document.getElementById('op_strikeDist').value = DAY.opening.strikeDist;
@@ -3105,6 +3105,7 @@ function renderOF() {
     div.className = 'of-entry';
     div.innerHTML = `
       <div class="of-head"><span class="idx">#${i+1} ${entry.time?('· '+entry.time):''}</span><button class="of-del">✕</button></div>
+      <div class="of-grid3" style="grid-template-columns:1fr;margin-bottom:8px"><div><label>TIME (HH:MM)</label><input class="ftime" type="time" value="${entry.time||''}"></div></div>
       <div class="of-color-toggle">
         <button class="red ${entry.color==='red'?'active':''}" data-c="red">RED</button>
         <button class="green ${entry.color==='green'?'active':''}" data-c="green">GREEN</button>
@@ -3205,6 +3206,7 @@ function renderOF() {
     div.querySelectorAll('.of-color-toggle button').forEach(b => {
       b.onclick = () => { entry.color = b.dataset.c; div.querySelectorAll('.of-color-toggle button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); refreshAuto(); renderOfTally(); scheduleAutoSave(); };
     });
+    div.querySelector('.ftime').oninput = (e) => { entry.time = e.target.value || ''; const label=div.querySelector('.idx'); if(label)label.textContent='#'+(i+1)+(entry.time?' · '+entry.time:''); scheduleAutoSave(); };
     div.querySelector('.of-period-select').onchange = (e) => { entry.period = e.target.value; scheduleAutoSave(); renderOpening(); };
     div.querySelector('.fh').oninput = (e) => { entry.h = e.target.value; refreshAuto(); scheduleAutoSave(); };
     div.querySelector('.fl').oninput = (e) => { entry.l = e.target.value; refreshAuto(); scheduleAutoSave(); };
@@ -5212,7 +5214,8 @@ function renderCoachCockpit() {
     '<div class="kv-row"><span>Current ITM Anchor</span><b>' + (anc ? anc.toUpperCase() : 'UNRESOLVED') + '</b></div>' +
     '<div class="kv-row"><span>Participation (c930)</span><b>+' + pa.alignedBull + ' / -' + pa.alignedBear + ' (' + pa.entered + '/12 entered)</b></div>' +
     '<div class="kv-row"><span>10:15 IB (A+B)</span><b>' + (ib ? (ib.ibLow.toFixed(1) + ' – ' + ib.ibHigh.toFixed(1) + ' (len ' + ib.len.toFixed(1) + ')') : 'Waiting for A &amp; B') + '</b></div>' +
-    '<div class="kv-row"><span>Half-IB Band</span><b>' + (ib ? (ib.halfLower.toFixed(1) + ' – ' + ib.halfUpper.toFixed(1)) : '—') + '</b></div>';
+    '<div class="kv-row"><span>Actual Half-IB midpoint</span><b>' + (ib ? ((ib.ibHigh+ib.ibLow)/2).toFixed(1) : '—') + '</b></div>' +
+    '<div class="kv-row"><span>IB extension 1x (upper / lower)</span><b>' + (ib ? (ib.halfUpper.toFixed(1) + ' / ' + ib.halfLower.toFixed(1)) : '—') + '</b></div>';
 
   if (!ib) {
     scenBox.innerHTML = '<div class="hint-box" style="padding:0">Morning tab mein A (09:15–09:45) aur B (09:45–10:15) High/Low bharo — If-Then Bullish / Bearish / Inside scenario tree yahan unlock hoga.</div>';
@@ -5221,9 +5224,9 @@ function renderCoachCockpit() {
     const dnT1 = tz(ib.ibLow - ib.len), dnT2 = tz(ib.ibLow - ib.len * 2);
     const mid = ((ib.ibHigh + ib.ibLow) / 2).toFixed(1);
     scenBox.innerHTML =
-      '<div class="result-box" style="margin:0 0 8px"><b>IF 15m CLOSE &gt; HALF-IB UPPER (' + ib.halfUpper.toFixed(1) + ')</b><br>' +
+      '<div class="result-box" style="margin:0 0 8px"><b>IF 15m CLOSE &gt; HALF-IB MIDPOINT (' + mid + ')</b><br>' +
       'Bullish Half-IB access · Structural SL ref: IB High (' + ib.ibHigh.toFixed(1) + ') · T1: ' + upT1 + ' · T2: ' + upT2 + ' (7–8/12 aligned participation needed for extended 2IB/3IB).</div>' +
-      '<div class="result-box" style="margin:0 0 8px"><b>IF 15m CLOSE &lt; HALF-IB LOWER (' + ib.halfLower.toFixed(1) + ')</b><br>' +
+      '<div class="result-box" style="margin:0 0 8px"><b>IF 15m CLOSE &lt; HALF-IB MIDPOINT (' + mid + ')</b><br>' +
       'Bearish Half-IB access · Structural SL ref: IB Low (' + ib.ibLow.toFixed(1) + ') · T1: ' + dnT1 + ' · T2: ' + dnT2 + ' (7–8/12 aligned participation needed for extended 2IB/3IB).</div>' +
       '<div class="result-box" style="margin:0"><b>IF PRICE STAYS INSIDE IB (' + ib.ibLow.toFixed(1) + ' – ' + ib.ibHigh.toFixed(1) + ')</b><br>' +
       'Midpoint ' + mid + ' · Rotation / OAIR / C-period bluff / 80% VA context. Breakout chase avoid; live structure &amp; Order Flow confirm karein.</div>';
@@ -5270,7 +5273,7 @@ function renderCoachCockpit() {
   try { if (typeof v41RenderPanel === 'function') v41RenderPanel(); } catch (e) { console.warn('V41 panel render', e); }
 }
 
-// V46.1: boot is intentionally deferred until every later script block has initialized.
+// V46.2: boot is intentionally deferred until every later script block has initialized.
 // This avoids startup-time access to later lexical bindings in scanner / cockpit modules.
 
 /* ============================================================
@@ -5534,9 +5537,9 @@ function v29Scan(options={}){
  else if(part6.entered<7)results.push({id:6,name:V29_SETUP_NAMES[5],status:'INSUFFICIENT_DATA',detail:'c930 participation coverage is '+part6.entered+'/12; fewer than 7 observations cannot establish alignment.'});
  else if(aligned6<7||dir6!==(x.v29Institutional==='up'?'up':'down'))results.push({id:6,name:V29_SETUP_NAMES[5],status:part6.entered===12?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:'Opening-pattern direction does not match 7+ same-side c930 participation ('+aligned6+'/'+part6.entered+'). '+(part6.entered<12?'Partial coverage remains unresolved.':'Complete sample does not align.')});
  else results.push({id:6,name:V29_SETUP_NAMES[5],status:'DEVELOPING',detail:'Opening subtype '+x.v29Subtype+' and c930 participation align ('+aligned6+'/'+part6.entered+'). '+(part6.entered<12?'PROVISIONAL: incomplete 12-stock coverage. ':'')+'Confirm exact completed 15m trigger close and subtype-specific conditions; no automatic entry.'});
- // Setup 7: mechanical Half-IB access after IB lock.
+ // Setup 7: actual Half-IB is the IB midpoint. The outer half-range levels are IB extensions, not Half-IB.
  if(!ib.ready)results.push({id:7,name:V29_SETUP_NAMES[6],status:'INSUFFICIENT_DATA',detail:ib.reason||'IB not ready.'});
- else {const later=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<=900&&b.close!=null&&v29BarClosedForScan(b,scanDate);});const hit=later.find(b=>b.close>ib.upper||b.close<ib.lower);results.push(hit?{id:7,name:V29_SETUP_NAMES[6],status:'TRIGGERED',tradePermission:false,detail:'ACCESS CONFIRMED ONLY: completed 15m close beyond Half-IB '+(hit.close>ib.upper?'Upper':'Lower')+'. Touch/wick is not access; subsequent acceptance and actual order permission are separate live decisions. Coach risk/SL execution remains separate.',bar:hit.timestamp}:{id:7,name:V29_SETUP_NAMES[6],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session candle coverage shows no post-10:15 15m close beyond Half-IB Upper/Lower.':'No Half-IB close found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});}
+ else {const halfMid=ib.mid;const later=bars.filter(b=>{const t=v29Time(b.timestamp);return t!=null&&t>=615&&t<=900&&b.close!=null&&v29BarClosedForScan(b,scanDate);});const hit=later.find(b=>b.close>halfMid||b.close<halfMid);results.push(hit?{id:7,name:V29_SETUP_NAMES[6],status:'TRIGGERED',direction:hit.close>halfMid?'up':'down',tradePermission:false,detail:'ACTUAL HALF-IB MIDPOINT ACCESS: completed 15m close '+(hit.close>halfMid?'above':'below')+' midpoint '+halfMid+'. The outer IB extension levels are tracked separately. This is setup trigger evidence only, not trade permission.',bar:hit.timestamp}:{id:7,name:V29_SETUP_NAMES[6],status:v29SessionComplete(bars)?'DID_NOT_FORM':'INSUFFICIENT_DATA',detail:v29SessionComplete(bars)?'Complete regular-session candle coverage shows no post-10:15 15m close above/below the actual IB midpoint '+halfMid+'.':'No actual Half-IB midpoint close found yet, but the imported day is incomplete; cannot conclude DID_NOT_FORM.'});}
  // Setup 8: open outside VA, post-IB close >=20% depth, TPO acceptance.
  if(tpoVal==='no')results.push({id:8,name:V29_SETUP_NAMES[7],status:'DID_NOT_FORM',manual:true,detail:'Aapne record kiya: prior VA ke andar multi-period TPO acceptance nahi mila; price-only 80% setup valid nahi.'});
  else if(vah==null||val==null||vah<=val)results.push({id:8,name:V29_SETUP_NAMES[7],status:'INSUFFICIENT_DATA',detail:'Prior-session VAH/VAL required.'});
@@ -5599,7 +5602,7 @@ function automaticTriggerAudit(dayData,scanDate){
         else {state='TRIGGER_CONFIRMED';detail='Setup 5 trigger confirmed: exact declared 15m candle CLOSE breaks P2 and the previous-session instrument Fib VA; P1/P2/P3 geometry is valid and the exact trigger-time spot remains before the existing third-extension dead-end zone. This confirms setup trigger evidence only—not trade permission.';}
       }
     } else if(r.id===7 && r.status==='TRIGGERED'){
-      state='WAITING_NEEDS_MANUAL_EVIDENCE';detail='Half-IB access close is confirmed only. Subsequent acceptance / actual entry trigger is not mechanically defined by the scanner.';
+      state='TRIGGER_CONFIRMED';direction=r.direction||null;detail='S7 trigger confirmed: a completed 15m Spot candle closed '+(direction==='up'?'above':'below')+' the actual IB midpoint (Half-IB). This is setup trigger evidence only—not trade permission or broker execution.';
     } else if(r.id===8 && r.status==='TRIGGERED'){
       state='WAITING_NEEDS_MANUAL_EVIDENCE';detail='80% VA setup evidence is present, but a separate live entry trigger is not mechanically defined in the code.';
     } else if(r.status==='TRIGGERED'){
@@ -5644,7 +5647,7 @@ function v29Render(){
  const strictAudit=document.getElementById('v29StrictData')?.checked!==false;
  const auditIssues=strictAudit?r.q.issues:r.q.issues.filter(x=>!/^Out-of-order timestamp|^Post-IB candle gap/.test(x));
  el.innerHTML='<b>CSV DATA AUDIT · SELECTED DAY '+v29Esc(dateKey)+'</b><br>15m candles: '+n+' · Post-IB valid candles: '+(r.q.postIB?.validCount??0)+'/20 (raw '+(r.q.postIB?.count??0)+') · Post-IB window: '+(r.q.postIB?.complete?'COMPLETE':'INCOMPLETE')+' · Derived complete 30m OHLC candles: '+thirty.length+' · Structural issues: <span style="color:'+(r.q.issues.length?'#F2545B':'#3DDC84')+'">'+r.q.issues.length+'</span> · Missing OHLC rows: '+r.q.missing.length+'<br>'+(auditIssues.concat(r.q.missing).map(v29Esc).join('<br>')||'No structural issues detected. Volume is optional; missing Volume does not block candle import.')+(r.q.postIB?.issues?.length&&strictAudit?'<br>Post-IB issues: '+r.q.postIB.issues.map(v29Esc).join(' · '):'')+(r.q.postIB?.missing?.length?'<br>Post-IB missing rows: '+r.q.postIB.missing.map(v29Esc).join(' · '):'')+(r.q.sourceOrderIssues.length&&strictAudit?'<br><span style="color:#E5B454">Source CSV row-order warnings (sorted for chronology): '+r.q.sourceOrderIssues.map(v29Esc).join(' · ')+'</span>':'');
- ibEl.innerHTML=r.ib.ready?'<b>IB LOCK · 10:15 · SOURCE: MORNING A+B</b><br>A: 09:15–09:45 · B: 09:45–10:15<br>IBH: '+r.ib.ibh+' · IBL: '+r.ib.ibl+' · Length: '+r.ib.len+'<br>Midpoint: '+r.ib.mid+' · Half-IB Upper: '+r.ib.upper+' · Half-IB Lower: '+r.ib.lower:'<b>IB NOT READY</b><br>'+v29Esc(r.ib.reason||'IB calculation disabled.');
+ ibEl.innerHTML=r.ib.ready?'<b>IB LOCK · 10:15 · SOURCE: MORNING A+B</b><br>A: 09:15–09:45 · B: 09:45–10:15<br>IBH: '+r.ib.ibh+' · IBL: '+r.ib.ibl+' · Length: '+r.ib.len+'<br>Actual Half-IB midpoint: '+r.ib.mid+' · IB extension 1x upper / lower: '+r.ib.upper+' / '+r.ib.lower:'<b>IB NOT READY</b><br>'+v29Esc(r.ib.reason||'IB calculation disabled.');
  const table=(title,arr)=>'<div style="font-weight:800;margin:8px 0 5px">'+title+'</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px;white-space:nowrap"><thead><tr>'+['Time','Open','High','Low','Close','Volume status'].map(x=>'<th style="padding:5px;border-bottom:1px solid #34404d;text-align:right">'+x+'</th>').join('')+'</tr></thead><tbody>'+arr.map(b=>'<tr>'+[''+(String(b.timestamp).match(/(?:T|\s)(\d{1,2}:\d{2})/)||[])[1]||b.timestamp,b.open,b.high,b.low,b.close].map(x=>'<td style="padding:5px;border-bottom:1px solid #202a35;text-align:right">'+v29Esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
  if(tbl)tbl.innerHTML='<b>IMPORTED / DERIVED CANDLES</b>'+table('15-MINUTE OHLC',r.bars)+table('30-MINUTE OHLC (aligned 2 × 15m)',thirty);
  const order={TRIGGERED:0,DEVELOPING:1,CONFLICTING_EVIDENCE:2,INSUFFICIENT_DATA:3,NEEDS_COACH_RULE:4,INVALIDATED:5,DID_NOT_FORM:6};
@@ -5740,11 +5743,13 @@ function v46FindS2(spot,ib,levels){
  return null;
 }
 function v46FindS7(spot,ib,levels){
- if(!ib?.ready||spot.length<2)return null;
- for(let i=1;i<spot.length;i++){
-  const a=spot[i-1],b=spot[i];
-  if(a.close>ib.upper&&b.close>ib.upper)return {dir:'up',level:ib.upper,entry:b.close,sl:ib.upper,target:v29Num(levels.vah),bar:b};
-  if(a.close<ib.lower&&b.close<ib.lower)return {dir:'down',level:ib.lower,entry:b.close,sl:ib.lower,target:v29Num(levels.val),bar:b};
+ if(!ib?.ready||!spot.length)return null;
+ const halfMid=ib.mid;
+ for(const b of spot){
+  const t=b.minute??v29Time(b.timestamp);
+  if(t==null||t<615||t>900||!Number.isFinite(Number(b.close))||!v29BarClosedForScan(b,dateKey))continue;
+  if(b.close>halfMid)return {dir:'up',level:halfMid,entry:b.close,sl:ib.ibh,target:v29Num(levels.vah),bar:b};
+  if(b.close<halfMid)return {dir:'down',level:halfMid,entry:b.close,sl:ib.ibl,target:v29Num(levels.val),bar:b};
  }
  return null;
 }
@@ -5975,9 +5980,9 @@ async function v45Render(){
  const halfExceeded=!!(ib?.ready&&cSpotComplete&&((cHigh>ib.ibh+0.5*ib.len)||(cLow<ib.ibl-0.5*ib.len)));
  const cEl=document.getElementById('v45CPeriod');
  if(cEl)cEl.innerHTML='<div class="kv-row"><span>Spot C-period candles (10:15 + 10:30)</span><b>'+(cSpotComplete?'BOTH AVAILABLE':'INCOMPLETE')+'</b></div><div class="kv-row"><span>Spot C-period range high / low / final close</span><b>'+(cSpotComplete?[cHigh,cLow,cClose].join(' / '):'UNDEF')+'</b></div><div class="kv-row"><span>IB source</span><b>'+(ib?.ready?'Morning A+B · IBH '+ib.ibh+' · IBL '+ib.ibl+' · Length '+ib.len:'IB NOT READY')+'</b></div><div class="kv-row"><span>Spot extension beyond IB</span><b>'+(cSpotComplete&&ib?.ready?(extension?'YES':'NOT OBSERVED'):'UNRESOLVED')+'</b></div><div class="kv-row"><span>Completed Spot close back inside IB</span><b>'+(cSpotComplete&&ib?.ready?(closeInside?'YES':'NO'):'UNRESOLVED')+'</b></div><div class="kv-row"><span>Futures C-period volume (10:15 + 10:30)</span><b>'+(vol==null?'INCOMPLETE / MISSING':vol.toLocaleString('en-IN'))+'</b></div><div class="kv-row"><span>Previous 2-month avg C-period volume</span><b>'+(avg==null?'NOT AVAILABLE':Math.round(avg).toLocaleString('en-IN'))+'</b></div><div class="kv-row"><span>Futures Volume vs average</span><b>'+(volAbove==null?'UNRESOLVED':(volAbove?'ABOVE AVERAGE':'NOT ABOVE AVERAGE'))+'</b></div><div class="kv-row"><span>Coach price-above-average condition</span><b>'+(manualPrice==='yes'?'MANUALLY MARKED YES':manualPrice==='no'?'MANUALLY MARKED NO':'UNKNOWN · METRIC NOT DEFINED')+'</b></div><div class="kv-row"><span>Futures chart volume confirmation</span><b>'+(manualVolume==='yes'?'MANUALLY CONFIRMED ABOVE':manualVolume==='no'?'MANUALLY CONFIRMED NOT ABOVE':'NOT RECORDED')+'</b></div><div class="kv-row"><span>Spot extension beyond 50% IB length</span><b>'+(cSpotComplete&&ib?.ready?(halfExceeded?'YES':'NO'):'UNRESOLVED')+'</b></div><div class="hint-box" style="padding:8px 10px">Historical sample: '+benchmark.sample+' prior sessions with BOTH 10:15 and 10:30 Futures bars, from '+start+' to '+dateKey+' (selected day excluded). Average = arithmetic mean of each session combined 30-minute C-period volume. Coach source confirms a 2-month 15m average but does not fully specify per-15m versus combined-30m aggregation; treat this combined view as a research diagnostic until confirmed. Missing sessions are not synthesized.</div><div class="result-box '+(extension&&closeInside&&volAbove===true&&manualPrice==='yes'&&manualVolume==='yes'?'pos':'')+'"><b>Evidence status: '+(extension&&closeInside&&volAbove===true&&manualPrice==='yes'&&manualVolume==='yes'?'RECORDED CONDITIONS ALIGN — REVIEW ONLY':'WAIT / INCOMPLETE / NOT CONFIRMED')+'</b><br>Even when conditions align, this panel does not authorize a trade or fade. If >50% IB extension is observed, Coach&#39;s dominant institutional volume prohibition still needs actual validated evidence; 15m OHLCV alone cannot prove institutional dominance.</div>';
- // Half-IB access ledger from completed Spot candle closes only.
+ // Actual Half-IB midpoint access ledger from completed Spot candle closes only.
  const half=document.getElementById('v45HalfIB');
- if(half){if(!ib?.ready)half.innerHTML='IB NOT READY — Morning A+B High/Low required.';else{const events=spot.filter(b=>{const t=v45Time(b);if(!t||t<'10:15'||!v29BarClosedForScan(b,dateKey))return false;const c=Number(b.close);return c>ib.upper||c<ib.lower;});half.innerHTML='<div class="kv-row"><span>Half-IB Upper / Lower</span><b>'+ib.upper+' / '+ib.lower+'</b></div><div class="kv-row"><span>Completed Spot 15m closes beyond Half-IB</span><b>'+events.length+'</b></div>'+(events.length?events.map(b=>'<div class="kv-row"><span>'+v45Esc(v45Time(b))+' close</span><b>'+b.close+' · '+(Number(b.close)>ib.upper?'ABOVE UPPER':'BELOW LOWER')+'</b></div>').join(''):'No qualifying completed close found in imported Spot candles.')+'<div class="hint-box" style="padding:8px 10px">A wick/touch is not counted. A close beyond Half-IB records ACCESS only; it is not an entry signal or trade permission. The existing S1–S9 scanner remains the authoritative journal implementation for its full setup checks.</div>';}}
+ if(half){if(!ib?.ready)half.innerHTML='IB NOT READY — Morning A+B High/Low required.';else{const midpoint=(ib.ibh+ib.ibl)/2;const events=spot.filter(b=>{const t=v45Time(b);if(!t||t<'10:15'||!v29BarClosedForScan(b,dateKey))return false;const c=Number(b.close);return c>midpoint||c<midpoint;});half.innerHTML='<div class="kv-row"><span>Actual Half-IB midpoint</span><b>'+midpoint+'</b></div><div class="kv-row"><span>IB extension 1x (upper / lower)</span><b>'+ib.upper+' / '+ib.lower+'</b></div><div class="kv-row"><span>Completed Spot 15m closes beyond midpoint</span><b>'+events.length+'</b></div>'+(events.length?events.map(b=>'<div class="kv-row"><span>'+v45Esc(v45Time(b))+' close</span><b>'+b.close+' · '+(Number(b.close)>midpoint?'ABOVE MIDPOINT':'BELOW MIDPOINT')+'</b></div>').join(''):'No qualifying completed close found in imported Spot candles.')+'<div class="hint-box" style="padding:8px 10px">A wick/touch is not counted. A completed 15m close above/below the IB midpoint records Half-IB access; IB extension levels are tracked separately. This is not trade permission.</div>';}}
  const combined=document.getElementById('v45Combined');
  if(combined){const basis=spotC&&futC?Number(futC.close)-Number(spotC.close):null;combined.innerHTML='<div class="kv-row"><span>Spot C-period final close (10:30 candle)</span><b>'+(spotC?.close??'UNDEF')+'</b></div><div class="kv-row"><span>Futures C-period final close (10:30 candle)</span><b>'+(futC?.close??'UNDEF')+'</b></div><div class="kv-row"><span>Futures minus Spot (descriptive basis)</span><b>'+(basis==null?'UNDEF':basis.toFixed(2))+'</b></div><div class="kv-row"><span>Futures VWAP (10:30 candle)</span><b>'+(futC?.vwap??'UNDEF')+'</b></div><div class="hint-box" style="padding:8px 10px">Basis is descriptive only. Spot and Futures price series are not merged, and no entry/SL/target is copied across instruments. A 15m OHLCV bar + VWAP does not establish delta, stacked imbalance, absorption or exhaustion.</div>'; }
  v45RenderHistoryAudit();
@@ -6439,9 +6444,11 @@ function v42ReportError(context,error){
 }
 function v42SyncHalfIbLegacy(event,day){
   const d=day||DAY;if(!d||!d.opening)return;const o=d.opening;
-  // The event ledger is the source of truth when present. Do not infer acceptance from an access candle.
+  // The event ledger is the source of truth, but only the actual IB midpoint is Half-IB; outer half-range levels are IB extensions.
   if(!Array.isArray(o.halfIbEvents)){if(event&&event.type==='close_access')o.halfIbEvents=[event];else return;}
-  const accesses=o.halfIbEvents.filter(e=>e&&e.type==='close_access'&&['up','down'].includes(e.side)&&v42NormalizeTime(e.time));
+  const A=o.A||{},B=o.B||{},nums=[A.h,A.l,B.h,B.l].map(v=>v==null||String(v).trim()===''?NaN:Number(v));
+  const midpoint=nums.every(Number.isFinite)?(Math.max(nums[0],nums[2])+Math.min(nums[1],nums[3]))/2:null;
+  const accesses=o.halfIbEvents.filter(e=>e&&e.type==='close_access'&&['up','down'].includes(e.side)&&v42NormalizeTime(e.time)&&midpoint!=null&&Number.isFinite(Number(e.level))&&Math.abs(Number(e.level)-midpoint)<=0.051);
   accesses.sort((a,b)=>v42NormalizeTime(a.time).localeCompare(v42NormalizeTime(b.time)));
   const latest=accesses.length?accesses[accesses.length-1]:null;
   o.halfIbAccess=latest?'yes':'no';o.halfIbSide=latest?latest.side:null;
@@ -6453,7 +6460,7 @@ function addHalfIbEvent(){
   const ib=calcIB();
   if(!time){alert('Event time HH:MM format mein bharo (24-hour).');return;}
   if(type==='close_access'&&!ib){alert('Half-IB access event se pehle Morning A aur B ka valid IB complete hona zaroori hai.');return;}
-  const expectedLevel=ib?(side==='up'?ib.halfUpper:ib.halfLower):null;
+  const expectedLevel=ib?(ib.ibHigh+ib.ibLow)/2:null;
   const entered=val('hib_event_level');
   const level=type==='close_access'?expectedLevel:Number(entered);
   if(level==null||!Number.isFinite(Number(level))){alert('Valid Half-IB level bharo.');return;}
@@ -6476,7 +6483,7 @@ function addHalfIbEvent(){
 // Pre-fill the locked calculated level when the side selector changes.
 (function v42BindHalfIbLevel(){
   const sideEl=document.getElementById('hib_event_side'),levelEl=document.getElementById('hib_event_level'),typeEl=document.getElementById('hib_event_type');
-  const fill=()=>{if(!sideEl||!levelEl||typeEl?.value!=='close_access')return;const ib=calcIB();if(ib)levelEl.value=(sideEl.value==='up'?ib.halfUpper:ib.halfLower).toFixed(2);};
+  const fill=()=>{if(!sideEl||!levelEl||typeEl?.value!=='close_access')return;const ib=calcIB();if(ib)levelEl.value=((ib.ibHigh+ib.ibLow)/2).toFixed(2);};
   sideEl?.addEventListener('change',fill);typeEl?.addEventListener('change',fill);['op_Ah','op_Al','op_Bh','op_Bl','op_Ac','op_Bc'].forEach(id=>{const e=document.getElementById(id);e?.addEventListener('input',fill);e?.addEventListener('change',fill);});
   document.addEventListener('v42:opening-data-updated',fill);window.v42RefreshHalfIbLevel=fill;fill();
 })();
@@ -6599,7 +6606,7 @@ function ciDataQuality(day,key){
 </html>
 
 <script>
-/* V46.1 STARTUP + COMPACT DAILY EXPORT PATCH. Existing journal schema and Coach rules are untouched. */
+/* V46.2 HALF-IB / S7 / ORDER FLOW TIME / COMPACT EXPORT PATCH. Existing journal schema and Coach rules are untouched. */
 (function(){
   'use strict';
   const $ = id => document.getElementById(id);
@@ -6642,48 +6649,97 @@ function ciDataQuality(day,key){
     const shapeRaw = raw(o.profileShape || o.pShapeType);
     const shapeMap = {'P':'P','P-shape':'P','B':'B','B-shape':'B','D':'D','D-shape':'D','Double D':'DoubleD','DoubleD':'DoubleD','Double-D':'DoubleD'};
     const shape = shapeRaw == null ? null : (shapeMap[shapeRaw] || shapeRaw);
-    const spot = candleRows(o.v29Candles, false);
+    const spotBars = Array.isArray(o.v29Candles) ? o.v29Candles : null;
+    const spot = candleRows(spotBars, false);
     const fut = candleRows(d.futures15m, true);
     const of = Array.isArray(d.orderflow) ? d.orderflow.filter(e=>e&&['IB','RB','IS','RS'].includes(e.tag)).map(e=>{
       const plus = raw(e.du), minus = raw(e.dd);
       const delta = plus == null && minus == null ? null : (plus == null ? '-'+minus : (minus == null ? '+'+plus : '+'+plus+' / -'+minus));
       return {t:raw(e.time),tag:e.tag,delta};
     }) : null;
-    const hib = Array.isArray(o.halfIbEvents) ? o.halfIbEvents.map(e=>({t:raw(e&&e.time),side:raw(e&&e.side),lvl:num(e&&e.level),c:num(e&&e.c)})) : null;
+
+    let halfIb = null, ibExt = null;
+    if (ibRaw && Array.isArray(spotBars)) {
+      const midpoint = (ibRaw.ibHigh + ibRaw.ibLow) / 2;
+      const halfStep = ibRaw.len / 2; // In the supplied example, IBH 25304 + half-range 100 = extension 1x 25404.
+      const extensionLevels = [];
+      for (let n=1;n<=3;n++) {
+        extensionLevels.push({side:'up',level:ibRaw.ibHigh + halfStep*n,mult:n});
+        extensionLevels.push({side:'down',level:ibRaw.ibLow - halfStep*n,mult:n});
+      }
+      const eventRow = (t,side,lvl,c) => ({t:raw(t),side,lvl:num(lvl),c:num(c)});
+      const halfRows = [], extRows = [];
+      const ledger = Array.isArray(o.halfIbEvents) ? o.halfIbEvents : [];
+      ledger.forEach(e=>{
+        if(!e)return;
+        const lvl=num(e.level), side=raw(e.side), t=raw(e.time), c=num(e.c);
+        if(lvl==null||!['up','down'].includes(side))return;
+        if(Math.abs(lvl-midpoint)<=0.051) halfRows.push(eventRow(t,side,midpoint,c));
+        else {
+          const ext=extensionLevels.find(x=>Math.abs(x.level-lvl)<=0.051);
+          if(ext)extRows.push(eventRow(t,side,ext.level,c));
+        }
+      });
+      const bars=spotBars.slice().filter(b=>b&&v29Time(b.timestamp)!=null).sort((a,b)=>String(a.timestamp).localeCompare(String(b.timestamp)));
+      bars.forEach(b=>{
+        const minute=v29Time(b.timestamp);
+        if(minute==null||minute<615||minute>900||!Number.isFinite(Number(b.close)))return;
+        if(typeof v29BarClosedForScan==='function'&&!v29BarClosedForScan(b,dateKey))return;
+        const close=Number(b.close), t=time(b);
+        if(close>midpoint)halfRows.push(eventRow(t,'up',midpoint,close));
+        else if(close<midpoint)halfRows.push(eventRow(t,'down',midpoint,close));
+      });
+      extensionLevels.forEach(ext=>{
+        const hit=bars.find(b=>{
+          const minute=v29Time(b.timestamp);
+          if(minute==null||minute<615||minute>900||!Number.isFinite(Number(b.close)))return false;
+          if(typeof v29BarClosedForScan==='function'&&!v29BarClosedForScan(b,dateKey))return false;
+          return ext.side==='up'?Number(b.close)>ext.level:Number(b.close)<ext.level;
+        });
+        if(hit)extRows.push(eventRow(time(hit),ext.side,ext.level,hit.close));
+      });
+      const dedupe=rows=>{
+        const seen=new Set();
+        return rows.filter(x=>{const k=[x.t,x.side,x.lvl,x.c].join('|');if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>String(a.t||'').localeCompare(String(b.t||'')));
+      };
+      halfIb=dedupe(halfRows);
+      ibExt=dedupe(extRows);
+    }
+
     let part = null;
     if (d.participation && typeof participationAuditForDay === 'function') {
       const a = participationAuditForDay(d,'c930');
       part = {bull:Number.isFinite(a.alignedBull)?a.alignedBull:null,bear:Number.isFinite(a.alignedBear)?a.alignedBear:null,flat:Number.isFinite(a.zero)?a.zero:null,done:Number.isFinite(a.entered)?a.entered===12:null};
     }
     let scan = null, audit = null;
-    try { if (typeof v29Scan === 'function') scan = v29Scan({date:dateKey,day:d,useStoredInputs:true,readOnly:true}); } catch(e) { console.warn('[V46.1] Compact export scanner read failed:',e); }
-    try { if (typeof automaticTriggerAudit === 'function') audit = automaticTriggerAudit(d,dateKey); } catch(e) { console.warn('[V46.1] Compact export trigger audit failed:',e); }
+    try { if (typeof v29Scan === 'function') scan = v29Scan({date:dateKey,day:d,useStoredInputs:true,readOnly:true}); } catch(e) { console.warn('[V46.2] Compact export scanner read failed:',e); }
+    try { if (typeof automaticTriggerAudit === 'function') audit = automaticTriggerAudit(d,dateKey); } catch(e) { console.warn('[V46.2] Compact export trigger audit failed:',e); }
     const states = {};
     for (let i=1;i<=9;i++) {
       const tr = audit && Array.isArray(audit.results) ? audit.results.find(x=>Number(x.id)===i) : null;
       const sr = scan && Array.isArray(scan.results) ? scan.results.find(x=>Number(x.id)===i) : null;
       states[String(i)] = tr ? (tr.triggerState==='TRIGGER_CONFIRMED'?'TRIGGER':(tr.triggerState==='INVALID_NO_TRADE'?'INVALID':'WAITING')) : (sr ? (['INVALIDATED','DID_NOT_FORM'].includes(sr.status)?'INVALID':'WAITING') : null);
     }
-    const partAudit = part;
-    const out = {
+    const halfLevel=ibRaw?(ibRaw.ibHigh+ibRaw.ibLow)/2:null;
+    return {
       d:raw(dateKey),
       spot,
       fut,
       of,
       anchor:{ce930:num(fibCE.p930),ceLatest:num(fibCE.p),pe930:num(fibPE.p930),peLatest:num(fibPE.p)},
       lvl:{pdh:num(L.pdh),pdl:num(L.pdl),vah:num(L.vah),val:num(L.val),poc:num(L.poc)},
-      ib:{h:ibRaw?num(ibRaw.ibHigh):null,l:ibRaw?num(ibRaw.ibLow):null,half:ibRaw?num(ibRaw.len/2):null},
+      ib:{h:ibRaw?num(ibRaw.ibHigh):null,l:ibRaw?num(ibRaw.ibLow):null,half:num(halfLevel)},
       open:opening,
       shape,
       cPeriod:{rejected:bool(o.cPeriodRejected),bluffDir:raw(o.cPeriodBluffDir),volStrong:bool(o.cVolumeStrong)},
-      hib,
+      halfIb,
+      ibExt,
       va:{entry20:bool(o.value20pct),tpo:bool(o.valueTpoAcceptance),openedOutside:bool(o.valueOpenedOutsideVA)},
-      part:partAudit,
+      part,
       S:states,
       tick:{accept:raw(o.tickAcceptanceSide),indep:bool(o.tickAcceptanceIndependent)},
       vwap:{tests:num(o.vwapTestCount),reaction:raw(o.vwapReaction)}
     };
-    return out;
   }
   function showCompactFallback(filename, content, reason){
     const old=$('v46CompactFallback'); if(old)old.remove();
@@ -6707,12 +6763,12 @@ function ciDataQuality(day,key){
       try{
         const blob=new Blob([content],{type:'application/json;charset=utf-8'});
         const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);downloaded=true;
-      }catch(err){console.warn('[V46.1] Compact download fallback:',err);}
+      }catch(err){console.warn('[V46.2] Compact download fallback:',err);}
       // Always show the copyable fallback on mobile-compatible UI so a silent WebView download cannot lose the export.
       showCompactFallback(filename,content,downloaded?'If the file did not appear in Downloads, use Copy JSON below.':'Download was unavailable; use Copy JSON below.');
       const kb=(new Blob([content]).size/1024).toFixed(2);
-      console.info('[V46.1] Compact JSON generated:',kb+' KB',payload);
-    }catch(err){console.error('[V46.1] Compact JSON export failed:',err);alert('Compact JSON export failed: '+String(err&&err.message||err));}
+      console.info('[V46.2] Compact JSON generated:',kb+' KB',payload);
+    }catch(err){console.error('[V46.2] Compact JSON export failed:',err);alert('Compact JSON export failed: '+String(err&&err.message||err));}
     finally{if(btn){btn.disabled=false;btn.textContent='Daily JSON (Compact)';}}
   }
   const button=$('ciDailyCompactJson'); if(button)button.addEventListener('click',exportCompact);
@@ -6726,7 +6782,7 @@ function ciDataQuality(day,key){
     await loadDay(todayKey());
     await renderHistory();
   }catch(err){
-    console.error('[V46.1] Deferred journal startup failed:',err);
+    console.error('[V46.2] Deferred journal startup failed:',err);
     const host=document.getElementById('v29ScanResults');
     if(host)host.innerHTML='<div class="result-box" style="color:#F2545B">Journal startup warning: '+String(err&&err.message||err)+'</div>';
   }
