@@ -1,5 +1,6 @@
 <!--
-TRADING JOURNAL v45 + SPOT/FUTURES INTELLIGENCE TAB — V46 SAVED-DAYS HISTORY VISIBILITY PATCH (BACKWARD-COMPATIBLE)
+V50 FIX: moved V29 scanner binding, input loading, first render and QA render from the end of the first script section to the end of the complete document, after V41/V44 lexical declarations and functions initialize. This removes the startup temporal-dead-zone ordering hazard. No scanner rules, trade logic, journal fields or saved-data schema changed.
+TRADING JOURNAL v50 — DEFERRED SCANNER INITIALIZATION (BACKWARD-COMPATIBLE)
 V46 HISTORY FIX: Saved Days list now refreshes whenever Summary opens and has a manual Refresh control; localStorage reads are guarded; local/cloud dates are merged without allowing equal/unknown cloud timestamps to overwrite local copies; history rendering reports errors instead of silently leaving a blank list. No trading logic, journal fields, schema or saved-day format changed.
 V44 FUTURES ADD-ON: isolated NIFTY Futures 15m CSV import stores OHLC, Volume, and VWAP separately. V45 ADD-ON: dedicated Spot + Futures Intelligence tab; Spot structure and Futures volume remain separate; multi-date Futures history archive; C-period evidence audit; Half-IB close ledger; descriptive basis view; no broker execution.
 TRADING JOURNAL v41 — METHODOLOGY-ALIGNED OPPORTUNITY & LIFECYCLE JOURNAL
@@ -25,7 +26,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Daily Trading Journal v49 · Scanner Init Fix</title>
+<title>Daily Trading Journal v50 · Deferred Scanner Initialization</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -258,7 +259,7 @@ Preserved V33 architecture and existing journal functionality: Morning tab A/B p
 
 <header>
   <div class="eyebrow">MARKET PROFILE + ORDER FLOW · v45 (Spot + Futures Intelligence)</div>
-  <div class="title">Daily Trading Journal v49</div>
+  <div class="title">Daily Trading Journal v50</div>
 </header>
 
 <div class="daybar">
@@ -6013,8 +6014,7 @@ function v45Bind(){
 }
 try{v45Bind();}catch(e){console.warn('V45 bind',e);}
 
-try{v29Bind();window.__v29ScannerReady=true;v29LoadInputs();v29Render();}catch(e){console.warn('V29 scanner binding / initial render',e);window.__v29ScannerReady=false;}
-try{v29QARender();}catch(e){console.warn('V29 QA',e);}
+// V50: scanner startup is intentionally deferred until ALL journal script sections (including V41/V44) have initialized.
 
 </script>
 
@@ -6739,6 +6739,22 @@ function ciDataQuality(day,key){
  window.v44Render=render;
  try{bind();render();}catch(e){console.warn('V44 init',e);}
 })();
+</script>
+
+<script>
+// V50 STARTUP BARRIER: all three classic-script sections have now executed.
+// Only now bind and render V29, whose render path calls V41/V44-era functions.
+try {
+  v29Bind();
+  v29LoadInputs();
+  window.__v29ScannerReady = true;
+  v29Render();
+} catch (e) {
+  window.__v29ScannerReady = false;
+  console.error('V50 scanner startup failed', e && e.stack ? e.stack : e);
+  try { v42ReportError('Scanner startup', e); } catch (_) {}
+}
+try { v29QARender(); } catch (e) { console.error('V29 QA startup failed', e); }
 </script>
 
 </body>
