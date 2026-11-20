@@ -6652,12 +6652,15 @@ function ciDataQuality(day,key){
     const spotBars = Array.isArray(o.v29Candles) ? o.v29Candles : null;
     const spot = candleRows(spotBars, false);
     const fut = candleRows(d.futures15m, true);
-    const of = Array.isArray(d.orderflow) ? d.orderflow.filter(e=>e&&['IB','RB','IS','RS'].includes(e.tag)).map(e=>{
+    const ofTimeInputs = document.querySelectorAll('#ofList .of-entry .ftime');
+    const of = Array.isArray(d.orderflow) ? d.orderflow.map((e,index)=>({e,index})).filter(x=>x.e&&['IB','RB','IS','RS'].includes(x.e.tag)).map(({e,index})=>{
       const plus = raw(e.du), minus = raw(e.dd);
       const delta = plus == null && minus == null ? null : (plus == null ? '-'+minus : (minus == null ? '+'+plus : '+'+plus+' / -'+minus));
-      const storedTime = e.time != null && String(e.time).trim() ? e.time : (e.t != null && String(e.t).trim() ? e.t : e.timestamp);
-      const timeMatch = storedTime == null ? null : String(storedTime).match(/(?:T|\s)?(\d{1,2}:\d{2})/);
-      const ofTime = timeMatch ? timeMatch[1].padStart(5,'0') : raw(storedTime);
+      // Read the matching Midday time control at export time and sync that entry's data field.
+      if (ofTimeInputs[index]) e.time = String(ofTimeInputs[index].value || '').trim();
+      const storedTime = e.time;
+      const timeMatch = storedTime == null ? null : String(storedTime).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+      const ofTime = timeMatch ? timeMatch[1].padStart(2,'0')+':'+timeMatch[2] : null;
       return {t:ofTime,tag:e.tag,delta};
     }) : null;
 
