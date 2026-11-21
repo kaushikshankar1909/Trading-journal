@@ -6653,16 +6653,37 @@ function ciDataQuality(day,key){
     const spot = candleRows(spotBars, false);
     const fut = candleRows(d.futures15m, true);
     const ofTimeInputs = document.querySelectorAll('#ofList .of-entry .ftime');
+    let runningDelta = 0, runningDeltaKnown = true;
     const of = Array.isArray(d.orderflow) ? d.orderflow.map((e,index)=>({e,index})).filter(x=>x.e&&['IB','RB','IS','RS'].includes(x.e.tag)).map(({e,index})=>{
       const plus = raw(e.du), minus = raw(e.dd);
       const delta = plus == null && minus == null ? null : (plus == null ? '-'+minus : (minus == null ? '+'+plus : '+'+plus+' / -'+minus));
+      const plusValue = parseDeltaK(e.du), minusValue = parseDeltaK(e.dd);
+      const hasDelta = Number.isFinite(plusValue) || Number.isFinite(minusValue);
+      const netDelta = hasDelta ? (Number.isFinite(plusValue) ? plusValue : 0) - (Number.isFinite(minusValue) ? minusValue : 0) : null;
+      if (!hasDelta) runningDeltaKnown = false;
+      else if (runningDeltaKnown) runningDelta += netDelta;
+      const dominantDelta = hasDelta ? Math.max(Number.isFinite(plusValue) ? plusValue : 0, Number.isFinite(minusValue) ? minusValue : 0) : 0;
+      const boxCount = num(e.boxCount);
       // Read the matching Midday time control at export time and sync that entry's data field.
       if (ofTimeInputs[index]) e.time = String(ofTimeInputs[index].value || '').trim();
       const storedTime = e.time;
       const timeMatch = storedTime == null ? null : String(storedTime).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
       const ofTime = timeMatch ? timeMatch[1].padStart(2,'0')+':'+timeMatch[2] : null;
-      return {t:ofTime,tag:e.tag,delta};
+      return {t:ofTime,tag:e.tag,delta,cumDelta:runningDeltaKnown?runningDelta:null,llt:hasDelta&&dominantDelta>=75000,imbBoxes:boxCount,vwapCtx:e.vwapCtx==null?null:raw(e.vwapCtx)};
     }) : null;
+
+    const retracement50 = (high,low) => {
+      const h = num(high), l = num(low);
+      return h === null || l === null || h <= l ? null : {high:h,low:l,level50:(h+l)/2};
+    };
+    const itmStates = typeof itmVals === 'function' ? itmVals() : {ce:null,pe:null};
+    const itmBias = typeof combineItmFibStates === 'function' ? combineItmFibStates(itmStates) : null;
+    const momentum = {
+      fibVA:[38.2,61.8],
+      halfBack:50,
+      openDriveFib:{spot:retracement50(o.odH,o.odL),call:retracement50(o.odCEh,o.odCEl),put:retracement50(o.odPEh,o.odPEl)},
+      sideFavour:itmBias&&itmBias.direction==='up'?'call':(itmBias&&itmBias.direction==='down'?'put':'neutral')
+    };
 
     let hib = null;
     if (ibRaw && Array.isArray(spotBars)) {
@@ -6715,6 +6736,7 @@ function ciDataQuality(day,key){
       lvl:{pdh:num(L.pdh),pdl:num(L.pdl),vah:num(L.vah),val:num(L.val),poc:num(L.poc)},
       ib:{h:ibRaw?num(ibRaw.ibHigh):null,l:ibRaw?num(ibRaw.ibLow):null,half:num(halfLevel)},
       open:opening,
+      momentum,
       shape,
       cPeriod:{rejected:bool(o.cPeriodRejected),bluffDir:raw(o.cPeriodBluffDir),volStrong:bool(o.cVolumeStrong)},
       hib,
